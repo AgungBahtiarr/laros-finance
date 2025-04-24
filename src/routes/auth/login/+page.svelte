@@ -1,6 +1,25 @@
 <script>
-	let { data, form } = $props();
-	let error = form?.error ?? '';
+	import { goto } from '$app/navigation';
+	import { authClient } from '$lib/auth-client';
+
+	let username = $state('');
+	let password = $state('');
+	let error = $state('');
+
+	async function handleLogin(event) {
+		event.preventDefault();
+
+		try {
+			const result = await authClient.signIn.username({ username, password });
+			if (!result.error) {
+				goto('/dashboard');
+			} else {
+				error = result.error.message || 'Login gagal. Periksa username atau password.';
+			}
+		} catch (err) {
+			error = err.message || 'Terjadi kesalahan saat login.';
+		}
+	}
 </script>
 
 <div class="bg-base-200 flex min-h-screen items-center justify-center">
@@ -27,16 +46,18 @@
 				</div>
 			{/if}
 
-			<form method="POST" action="?/create" class="space-y-4">
+			<form onsubmit={handleLogin} class="space-y-4">
 				<div class="form-control">
 					<label class="label" for="username">
 						<span class="label-text">Username</span>
 					</label>
 					<input
 						type="text"
+						id="username"
 						name="username"
 						placeholder="Masukkan username"
 						class="input input-bordered w-full"
+						bind:value={username}
 						required
 					/>
 				</div>
@@ -47,12 +68,15 @@
 					</label>
 					<input
 						type="password"
+						id="password"
 						name="password"
 						placeholder="Masukkan password"
 						class="input input-bordered w-full"
+						bind:value={password}
 						required
 					/>
 				</div>
+
 				<div class="form-control mt-6">
 					<button type="submit" class="btn btn-primary w-full">Masuk</button>
 				</div>
@@ -61,7 +85,7 @@
 			<div class="divider">ATAU</div>
 
 			<div class="space-y-2 text-center">
-				<a href="/auth/forgot-password" class="link link-hover text-sm">Lupa password? </a>
+				<a href="/auth/forgot-password" class="link link-hover text-sm">Lupa password?</a>
 			</div>
 		</div>
 	</div>
