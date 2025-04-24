@@ -51,3 +51,49 @@ export const verification = sqliteTable('verification', {
 	createdAt: integer('created_at', { mode: 'timestamp' }),
 	updatedAt: integer('updated_at', { mode: 'timestamp' })
 });
+
+export const jenisHarta = sqliteTable('jenis_harta', {
+	id: integer('id').primaryKey(),
+	keterangan: text('keterangan').notNull(),
+	daftar: text('daftar').notNull() 
+});
+
+// Tabel untuk Kelompok Harta
+export const kelompokHarta = sqliteTable('kelompok_harta', {
+	id: integer('id').primaryKey(),
+	keterangan: text('keterangan').notNull(),
+	jenis: text('jenis').notNull() 
+});
+
+// Tabel untuk Metode Penyusutan Komersial
+export const metodePenyusutanKomersial = sqliteTable('metode_penyusutan_komersial', {
+	id: integer('id').primaryKey(),
+	kode: text('kode').notNull(),
+	keterangan: text('keterangan').notNull()
+});
+
+// Tabel untuk Metode Penyusutan Fiskal
+export const metodePenyusutanFiskal = sqliteTable('metode_penyusutan_fiskal', {
+	id: integer('id').primaryKey(),
+	kode: text('kode').notNull(),
+	keterangan: text('keterangan').notNull()
+});
+
+// Tabel utama untuk Asset
+export const asset = sqliteTable('asset', {
+	id: integer('id').primaryKey(),
+	jenisHartaId: integer('jenis_harta_id').notNull(),
+	kelompokHartaId: integer('kelompok_harta_id').notNull(),
+	jenisUsaha: text('jenis_usaha').notNull(), 
+	namaHarta: text('nama_harta').notNull(),
+	bulanPerolehan: integer('bulan_perolehan').notNull(), 
+	tahunPerolehan: integer('tahun_perolehan').notNull(),
+	metodePenyusutanKomersialId: integer('metode_penyusutan_komersial_id').notNull(),
+	metodePenyusutanFiskalId: integer('metode_penyusutan_fiskal_id').notNull(),
+	hargaPerolehan: integer('harga_perolehan').notNull(),
+	nilaiSisaBuku: integer('nilai_sisa_buku').notNull(),
+	penyusutanFiskalTahunIni: integer('penyusutan_fiskal_tahun_ini').notNull(),
+	keterangan: text('keterangan'),
+	createdAt: integer('created_at', { mode: 'timestamp' }).notNull().defaultNow(),
+	updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().defaultNow()
+});
