@@ -1,44 +1,15 @@
-// src/lib/server/db/seed.ts
-import { config } from 'dotenv';
-import { db } from './index';
-import { user, account } from './schema';
-import { nanoid } from 'nanoid';
-import { hash } from 'bcryptjs';
+import { authClient } from '$lib/auth-client';
 
-config();
+async function main() {
+	const user = await authClient.signUp.email({
+		name: 'Admin2',
+		email: 'admin2@laros.ae',
+		username: 'admin2',
+		displayUsername: 'admin2',
+		password: 'Larosndo12..'
+	});
 
-const seed = async () => {
-  const now = new Date();
-  const userId = nanoid();
+	console.log(user);
+}
 
-  await db.insert(user).values({
-    id: userId,
-    name: 'Admin',
-    email: 'admin@laros.ae',
-    emailVerified: false,
-    username: 'admin',
-    displayUsername: 'admin',
-    createdAt: now,
-    updatedAt: now
-  });
-
-  const hashedPassword = await hash('Larosndo12..', 10);
-
-  await db.insert(account).values({
-    id: nanoid(),
-    accountId: 'admin',
-    providerId: 'username',
-    userId,
-    password: hashedPassword,
-    createdAt: now,
-    updatedAt: now
-  });
-
-  console.log('✅ Seeding selesai');
-};
-
-seed().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
-
+main();
