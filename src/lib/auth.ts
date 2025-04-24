@@ -8,7 +8,8 @@ export const auth = betterAuth({
 	secret: BETTER_AUTH_SECRET,
 	url: BETTER_AUTH_URL,
 	emailAndPassword: {
-		enabled: true
+		enabled: true,
+        autoSignIn: false
 	},
 	session: {
 		storeSessionInDatabase: true,
