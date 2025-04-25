@@ -3,7 +3,7 @@
 	let { user } = $props();
 </script>
 
-<header class="flex h-14 items-center gap-4 border-b bg-white px-6">
+<header class="flex h-14 items-center gap-4 border-b px-6">
 	<div class="lg:hidden">
 		<label for="sidebar-mobile-nav" class="btn btn-ghost btn-square drawer-button">
 			<svg
@@ -24,7 +24,7 @@
 	</div>
 
 	<div class="flex flex-1 items-center gap-4">
-		<h1 class="text-lg font-semibold text-gray-800">
+		<h1 class="text-primary text-lg font-semibold">
 			{page.url.pathname.split('/')[1].charAt(0).toUpperCase() +
 				page.url.pathname.split('/')[1].slice(1)}
 		</h1>

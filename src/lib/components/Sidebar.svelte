@@ -20,7 +20,7 @@
 	];
 </script>
 
-<div class="flex h-[100vh] flex-col border-r bg-white">
+<div class="flex h-[100vh] flex-col border-r">
 	<div class="flex h-14 items-center border-b px-6">
 		<span class="text-primary text-lg font-bold">Laros Finance</span>
 	</div>
