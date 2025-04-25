@@ -32,7 +32,7 @@
 
 	<div class="flex items-center gap-4">
 		<div class="dropdown dropdown-end">
-			<label tabindex="0" class="btn btn-ghost btn-circle avatar">
+			<label for="user-menu" class="btn btn-ghost btn-circle avatar">
 				<div class="w-10 rounded-full ring-1 ring-gray-200">
 					<img
 						src={user?.image || 'https://ui-avatars.com/api/?name=' + user?.name}
@@ -41,7 +41,7 @@
 				</div>
 			</label>
 			<ul
-				tabindex="0"
+				id="user-menu"
 				class="menu dropdown-content mt-3 w-52 rounded-lg border bg-white p-2 shadow-lg"
 			>
 				<li><a href="/profile" class="text-gray-700 hover:bg-gray-50">Profile</a></li>
