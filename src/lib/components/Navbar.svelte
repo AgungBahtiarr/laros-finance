@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	let { user } = $props();
+	let { user, children } = $props();
 </script>
 
 <header class="flex h-14 items-center gap-4 border-b px-6">
@@ -47,7 +47,7 @@
 			>
 				<li><a href="/profile" class="text-gray-700 hover:bg-gray-50">Profile</a></li>
 				<li><a href="/settings" class="text-gray-700 hover:bg-gray-50">Settings</a></li>
-				<li class="text-gray-700"><slot name="sign-out" /></li>
+				<li class="text-gray-700">{@render children()}</li>
 			</ul>
 		</div>
 	</div>

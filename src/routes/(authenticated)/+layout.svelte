@@ -25,13 +25,11 @@
 	<div class="drawer-content flex flex-col">
 		<!-- Navbar -->
 		<Navbar user={currentUser}>
-			<svelte:fragment slot="sign-out">
-				<SignOut />
-			</svelte:fragment>
+			<SignOut />
 		</Navbar>
 
 		<!-- Page content -->
-		<main class="flex-1 p-6 ">
+		<main class="flex-1 p-6">
 			{@render children()}
 		</main>
 	</div>
