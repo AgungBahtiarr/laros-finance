@@ -1,0 +1,53 @@
+<script lang="ts">
+	import { page } from '$app/state';
+	let { user } = $props();
+</script>
+
+<header class="flex h-14 items-center gap-4 border-b bg-white px-6">
+	<div class="lg:hidden">
+		<label for="sidebar-mobile-nav" class="btn btn-ghost btn-square drawer-button">
+			<svg
+				xmlns="http://www.w3.org/2000/svg"
+				class="h-6 w-6 text-gray-600"
+				fill="none"
+				viewBox="0 0 24 24"
+				stroke="currentColor"
+			>
+				<path
+					stroke-linecap="round"
+					stroke-linejoin="round"
+					stroke-width="2"
+					d="M4 6h16M4 12h16M4 18h16"
+				/>
+			</svg>
+		</label>
+	</div>
+
+	<div class="flex flex-1 items-center gap-4">
+		<h1 class="text-lg font-semibold text-gray-800">
+			{page.url.pathname.split('/')[1].charAt(0).toUpperCase() +
+				page.url.pathname.split('/')[1].slice(1)}
+		</h1>
+	</div>
+
+	<div class="flex items-center gap-4">
+		<div class="dropdown dropdown-end">
+			<label tabindex="0" class="btn btn-ghost btn-circle avatar">
+				<div class="w-10 rounded-full ring-1 ring-gray-200">
+					<img
+						src={user?.image || 'https://ui-avatars.com/api/?name=' + user?.name}
+						alt={user?.name}
+					/>
+				</div>
+			</label>
+			<ul
+				tabindex="0"
+				class="menu dropdown-content mt-3 w-52 rounded-lg border bg-white p-2 shadow-lg"
+			>
+				<li><a href="/profile" class="text-gray-700 hover:bg-gray-50">Profile</a></li>
+				<li><a href="/settings" class="text-gray-700 hover:bg-gray-50">Settings</a></li>
+				<li class="text-gray-700"><slot name="sign-out" /></li>
+			</ul>
+		</div>
+	</div>
+</header>

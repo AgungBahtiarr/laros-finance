@@ -3,8 +3,10 @@
 	import { authClient } from '$lib/auth-client';
 	import { onMount } from 'svelte';
 
-	onMount(() => {
-		if (authClient.getSession()) {
+	onMount(async () => {
+		const session = await authClient.getSession();
+		//console.log(session);
+		if (session.data) {
 			goto('/dashboard');
 		} else {
 			goto('/auth/login');

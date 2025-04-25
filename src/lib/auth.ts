@@ -9,14 +9,10 @@ export const auth = betterAuth({
 	url: BETTER_AUTH_URL,
 	emailAndPassword: {
 		enabled: true,
-        autoSignIn: false
+		autoSignIn: false
 	},
 	session: {
-		storeSessionInDatabase: true,
-		cookieCache: {
-			enabled: true,
-			maxAge: 5 * 60 // 5 minutes
-		}
+		storeSessionInDatabase: true
 	},
 	plugins: [username()],
 	database: drizzleAdapter(db, {
