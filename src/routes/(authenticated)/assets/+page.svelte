@@ -1,6 +1,8 @@
 <script lang="ts">
 	import CreateAsset from '$lib/components/CreateAsset.svelte';
 	import { enhance } from '$app/forms';
+	import { goto } from '$app/navigation';
+	import { page } from '$app/state';
 
 	let { data } = $props();
 	let searchTerm = $state('');
@@ -22,7 +24,7 @@
 	function handleDelete() {
 		return async ({ result }) => {
 			if (result.type === 'success') {
-				window.location.reload();
+				goto(page.url.pathname, { invalidateAll: true });
 			} else {
 				alert('Gagal menghapus asset');
 			}
