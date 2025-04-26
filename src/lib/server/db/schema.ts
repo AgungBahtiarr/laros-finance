@@ -1,3 +1,4 @@
+import { relations } from 'drizzle-orm';
 import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core';
 
 export const user = sqliteTable('user', {
@@ -98,3 +99,45 @@ export const asset = sqliteTable('asset', {
 	createdAt: integer('created_at', { mode: 'timestamp' }).notNull().defaultNow(),
 	updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().defaultNow()
 });
+
+export const assetRelations = relations(asset, ({ one }) => ({
+	jenisHarta: one(jenisHarta, {
+		fields: [asset.jenisHartaId],
+		references: [jenisHarta.id]
+	}),
+	kelompokHarta: one(kelompokHarta, {
+		fields: [asset.kelompokHartaId],
+		references: [kelompokHarta.id]
+	}),
+	metodePenyusutanKomersial: one(metodePenyusutanKomersial, {
+		fields: [asset.metodePenyusutanKomersialId],
+		references: [metodePenyusutanKomersial.id]
+	}),
+	metodePenyusutanFiskal: one(metodePenyusutanFiskal, {
+		fields: [asset.metodePenyusutanFiskalId],
+		references: [metodePenyusutanFiskal.id]
+	})
+}));
+
+// Relations for JenisHarta
+export const jenisHartaRelations = relations(jenisHarta, ({ many }) => ({
+	assets: many(asset)
+}));
+
+// Relations for KelompokHarta
+export const kelompokHartaRelations = relations(kelompokHarta, ({ many }) => ({
+	assets: many(asset)
+}));
+
+// Relations for MetodePenyusutanKomersial
+export const metodePenyusutanKomersialRelations = relations(
+	metodePenyusutanKomersial,
+	({ many }) => ({
+		assets: many(asset)
+	})
+);
+
+// Relations for MetodePenyusutanFiskal
+export const metodePenyusutanFiskalRelations = relations(metodePenyusutanFiskal, ({ many }) => ({
+	assets: many(asset)
+}));

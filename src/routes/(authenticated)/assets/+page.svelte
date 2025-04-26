@@ -1,37 +1,32 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-	let assets = $state([]);
-	let loading = $state(true);
-	let error = $state(null);
+	import CreateAsset from '$lib/components/CreateAsset.svelte';
+	import { enhance } from '$app/forms';
 
-	async function fetchAssets() {
-		try {
-			const response = await fetch('/api/assets');
-			if (!response.ok) throw new Error('Gagal mengambil data');
-			assets = await response.json();
-		} catch (err) {
-			error = err.message;
-		} finally {
-			loading = false;
-		}
-	}
+	let { data } = $props();
+	let searchTerm = $state('');
+	let selectedJenisHarta = $state('');
 
-	onMount(fetchAssets);
+	// Filtered assets
+	let filteredAssets = $derived(
+		data.assets.filter((asset) => {
+			const matchSearch =
+				asset.namaHarta.toLowerCase().includes(searchTerm.toLowerCase()) ||
+				asset.jenisUsaha.toLowerCase().includes(searchTerm.toLowerCase());
+			const matchJenis = selectedJenisHarta
+				? asset.jenisHartaId === parseInt(selectedJenisHarta)
+				: true;
+			return matchSearch && matchJenis;
+		})
+	);
 
-	async function deleteAsset(id) {
-		if (!confirm('Apakah Anda yakin ingin menghapus aset ini?')) return;
-
-		try {
-			const response = await fetch(`/api/assets/${id}`, {
-				method: 'DELETE'
-			});
-
-			if (!response.ok) throw new Error('Gagal menghapus aset');
-
-			assets = assets.filter((asset) => asset.id !== id);
-		} catch (err) {
-			error = err.message;
-		}
+	function handleDelete() {
+		return async ({ result }) => {
+			if (result.type === 'success') {
+				window.location.reload();
+			} else {
+				alert('Gagal menghapus asset');
+			}
+		};
 	}
 </script>
 
@@ -41,7 +36,10 @@
 			<h2 class="text-lg font-medium text-gray-900">Daftar Aset</h2>
 			<p class="mt-1 text-sm text-gray-500">Kelola semua aset perusahaan di sini</p>
 		</div>
-		<a href="/assets/add" class="btn btn-primary btn-sm normal-case">
+		<button
+			class="btn btn-primary btn-sm normal-case"
+			onclick={() => document.getElementById('createAsset').showModal()}
+		>
 			<svg
 				xmlns="http://www.w3.org/2000/svg"
 				class="mr-2 h-4 w-4"
@@ -55,38 +53,114 @@
 				/>
 			</svg>
 			Tambah Aset
-		</a>
+		</button>
+		<CreateAsset masterData={data.masterData} />
+	</div>
+
+	<!-- Search and Filter -->
+	<div class="flex flex-col gap-4 sm:flex-row">
+		<div class="flex-1">
+			<input
+				type="text"
+				placeholder="Cari nama atau jenis usaha..."
+				class="input input-bordered w-full"
+				bind:value={searchTerm}
+			/>
+		</div>
+		<div class="w-full sm:w-64">
+			<select class="select select-bordered w-full" bind:value={selectedJenisHarta}>
+				<option value="">Semua Jenis Harta</option>
+				{#each data.masterData.jenisHarta as jenis}
+					<option value={jenis.id}>{jenis.keterangan}</option>
+				{/each}
+			</select>
+		</div>
 	</div>
 
 	<div class="rounded-lg border bg-white">
-		{#if loading}
-			<div class="flex justify-center p-12">
-				<span class="loading loading-spinner loading-md text-primary"></span>
-			</div>
-		{:else if error}
-			<div class="p-6">
-				<div class="alert alert-error text-sm">
-					<svg
-						xmlns="http://www.w3.org/2000/svg"
-						class="h-5 w-5"
-						viewBox="0 0 20 20"
-						fill="currentColor"
-					>
-						<path
-							fill-rule="evenodd"
-							d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
-							clip-rule="evenodd"
-						/>
-					</svg>
-					<span>{error}</span>
-				</div>
-			</div>
-		{:else}
-			<div class="overflow-x-auto">
-				<table class="table-zebra table">
-					<!-- ... konten tabel ... -->
-				</table>
-			</div>
-		{/if}
+		<div class="overflow-x-auto">
+			<table class="table">
+				<thead class="bg-base-200">
+					<tr>
+						<th>No</th>
+						<th>Nama Harta</th>
+						<th>Jenis Harta</th>
+						<th>Kelompok</th>
+						<th>Tgl Perolehan</th>
+						<th>Harga Perolehan</th>
+						<th>Nilai Sisa Buku</th>
+						<th class="w-20">Aksi</th>
+					</tr>
+				</thead>
+				<tbody>
+					{#each filteredAssets as asset, i}
+						<tr class="hover">
+							<td class="font-medium">{i + 1}</td>
+							<td>
+								<div class="font-medium">{asset.namaHarta}</div>
+								<div class="text-sm text-gray-500">{asset.jenisUsaha}</div>
+							</td>
+							<td>{asset.jenisHarta.keterangan}</td>
+							<td>{asset.kelompokHarta.keterangan}</td>
+							<td>{asset.bulanPerolehan}/{asset.tahunPerolehan}</td>
+							<td class="tabular-nums">Rp {asset.hargaPerolehan.toLocaleString()}</td>
+							<td class="tabular-nums">Rp {asset.nilaiSisaBuku.toLocaleString()}</td>
+							<td>
+								<div class="flex gap-1">
+									<button
+										class="btn btn-ghost btn-sm"
+										onclick={() => {
+											// TODO: Implement edit
+										}}
+									>
+										<svg
+											xmlns="http://www.w3.org/2000/svg"
+											class="h-4 w-4"
+											viewBox="0 0 20 20"
+											fill="currentColor"
+										>
+											<path
+												d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z"
+											/>
+											<path
+												fill-rule="evenodd"
+												d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"
+												clip-rule="evenodd"
+											/>
+										</svg>
+									</button>
+									<form method="POST" action="?/delete" use:enhance={handleDelete}>
+										<input type="hidden" name="id" value={asset.id} />
+										<button type="submit" class="btn btn-ghost btn-sm text-error">
+											<svg
+												xmlns="http://www.w3.org/2000/svg"
+												class="h-4 w-4"
+												viewBox="0 0 20 20"
+												fill="currentColor"
+											>
+												<path
+													fill-rule="evenodd"
+													d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
+													clip-rule="evenodd"
+												/>
+											</svg>
+										</button>
+									</form>
+								</div>
+							</td>
+						</tr>
+					{/each}
+					{#if filteredAssets.length === 0}
+						<tr>
+							<td colspan="8" class="py-8 text-center text-gray-500">
+								{searchTerm || selectedJenisHarta
+									? 'Tidak ada asset yang sesuai dengan pencarian'
+									: 'Belum ada data asset'}
+							</td>
+						</tr>
+					{/if}
+				</tbody>
+			</table>
+		</div>
 	</div>
 </div>
