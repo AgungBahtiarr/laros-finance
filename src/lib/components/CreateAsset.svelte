@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { goto } from '$app/navigation';
+	import { page } from '$app/state';
 
 	let { masterData } = $props();
 	let form;
@@ -53,7 +55,7 @@
 		return async ({ result }) => {
 			if (result.type === 'success') {
 				document.getElementById('createAsset').close();
-				window.location.reload();
+				goto(page.url.pathname, { invalidateAll: true });
 			}
 		};
 	}
