@@ -1,18 +1,9 @@
 <script lang="ts">
-	import {
-		PieChart,
-		ArrowUp,
-		ArrowDown,
-		Calendar,
-		Clipboard,
-		DollarSign,
-		BarChart
-	} from '@lucide/svelte';
+	import { ArrowUp, ArrowDown, Calendar, Clipboard, DollarSign, BarChart } from '@lucide/svelte';
 	import { onMount } from 'svelte';
 
 	let { data } = $props();
 
-	// Format number as currency
 	function formatRupiah(amount: number) {
 		if (amount >= 1000000000) {
 			return `Rp ${(amount / 1000000000).toFixed(1)}B`;
@@ -24,7 +15,6 @@
 		return `Rp ${amount.toLocaleString('id-ID')}`;
 	}
 
-	// Get current month and year for display
 	const now = new Date();
 	const monthNames = [
 		'Januari',
@@ -43,16 +33,15 @@
 	const currentMonth = monthNames[now.getMonth()];
 	const currentYear = now.getFullYear();
 
-	// Generate random light colors for the chart
 	function getColorForIndex(index: number) {
 		const colors = [
-			'rgba(244, 127, 32, 0.8)', // Primary color (orange)
-			'rgba(73, 138, 201, 0.8)', // Secondary color (blue)
-			'rgba(92, 184, 92, 0.7)', // Green
-			'rgba(240, 173, 78, 0.7)', // Yellow/Orange
-			'rgba(91, 192, 222, 0.7)', // Light blue
-			'rgba(217, 83, 79, 0.7)', // Red
-			'rgba(150, 117, 206, 0.7)' // Purple
+			'rgba(244, 127, 32, 0.8)',
+			'rgba(73, 138, 201, 0.8)',
+			'rgba(92, 184, 92, 0.7)',
+			'rgba(240, 173, 78, 0.7)',
+			'rgba(91, 192, 222, 0.7)',
+			'rgba(217, 83, 79, 0.7)',
+			'rgba(150, 117, 206, 0.7)'
 		];
 		return colors[index % colors.length];
 	}
@@ -67,7 +56,6 @@
 			const ctx = document.getElementById('assetDistribution');
 			if (!ctx) return;
 
-			// Load Chart.js dynamically
 			const script = document.createElement('script');
 			script.src = 'https://cdn.jsdelivr.net/npm/chart.js';
 			script.onload = () => {

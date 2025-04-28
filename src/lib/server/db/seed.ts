@@ -1,11 +1,14 @@
-import { drizzle } from 'drizzle-orm/better-sqlite3';
-import Database from 'better-sqlite3';
+import { drizzle } from 'drizzle-orm/node-postgres';
+import { Pool } from 'pg';
 import * as schema from './schema';
 import { authClient } from '$lib/auth-client-seed';
 import 'dotenv/config';
 
-const client = new Database(process.env.DATABASE_URL);
-export const db = drizzle(client, { schema });
+const pool = new Pool({
+	connectionString: process.env.DATABASE_URL
+});
+
+const db = drizzle({ client: pool });
 
 async function main() {
 	const jenisHarta = await db
@@ -18,23 +21,20 @@ async function main() {
 		.onConflictDoNothing();
 	console.log(jenisHarta);
 
-	const kelompokHarta = await db
-		.insert(schema.kelompokHarta)
-		.values([
-			{ kode: 1, jenis: 'Penyusutan Fiskal', keterangan: 'Kelompok 1' },
-			{ kode: 2, jenis: 'Penyusutan Fiskal', keterangan: 'Kelompok 2' },
-			{ kode: 3, jenis: 'Penyusutan Fiskal', keterangan: 'Kelompok 3' },
-			{ kode: 4, jenis: 'Penyusutan Fiskal', keterangan: 'Kelompok 4' }
-			// { kode: 5, jenis: 'Penyusutan Fiskal', keterangan: 'Permanen' },
-			// { kode: 6, jenis: 'Penyusutan Fiskal', keterangan: 'Tidak Permanen' },
+	const kelompokHarta = await db.insert(schema.kelompokHarta).values([
+		{ kode: 1, jenis: 'Penyusutan Fiskal', keterangan: 'Kelompok 1' },
+		{ kode: 2, jenis: 'Penyusutan Fiskal', keterangan: 'Kelompok 2' },
+		{ kode: 3, jenis: 'Penyusutan Fiskal', keterangan: 'Kelompok 3' },
+		{ kode: 4, jenis: 'Penyusutan Fiskal', keterangan: 'Kelompok 4' }
+		// { kode: 5, jenis: 'Penyusutan Fiskal', keterangan: 'Permanen' },
+		// { kode: 6, jenis: 'Penyusutan Fiskal', keterangan: 'Tidak Permanen' },
 
-			// { kode: 1, jenis: 'Amortisasi Fiskal', keterangan: 'Kelompok 1' },
-			// { kode: 2, jenis: 'Amortisasi Fiskal', keterangan: 'Kelompok 2' },
-			// { kode: 3, jenis: 'Amortisasi Fiskal', keterangan: 'Kelompok 3' },
-			// { kode: 4, jenis: 'Amortisasi Fiskal', keterangan: 'Kelompok 4' },
-			// { kode: 5, jenis: 'Amortisasi Fiskal', keterangan: 'Kelompok Lain-Lain' }
-		])
-		.onConflictDoNothing();
+		// { kode: 1, jenis: 'Amortisasi Fiskal', keterangan: 'Kelompok 1' },
+		// { kode: 2, jenis: 'Amortisasi Fiskal', keterangan: 'Kelompok 2' },
+		// { kode: 3, jenis: 'Amortisasi Fiskal', keterangan: 'Kelompok 3' },
+		// { kode: 4, jenis: 'Amortisasi Fiskal', keterangan: 'Kelompok 4' },
+		// { kode: 5, jenis: 'Amortisasi Fiskal', keterangan: 'Kelompok Lain-Lain' }
+	]);
 	console.log(kelompokHarta);
 
 	const metodePenyusutanFiskal = await db

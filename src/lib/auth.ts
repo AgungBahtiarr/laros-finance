@@ -3,6 +3,7 @@ import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { db } from './server/db';
 import { username } from 'better-auth/plugins';
 import { BETTER_AUTH_SECRET, BETTER_AUTH_URL } from '$env/static/private';
+import * as schema from '$lib/server/db/auth-schema';
 
 export const auth = betterAuth({
 	secret: BETTER_AUTH_SECRET,
@@ -16,6 +17,7 @@ export const auth = betterAuth({
 	},
 	plugins: [username()],
 	database: drizzleAdapter(db, {
-		provider: 'sqlite'
+		provider: 'pg',
+		schema: schema
 	})
 });

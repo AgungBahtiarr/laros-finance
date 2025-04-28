@@ -1,24 +1,23 @@
 import { relations } from 'drizzle-orm';
-import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core';
-
-export const user = sqliteTable('user', {
+import { pgTable, serial, text, varchar, integer, boolean, timestamp } from 'drizzle-orm/pg-core';
+export const user = pgTable('user', {
 	id: text('id').primaryKey(),
 	name: text('name').notNull(),
 	email: text('email').notNull().unique(),
-	emailVerified: integer('email_verified', { mode: 'boolean' }).notNull(),
+	emailVerified: boolean('email_verified').notNull(),
 	image: text('image'),
-	createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
-	updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
+	createdAt: timestamp('created_at').notNull(),
+	updatedAt: timestamp('updated_at').notNull(),
 	username: text('username').unique(),
 	displayUsername: text('display_username')
 });
 
-export const session = sqliteTable('session', {
+export const session = pgTable('session', {
 	id: text('id').primaryKey(),
-	expiresAt: integer('expires_at', { mode: 'timestamp' }).notNull(),
+	expiresAt: timestamp('expires_at').notNull(),
 	token: text('token').notNull().unique(),
-	createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
-	updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
+	createdAt: timestamp('created_at').notNull(),
+	updatedAt: timestamp('updated_at').notNull(),
 	ipAddress: text('ip_address'),
 	userAgent: text('user_agent'),
 	userId: text('user_id')
@@ -26,7 +25,7 @@ export const session = sqliteTable('session', {
 		.references(() => user.id, { onDelete: 'cascade' })
 });
 
-export const account = sqliteTable('account', {
+export const account = pgTable('account', {
 	id: text('id').primaryKey(),
 	accountId: text('account_id').notNull(),
 	providerId: text('provider_id').notNull(),
@@ -36,58 +35,54 @@ export const account = sqliteTable('account', {
 	accessToken: text('access_token'),
 	refreshToken: text('refresh_token'),
 	idToken: text('id_token'),
-	accessTokenExpiresAt: integer('access_token_expires_at', { mode: 'timestamp' }),
-	refreshTokenExpiresAt: integer('refresh_token_expires_at', { mode: 'timestamp' }),
+	accessTokenExpiresAt: timestamp('access_token_expires_at'),
+	refreshTokenExpiresAt: timestamp('refresh_token_expires_at'),
 	scope: text('scope'),
 	password: text('password'),
-	createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
-	updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull()
+	createdAt: timestamp('created_at').notNull(),
+	updatedAt: timestamp('updated_at').notNull()
 });
 
-export const verification = sqliteTable('verification', {
+export const verification = pgTable('verification', {
 	id: text('id').primaryKey(),
 	identifier: text('identifier').notNull(),
 	value: text('value').notNull(),
-	expiresAt: integer('expires_at', { mode: 'timestamp' }).notNull(),
-	createdAt: integer('created_at', { mode: 'timestamp' }),
-	updatedAt: integer('updated_at', { mode: 'timestamp' })
+	expiresAt: timestamp('expires_at').notNull(),
+	createdAt: timestamp('created_at'),
+	updatedAt: timestamp('updated_at')
 });
 
-export const jenisHarta = sqliteTable('jenis_harta', {
-	id: integer('id').primaryKey(),
-	keterangan: text('keterangan').notNull(),
+export const jenisHarta = pgTable('jenis_harta', {
+	id: serial('id').primaryKey(),
+	keterangan: varchar('keterangan', { length: 255 }).notNull(),
 	daftar: text('daftar').notNull()
 });
 
-// Tabel untuk Kelompok Harta
-export const kelompokHarta = sqliteTable('kelompok_harta', {
-	id: integer('id').primaryKey(),
+export const kelompokHarta = pgTable('kelompok_harta', {
+	id: serial('id').primaryKey(),
 	kode: integer('kode').notNull(),
-	keterangan: text('keterangan').notNull(),
-	jenis: text('jenis').notNull()
+	keterangan: varchar('keterangan', { length: 255 }).notNull(),
+	jenis: varchar('jenis', { length: 100 }).notNull()
 });
 
-// Tabel untuk Metode Penyusutan Komersial
-export const metodePenyusutanKomersial = sqliteTable('metode_penyusutan_komersial', {
-	id: integer('id').primaryKey(),
+export const metodePenyusutanKomersial = pgTable('metode_penyusutan_komersial', {
+	id: serial('id').primaryKey(),
 	kode: integer('kode').notNull(),
-	keterangan: text('keterangan').notNull()
+	keterangan: varchar('keterangan', { length: 255 }).notNull()
 });
 
-// Tabel untuk Metode Penyusutan Fiskal
-export const metodePenyusutanFiskal = sqliteTable('metode_penyusutan_fiskal', {
-	id: integer('id').primaryKey(),
+export const metodePenyusutanFiskal = pgTable('metode_penyusutan_fiskal', {
+	id: serial('id').primaryKey(),
 	kode: integer('kode').notNull(),
-	keterangan: text('keterangan').notNull()
+	keterangan: varchar('keterangan', { length: 255 }).notNull()
 });
 
-// Tabel utama untuk Asset
-export const asset = sqliteTable('asset', {
-	id: integer('id').primaryKey(),
+export const asset = pgTable('asset', {
+	id: serial('id').primaryKey(),
 	jenisHartaId: integer('jenis_harta_id').notNull(),
 	kelompokHartaId: integer('kelompok_harta_id').notNull(),
-	jenisUsaha: text('jenis_usaha').notNull(),
-	namaHarta: text('nama_harta').notNull(),
+	jenisUsaha: varchar('jenis_usaha', { length: 255 }).notNull(),
+	namaHarta: varchar('nama_harta', { length: 255 }).notNull(),
 	bulanPerolehan: integer('bulan_perolehan').notNull(),
 	tahunPerolehan: integer('tahun_perolehan').notNull(),
 	metodePenyusutanKomersialId: integer('metode_penyusutan_komersial_id').notNull(),
@@ -96,10 +91,10 @@ export const asset = sqliteTable('asset', {
 	nilaiSisaBuku: integer('nilai_sisa_buku').notNull(),
 	penyusutanFiskalTahunIni: integer('penyusutan_fiskal_tahun_ini').notNull(),
 	keterangan: text('keterangan'),
-	lokasi: text('lokasi'),
-	kode: text('kode'),
-	createdAt: integer('created_at', { mode: 'timestamp' }).notNull().defaultNow(),
-	updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().defaultNow()
+	lokasi: varchar('lokasi', { length: 255 }),
+	kode: varchar('kode', { length: 100 }),
+	createdAt: timestamp('created_at').notNull().defaultNow(),
+	updatedAt: timestamp('updated_at').notNull().defaultNow()
 });
 
 export const assetRelations = relations(asset, ({ one }) => ({
@@ -121,17 +116,14 @@ export const assetRelations = relations(asset, ({ one }) => ({
 	})
 }));
 
-// Relations for JenisHarta
 export const jenisHartaRelations = relations(jenisHarta, ({ many }) => ({
 	assets: many(asset)
 }));
 
-// Relations for KelompokHarta
 export const kelompokHartaRelations = relations(kelompokHarta, ({ many }) => ({
 	assets: many(asset)
 }));
 
-// Relations for MetodePenyusutanKomersial
 export const metodePenyusutanKomersialRelations = relations(
 	metodePenyusutanKomersial,
 	({ many }) => ({
@@ -139,7 +131,6 @@ export const metodePenyusutanKomersialRelations = relations(
 	})
 );
 
-// Relations for MetodePenyusutanFiskal
 export const metodePenyusutanFiskalRelations = relations(metodePenyusutanFiskal, ({ many }) => ({
 	assets: many(asset)
 }));

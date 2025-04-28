@@ -8,5 +8,5 @@ export default defineConfig({
 	dbCredentials: { url: process.env.DATABASE_URL },
 	verbose: false,
 	strict: false,
-	dialect: 'sqlite'
+	dialect: 'postgresql'
 });
