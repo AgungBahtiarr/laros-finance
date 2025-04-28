@@ -46,7 +46,9 @@ export const actions: Actions = {
 				hargaPerolehan: parseInt(formData.get('hargaPerolehan') as string),
 				nilaiSisaBuku: parseInt(formData.get('nilaiSisaBuku') as string),
 				penyusutanFiskalTahunIni: parseInt(formData.get('penyusutanFiskalTahunIni') as string),
-				keterangan: formData.get('keterangan') as string
+				keterangan: formData.get('keterangan') as string,
+				lokasi: formData.get('lokasi') as string,
+				kode: formData.get('kode') as string
 			});
 
 			return { success: true };

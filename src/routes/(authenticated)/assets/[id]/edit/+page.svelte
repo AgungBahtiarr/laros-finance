@@ -1,19 +1,19 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { goto } from '$app/navigation';
-	import { page } from '$app/state';
+	import { ArrowLeft, Save } from '@lucide/svelte';
 
-	let { masterData } = $props();
+	let { data } = $props();
 	let form;
 
 	// State untuk nilai currency
-	let hargaPerolehan = $state('');
-	let nilaiSisaBuku = $state('');
-	let penyusutanFiskalTahunIni = $state('');
+	let hargaPerolehan = $state(data.asset.hargaPerolehan.toString());
+	let nilaiSisaBuku = $state(data.asset.nilaiSisaBuku.toString());
+	let penyusutanFiskalTahunIni = $state(data.asset.penyusutanFiskalTahunIni.toString());
 
 	// Format number to IDR
-	function formatRupiah(number: string) {
-		const numericValue = number.replace(/\D/g, '');
+	function formatRupiah(number: string | number) {
+		const numericValue = number.toString().replace(/\D/g, '');
 		return new Intl.NumberFormat('id-ID', {
 			style: 'currency',
 			currency: 'IDR',
@@ -44,65 +44,26 @@
 		}
 	}
 
-	// Generate kode asset based on input fields
-	function generateKode() {
-		const namaHartaInput = document.getElementById('namaHarta') as HTMLInputElement;
-		const lokasiInput = document.getElementById('lokasi') as HTMLTextAreaElement;
-		const kodeInput = document.getElementById('kode') as HTMLInputElement;
-		
-		if (namaHartaInput?.value) {
-			const namaPart = namaHartaInput.value.slice(0, 3).toUpperCase();
-			const timestamp = new Date().getTime().toString().slice(-6);
-			
-			// Try to extract a location identifier or use LOC as default
-			let lokasiPart = "LOC";
-			if (lokasiInput?.value) {
-				// If it's an iframe, try to extract some location info
-				const match = lokasiInput.value.match(/!3d([\d.-]+)!2d([\d.-]+)/);
-				if (match) {
-					// Use part of the coordinates for uniqueness
-					lokasiPart = "MAP";
-				} else {
-					// Just use the first 3 non-tag characters
-					const textOnly = lokasiInput.value.replace(/<[^>]*>/g, '').trim();
-					if (textOnly.length >= 3) {
-						lokasiPart = textOnly.slice(0, 3).toUpperCase();
-					}
-				}
-			}
-			
-			kodeInput.value = `${namaPart}-${lokasiPart}-${timestamp}`;
-		}
-	}
-
-	$effect(() => {
-		if (form) form.reset();
-		hargaPerolehan = '';
-		nilaiSisaBuku = '';
-		penyusutanFiskalTahunIni = '';
-	});
-
 	function handleSubmit() {
 		return async ({ result }) => {
-			if (result.type === 'success') {
-				document.getElementById('createAsset')?.close();
-				goto(page.url.pathname, { invalidateAll: true });
-			}
+			goto(`/assets/${data.asset.id}`, { invalidateAll: true });
 		};
 	}
 </script>
 
-<dialog id="createAsset" class="modal">
-	<div class="modal-box w-11/12 max-w-5xl p-0">
-		<!-- Header -->
-		<div class="border-b p-4">
-			<h3 class="text-lg font-bold">Tambah Asset</h3>
-		</div>
+<div class="space-y-6">
+	<div class="flex items-center gap-4">
+		<a href={`/assets/${data.asset.id}`} class="btn btn-ghost btn-sm gap-1">
+			<ArrowLeft class="h-4 w-4" />
+			<span>Kembali</span>
+		</a>
+		<h1 class="text-2xl font-bold">Edit Asset: {data.asset.namaHarta}</h1>
+	</div>
 
-		<!-- Form -->
-		<div class="p-4">
-			<form bind:this={form} method="POST" action="?/create" use:enhance={handleSubmit}>
-				<div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+	<div class="card bg-base-100 border">
+		<div class="card-body">
+			<form method="POST" action="?/update" use:enhance={handleSubmit}>
+				<div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
 					<!-- Kolom Kiri -->
 					<div class="space-y-4">
 						<div class="form-control w-full">
@@ -114,8 +75,8 @@
 								type="text"
 								name="namaHarta"
 								class="input input-bordered w-full"
+								value={data.asset.namaHarta}
 								required
-								onchange={generateKode}
 							/>
 						</div>
 
@@ -128,37 +89,28 @@
 								type="text"
 								name="jenisUsaha"
 								class="input input-bordered w-full"
+								value={data.asset.jenisUsaha}
 								required
 							/>
 						</div>
 
 						<div class="form-control w-full">
-						<label class="label" for="lokasi">
-							<span class="label-text">Lokasi</span>
-							<span class="label-text-alt">Masukkan iframe Google Maps</span>
-						</label>
-						<textarea
-							id="lokasi"
-							name="lokasi"
-							class="textarea textarea-bordered w-full"
-							placeholder="Paste iframe Google Maps di sini (<iframe src=...>)"
-							rows="3"
-							onchange={generateKode}
-						></textarea>
+							<label class="label" for="lokasi">
+								<span class="label-text">Lokasi</span>
+								<span class="label-text-alt">Masukkan iframe Google Maps</span>
+							</label>
+							<textarea
+								id="lokasi"
+								name="lokasi"
+								class="textarea textarea-bordered w-full"
+								placeholder="Paste iframe Google Maps di sini (<iframe src=...>)"
+								rows="3">{data.asset.lokasi || ''}</textarea
+							>
 						</div>
 
 						<div class="form-control w-full">
 							<label class="label" for="kode">
 								<span class="label-text">Kode Aset</span>
-								<span class="label-text-alt">
-									<button
-										type="button"
-										class="text-primary text-xs hover:underline"
-										onclick={generateKode}
-									>
-										Generate
-									</button>
-								</span>
 							</label>
 							<input
 								id="kode"
@@ -166,6 +118,7 @@
 								name="kode"
 								class="input input-bordered w-full"
 								placeholder="Kode unik aset"
+								value={data.asset.kode || ''}
 								required
 							/>
 						</div>
@@ -181,8 +134,10 @@
 								required
 							>
 								<option value="">Pilih Jenis Harta</option>
-								{#each masterData.jenisHarta as jenis}
-									<option value={jenis.id}>{jenis.keterangan}</option>
+								{#each data.masterData.jenisHarta as jenis}
+									<option value={jenis.id} selected={jenis.id === data.asset.jenisHartaId}>
+										{jenis.keterangan}
+									</option>
 								{/each}
 							</select>
 						</div>
@@ -198,8 +153,10 @@
 								required
 							>
 								<option value="">Pilih Kelompok Harta</option>
-								{#each masterData.kelompokHarta as kelompok}
-									<option value={kelompok.id}>{kelompok.keterangan}</option>
+								{#each data.masterData.kelompokHarta as kelompok}
+									<option value={kelompok.id} selected={kelompok.id === data.asset.kelompokHartaId}>
+										{kelompok.keterangan}
+									</option>
 								{/each}
 							</select>
 						</div>
@@ -219,6 +176,7 @@
 									class="input input-bordered w-full"
 									min="1"
 									max="12"
+									value={data.asset.bulanPerolehan}
 									required
 								/>
 							</div>
@@ -232,6 +190,7 @@
 									name="tahunPerolehan"
 									class="input input-bordered w-full"
 									min="1900"
+									value={data.asset.tahunPerolehan}
 									required
 								/>
 							</div>
@@ -248,8 +207,13 @@
 								required
 							>
 								<option value="">Pilih Metode</option>
-								{#each masterData.metodePenyusutanKomersial as metode}
-									<option value={metode.id}>{metode.keterangan}</option>
+								{#each data.masterData.metodePenyusutanKomersial as metode}
+									<option
+										value={metode.id}
+										selected={metode.id === data.asset.metodePenyusutanKomersialId}
+									>
+										{metode.keterangan}
+									</option>
 								{/each}
 							</select>
 						</div>
@@ -265,8 +229,13 @@
 								required
 							>
 								<option value="">Pilih Metode</option>
-								{#each masterData.metodePenyusutanFiskal as metode}
-									<option value={metode.id}>{metode.keterangan}</option>
+								{#each data.masterData.metodePenyusutanFiskal as metode}
+									<option
+										value={metode.id}
+										selected={metode.id === data.asset.metodePenyusutanFiskalId}
+									>
+										{metode.keterangan}
+									</option>
 								{/each}
 							</select>
 						</div>
@@ -279,6 +248,7 @@
 								id="hargaPerolehan"
 								type="text"
 								class="input input-bordered w-full"
+								value={formatRupiah(data.asset.hargaPerolehan)}
 								oninput={(e) => handleCurrencyInput(e, 'hargaPerolehan')}
 								required
 							/>
@@ -293,6 +263,7 @@
 								id="nilaiSisaBuku"
 								type="text"
 								class="input input-bordered w-full"
+								value={formatRupiah(data.asset.nilaiSisaBuku)}
 								oninput={(e) => handleCurrencyInput(e, 'nilaiSisaBuku')}
 								required
 							/>
@@ -307,6 +278,7 @@
 								id="penyusutanFiskalTahunIni"
 								type="text"
 								class="input input-bordered w-full"
+								value={formatRupiah(data.asset.penyusutanFiskalTahunIni)}
 								oninput={(e) => handleCurrencyInput(e, 'penyusutanFiskalTahunIni')}
 								required
 							/>
@@ -327,22 +299,29 @@
 						id="keterangan"
 						name="keterangan"
 						class="textarea textarea-bordered w-full"
-						rows="3"
-					></textarea>
+						rows="3">{data.asset.keterangan || ''}</textarea
+					>
 				</div>
 
-				<!-- Footer -->
-				<div class="modal-action mt-6 border-t p-4">
-					<button type="submit" class="btn btn-primary">Simpan</button>
-					<button
-						type="button"
-						class="btn"
-						onclick={() => document.getElementById('createAsset')?.close()}
-					>
-						Batal
+				<div class="mt-6 flex justify-end space-x-4">
+					<a href={`/assets/${data.asset.id}`} class="btn btn-outline">Batal</a>
+					<button type="submit" class="btn btn-primary gap-2">
+						<Save class="h-4 w-4" />
+						Simpan Perubahan
 					</button>
 				</div>
 			</form>
-		</div>
+		</div><svg
+		xmlns="http://www.w3.org/2000/svg"
+		class="h-4 w-4"
+		viewBox="0 0 20 20"
+		fill="currentColor"
+	>
+		<path
+			fill-rule="evenodd"
+			d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
+			clip-rule="evenodd"
+		/>
+	</svg>
 	</div>
-</dialog>
+</div>

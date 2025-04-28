@@ -23,15 +23,15 @@ async function main() {
 			{ kode: 1, jenis: 'Penyusutan Fiskal', keterangan: 'Kelompok 1' },
 			{ kode: 2, jenis: 'Penyusutan Fiskal', keterangan: 'Kelompok 2' },
 			{ kode: 3, jenis: 'Penyusutan Fiskal', keterangan: 'Kelompok 3' },
-			{ kode: 4, jenis: 'Penyusutan Fiskal', keterangan: 'Kelompok 4' },
-			{ kode: 5, jenis: 'Penyusutan Fiskal', keterangan: 'Permanen' },
-			{ kode: 6, jenis: 'Penyusutan Fiskal', keterangan: 'Tidak Permanen' },
+			{ kode: 4, jenis: 'Penyusutan Fiskal', keterangan: 'Kelompok 4' }
+			// { kode: 5, jenis: 'Penyusutan Fiskal', keterangan: 'Permanen' },
+			// { kode: 6, jenis: 'Penyusutan Fiskal', keterangan: 'Tidak Permanen' },
 
-			{ kode: 1, jenis: 'Amortisasi Fiskal', keterangan: 'Kelompok 1' },
-			{ kode: 2, jenis: 'Amortisasi Fiskal', keterangan: 'Kelompok 2' },
-			{ kode: 3, jenis: 'Amortisasi Fiskal', keterangan: 'Kelompok 3' },
-			{ kode: 4, jenis: 'Amortisasi Fiskal', keterangan: 'Kelompok 4' },
-			{ kode: 5, jenis: 'Amortisasi Fiskal', keterangan: 'Kelompok Lain-Lain' }
+			// { kode: 1, jenis: 'Amortisasi Fiskal', keterangan: 'Kelompok 1' },
+			// { kode: 2, jenis: 'Amortisasi Fiskal', keterangan: 'Kelompok 2' },
+			// { kode: 3, jenis: 'Amortisasi Fiskal', keterangan: 'Kelompok 3' },
+			// { kode: 4, jenis: 'Amortisasi Fiskal', keterangan: 'Kelompok 4' },
+			// { kode: 5, jenis: 'Amortisasi Fiskal', keterangan: 'Kelompok Lain-Lain' }
 		])
 		.onConflictDoNothing();
 	console.log(kelompokHarta);

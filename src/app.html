@@ -1,9 +1,36 @@
 <!doctype html>
-<html lang="en" data-theme="light">
-	<head>
+<html lang="en" data-theme="laros">
+    <head>
 		<meta charset="utf-8" />
-		<link rel="icon" href="%sveltekit.assets%/favicon.png" />
+		<link rel="icon" href="/images/laros-logo.png" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+		<style>
+			@media print {
+				body * {
+					visibility: hidden;
+				}
+				#report-container, #report-container * {
+					visibility: visible;
+				}
+				#report-container {
+					position: absolute;
+					left: 0;
+					top: 0;
+					width: 100%;
+					padding: 15px;
+				}
+				.print\:hidden {
+					display: none !important;
+				}
+				.print\:block {
+					display: block !important;
+				}
+				.print\:flex-row {
+					flex-direction: row !important;
+				}
+			}
+		</style>
 		%sveltekit.head%
 	</head>
 	<body data-sveltekit-preload-data="hover">

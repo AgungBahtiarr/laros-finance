@@ -1,26 +1,27 @@
 <script lang="ts">
 	import { page } from '$app/state';
+	import { Home, FileText, Box, ChevronDown, Package } from '@lucide/svelte';
 
 	const navigation = [
 		{
 			name: 'Dashboard',
 			href: '/dashboard',
-			icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6'
+			icon: Home
 		},
 		{
 			name: 'Aset',
 			href: '/assets',
-			icon: 'M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4',
+			icon: Box,
 			submenu: [
 				{
 					name: 'Assets',
 					href: '/assets',
-					icon: 'M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4'
+					icon: Package
 				},
 				{
-					name: 'Laporan',
+					name: 'Laporan Aset',
 					href: '/assets/report',
-					icon: 'M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'
+					icon: FileText
 				}
 			]
 		}
@@ -38,8 +39,9 @@
 </script>
 
 <div class="flex h-[100vh] flex-col border-r">
-	<div class="flex h-14 items-center border-b px-6">
-		<span class="text-primary text-lg font-bold">Laros Finance</span>
+	<div class="flex h-14 justify-center items-center border-b px-6 gap-2">
+		<img class="h-8" src="/images/laros-logo.png" alt="Laros" />
+		<span class="text-primary text-lg font-bold">Laros Finance.</span>
 	</div>
 	<div class="flex-1 px-3 py-4">
 		<nav class="space-y-1">
@@ -47,26 +49,17 @@
 				{#if item.submenu}
 					<details class="collapse">
 						<summary
-							class={`flex items-center gap-3 rounded-lg px-3 py-2 text-gray-600 transition-all hover:bg-gray-50 ${
+							class={`flex items-center justify-between rounded-lg px-3 py-2 text-gray-600 transition-all hover:bg-gray-50 ${
 								isActive(item) ? 'bg-primary/10 text-primary font-medium' : 'hover:text-gray-900'
 							}`}
 						>
-							<div class="flex items-center gap-3 rounded-lg">
-								<svg
-									xmlns="http://www.w3.org/2000/svg"
-									class="h-5 w-5"
-									fill="none"
-									viewBox="0 0 24 24"
-									stroke="currentColor"
-								>
-									<path
-										stroke-linecap="round"
-										stroke-linejoin="round"
-										stroke-width="2"
-										d={item.icon}
-									/>
-								</svg>
-								<span>{item.name}</span>
+							<div class="flex justify-between">
+								<div class="flex items-center gap-3">
+									<svelte:component this={item.icon} class="h-5 w-5" />
+									<span>{item.name}</span>
+								</div>
+
+								<ChevronDown class="h-4 w-4" />
 							</div>
 						</summary>
 						{#each item.submenu as menu}
@@ -78,20 +71,7 @@
 										: 'hover:text-gray-900'
 								}`}
 							>
-								<svg
-									xmlns="http://www.w3.org/2000/svg"
-									class="h-5 w-5"
-									fill="none"
-									viewBox="0 0 24 24"
-									stroke="currentColor"
-								>
-									<path
-										stroke-linecap="round"
-										stroke-linejoin="round"
-										stroke-width="2"
-										d={menu.icon}
-									/>
-								</svg>
+								<svelte:component this={menu.icon} class="h-5 w-5" />
 								{menu.name}
 							</a>
 						{/each}
@@ -103,15 +83,7 @@
 							isActive(item) ? 'bg-primary/10 text-primary font-medium' : 'hover:text-gray-900'
 						}`}
 					>
-						<svg
-							xmlns="http://www.w3.org/2000/svg"
-							class="h-5 w-5"
-							fill="none"
-							viewBox="0 0 24 24"
-							stroke="currentColor"
-						>
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={item.icon} />
-						</svg>
+						<svelte:component this={item.icon} class="h-5 w-5" />
 						{item.name}
 					</a>
 				{/if}

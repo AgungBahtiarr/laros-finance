@@ -96,6 +96,8 @@ export const asset = sqliteTable('asset', {
 	nilaiSisaBuku: integer('nilai_sisa_buku').notNull(),
 	penyusutanFiskalTahunIni: integer('penyusutan_fiskal_tahun_ini').notNull(),
 	keterangan: text('keterangan'),
+	lokasi: text('lokasi'),
+	kode: text('kode'),
 	createdAt: integer('created_at', { mode: 'timestamp' }).notNull().defaultNow(),
 	updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().defaultNow()
 });
