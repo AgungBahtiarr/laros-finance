@@ -145,15 +145,15 @@
 			</p>
 		</div>
 		<div class="flex gap-2 print:hidden">
-			<button class="btn btn-outline btn-sm gap-1" on:click={() => (showFilters = !showFilters)}>
+			<button class="btn btn-outline btn-sm gap-1" onclick={() => (showFilters = !showFilters)}>
 				<Filter class="h-4 w-4" />
 				{showFilters ? 'Sembunyikan Filter' : 'Tampilkan Filter'}
 			</button>
-			<button class="btn btn-outline btn-sm gap-1" on:click={printReport}>
+			<button class="btn btn-outline btn-sm gap-1" onclick={printReport}>
 				<FileSpreadsheet class="h-4 w-4" />
 				Cetak
 			</button>
-			<button class="btn btn-primary btn-sm gap-1" on:click={exportToCSV}>
+			<button class="btn btn-primary btn-sm gap-1" onclick={exportToCSV}>
 				<FileDown class="h-4 w-4" />
 				Export CSV
 			</button>
@@ -253,11 +253,11 @@
 				</div>
 
 				<div class="flex justify-end gap-2 pt-4">
-					<button class="btn btn-outline btn-sm gap-1" on:click={resetFilters}>
+					<button class="btn btn-outline btn-sm gap-1" onclick={resetFilters}>
 						<RefreshCw class="h-4 w-4" />
 						Reset
 					</button>
-					<button class="btn btn-primary btn-sm" on:click={applyFilters}>Terapkan Filter</button>
+					<button class="btn btn-primary btn-sm" onclick={applyFilters}>Terapkan Filter</button>
 				</div>
 			</div>
 		</div>
