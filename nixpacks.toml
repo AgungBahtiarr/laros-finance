@@ -14,7 +14,7 @@ cacheDirectories = ['node_modules/.cache']
 
 [phases.install]
 dependsOn = ['setup']
-cmds = ['npm ci']
+cmds = ['bun i']
 cacheDirectories = ['/root/.bun']
 paths = ['/app/node_modules/.bin']
 
