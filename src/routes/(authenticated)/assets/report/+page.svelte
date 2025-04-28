@@ -3,7 +3,7 @@
 	import { FileDown, FileSpreadsheet, Filter, RefreshCw } from '@lucide/svelte';
 
 	let { data } = $props();
-	
+
 	// Form state
 	let jenisHartaId = $state(data.filters.jenisHartaId);
 	let kelompokHartaId = $state(data.filters.kelompokHartaId);
@@ -11,10 +11,10 @@
 	let searchTerm = $state(data.filters.search);
 	let startDate = $state(data.filters.startDate);
 	let endDate = $state(data.filters.endDate);
-	
+
 	// Toggle filter visibility
 	let showFilters = $state(false);
-	
+
 	// Total calculations
 	let totalAssets = $derived(data.assets.length);
 	let totalHargaPerolehan = $derived(
@@ -40,14 +40,14 @@
 	// Apply filters
 	function applyFilters() {
 		const searchParams = new URLSearchParams();
-		
+
 		if (jenisHartaId) searchParams.set('jenisHartaId', jenisHartaId);
 		if (kelompokHartaId) searchParams.set('kelompokHartaId', kelompokHartaId);
 		if (tahunPerolehan) searchParams.set('tahunPerolehan', tahunPerolehan);
 		if (searchTerm) searchParams.set('search', searchTerm);
 		if (startDate) searchParams.set('startDate', startDate);
 		if (endDate) searchParams.set('endDate', endDate);
-		
+
 		goto(`?${searchParams.toString()}`);
 	}
 
@@ -59,7 +59,7 @@
 		searchTerm = '';
 		startDate = '';
 		endDate = '';
-		
+
 		goto('/assets/report');
 	}
 
@@ -84,7 +84,7 @@
 		// Convert assets to CSV rows with the exact format requested
 		const csvRows = [header];
 
-		data.assets.forEach(asset => {
+		data.assets.forEach((asset) => {
 			const row = [
 				asset.jenisHartaId.toString(), // Using ID instead of keterangan as per format
 				asset.kelompokHartaId.toString(), // Using ID instead of keterangan
@@ -104,20 +104,20 @@
 
 		// Using tab as separator for compatibility with Excel
 		const csvContent = csvRows
-			.map(row => row.map(cell => `"${cell.replace(/"/g, '""')}"`).join('\t'))
+			.map((row) => row.map((cell) => `"${cell.replace(/"/g, '""')}"`).join('\t'))
 			.join('\n');
 
 		// Create blob and download
 		const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
 		const url = URL.createObjectURL(blob);
 		const link = document.createElement('a');
-		
+
 		// Create filename with current date
 		const now = new Date();
 		const filename = `laporan_aset_${now.getFullYear()}-${(now.getMonth() + 1)
 			.toString()
 			.padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}.csv`;
-		
+
 		link.setAttribute('href', url);
 		link.setAttribute('download', filename);
 		link.style.visibility = 'hidden';
@@ -134,7 +134,7 @@
 
 <div class="space-y-6 print:space-y-4" id="report-container">
 	<!-- Header -->
-	<div class="flex flex-col justify-between gap-4 print:flex-row sm:flex-row">
+	<div class="flex flex-col justify-between gap-4 sm:flex-row print:flex-row">
 		<div>
 			<h1 class="text-2xl font-bold text-gray-900 print:text-xl">Laporan Aset</h1>
 			<p class="text-sm text-gray-500">
@@ -282,7 +282,7 @@
 	<!-- Assets Table -->
 	<div class="card bg-base-100 border">
 		<div class="overflow-x-auto">
-			<table class="table table-sm table-zebra">
+			<table class="table-sm table-zebra table">
 				<thead class="bg-base-200 text-xs">
 					<tr>
 						<th class="w-10">No</th>
@@ -306,9 +306,9 @@
 							<td>{asset.jenisHarta.keterangan}</td>
 							<td>{asset.kelompokHarta.keterangan}</td>
 							<td>{asset.bulanPerolehan}/{asset.tahunPerolehan}</td>
-							<td class="tabular-nums text-right">{formatRupiah(asset.hargaPerolehan)}</td>
-							<td class="tabular-nums text-right">{formatRupiah(asset.nilaiSisaBuku)}</td>
-							<td class="tabular-nums text-right">
+							<td class="text-right tabular-nums">{formatRupiah(asset.hargaPerolehan)}</td>
+							<td class="text-right tabular-nums">{formatRupiah(asset.nilaiSisaBuku)}</td>
+							<td class="text-right tabular-nums">
 								{formatRupiah(asset.penyusutanFiskalTahunIni)}
 							</td>
 						</tr>
@@ -316,7 +316,10 @@
 						<tr>
 							<td colspan="8" class="py-8 text-center">
 								<div class="text-gray-500">
-									{data.filters.jenisHartaId || data.filters.kelompokHartaId || data.filters.tahunPerolehan || data.filters.search
+									{data.filters.jenisHartaId ||
+									data.filters.kelompokHartaId ||
+									data.filters.tahunPerolehan ||
+									data.filters.search
 										? 'Tidak ada aset yang sesuai dengan filter'
 										: 'Belum ada data aset'}
 								</div>
@@ -329,9 +332,9 @@
 					<tfoot class="bg-base-200 font-semibold">
 						<tr>
 							<td colspan="5" class="text-right">Total</td>
-							<td class="tabular-nums text-right">{formatRupiah(totalHargaPerolehan)}</td>
-							<td class="tabular-nums text-right">{formatRupiah(totalNilaiSisaBuku)}</td>
-							<td class="tabular-nums text-right">{formatRupiah(totalPenyusutan)}</td>
+							<td class="text-right tabular-nums">{formatRupiah(totalHargaPerolehan)}</td>
+							<td class="text-right tabular-nums">{formatRupiah(totalNilaiSisaBuku)}</td>
+							<td class="text-right tabular-nums">{formatRupiah(totalPenyusutan)}</td>
 						</tr>
 					</tfoot>
 				{/if}
@@ -343,26 +346,12 @@
 	<div class="hidden print:mt-8 print:block">
 		<div class="text-sm">
 			<p>Dicetak pada: {new Date().toLocaleString('id-ID')}</p>
-			<p>Laporan ini berisi {totalAssets} aset dengan total nilai perolehan {formatRupiah(totalHargaPerolehan)}</p>
+			<p>
+				Laporan ini berisi {totalAssets} aset dengan total nilai perolehan {formatRupiah(
+					totalHargaPerolehan
+				)}
+			</p>
 		</div>
 	</div>
 </div>
 
-<style>
-	/* Print styles */
-	@media print {
-		body {
-			background: white;
-		}
-		
-		table {
-			width: 100%;
-			border-collapse: collapse;
-		}
-		
-		table td, table th {
-			border: 1px solid #ddd;
-			padding: 6px;
-		}
-	}
-</style>
