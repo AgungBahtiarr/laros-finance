@@ -45,8 +45,7 @@
 				tabindex="-1"
 				class="menu dropdown-content mt-3 w-52 rounded-lg border bg-white p-2 shadow-lg"
 			>
-				<li><a href="/profile" class="text-gray-700 hover:bg-gray-50">Profile</a></li>
-				<li><a href="/settings" class="text-gray-700 hover:bg-gray-50">Settings</a></li>
+				
 				<li class="text-gray-700">{@render children()}</li>
 			</ul>
 		</div>
