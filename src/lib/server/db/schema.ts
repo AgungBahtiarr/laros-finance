@@ -91,7 +91,7 @@ export const asset = pgTable('asset', {
 	nilaiSisaBuku: integer('nilai_sisa_buku').notNull(),
 	penyusutanFiskalTahunIni: integer('penyusutan_fiskal_tahun_ini').notNull(),
 	keterangan: text('keterangan'),
-	lokasi: varchar('lokasi', { length: 255 }),
+	lokasi: text('lokasi'),
 	kode: varchar('kode', { length: 100 }),
 	createdAt: timestamp('created_at').notNull().defaultNow(),
 	updatedAt: timestamp('updated_at').notNull().defaultNow()
