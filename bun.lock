@@ -11,7 +11,6 @@
         "dotenv": "^16.5.0",
         "drizzle-orm": "^0.43.1",
         "drizzle-seed": "^0.3.1",
-        "mysql2": "^3.14.1",
         "pg": "^8.15.6",
       },
       "devDependencies": {

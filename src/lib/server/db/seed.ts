@@ -22,12 +22,12 @@ async function main() {
 	console.log(jenisHarta);
 
 	const kelompokHarta = await db.insert(schema.kelompokHarta).values([
-		{ kode: 1, jenis: 'Penyusutan Fiskal', keterangan: 'Kelompok 1' },
-		{ kode: 2, jenis: 'Penyusutan Fiskal', keterangan: 'Kelompok 2' },
-		{ kode: 3, jenis: 'Penyusutan Fiskal', keterangan: 'Kelompok 3' },
-		{ kode: 4, jenis: 'Penyusutan Fiskal', keterangan: 'Kelompok 4' }
-		// { kode: 5, jenis: 'Penyusutan Fiskal', keterangan: 'Permanen' },
-		// { kode: 6, jenis: 'Penyusutan Fiskal', keterangan: 'Tidak Permanen' },
+		{ jenis: 'Penyusutan Fiskal', keterangan: 'Kelompok 1' },
+		{ jenis: 'Penyusutan Fiskal', keterangan: 'Kelompok 2' },
+		{ jenis: 'Penyusutan Fiskal', keterangan: 'Kelompok 3' },
+		{ jenis: 'Penyusutan Fiskal', keterangan: 'Kelompok 4' },
+		{ jenis: 'Penyusutan Fiskal', keterangan: 'Permanen' },
+		{ jenis: 'Penyusutan Fiskal', keterangan: 'Tidak Permanen' }
 
 		// { kode: 1, jenis: 'Amortisasi Fiskal', keterangan: 'Kelompok 1' },
 		// { kode: 2, jenis: 'Amortisasi Fiskal', keterangan: 'Kelompok 2' },
@@ -39,10 +39,7 @@ async function main() {
 
 	const metodePenyusutanFiskal = await db
 		.insert(schema.metodePenyusutanFiskal)
-		.values([
-			{ kode: 1, keterangan: 'GL - Garis Lurus' },
-			{ kode: 2, keterangan: 'SM - Saldo Menurun' }
-		])
+		.values([{ keterangan: 'GL - Garis Lurus' }, { keterangan: 'SM - Saldo Menurun' }])
 		.onConflictDoNothing();
 
 	console.log(metodePenyusutanFiskal);
@@ -50,13 +47,13 @@ async function main() {
 	const metodePenyusutanKomersial = await db
 		.insert(schema.metodePenyusutanKomersial)
 		.values([
-			{ kode: 1, keterangan: 'GL - Garis Lurus' },
-			{ kode: 2, keterangan: 'JAT - Jumlah Angka Tahun' },
-			{ kode: 3, keterangan: 'SM - Saldo Menurun' },
-			{ kode: 4, keterangan: 'SMG - Saldo Menurun Ganda' },
-			{ kode: 5, keterangan: 'JJJ - Jumlah Jam Jasa' },
-			{ kode: 6, keterangan: 'JSP - Jumlah Satuan Produksi' },
-			{ kode: 7, keterangan: 'ML - Metode Lainnya' }
+			{ keterangan: 'GL - Garis Lurus' },
+			{ keterangan: 'JAT - Jumlah Angka Tahun' },
+			{ keterangan: 'SM - Saldo Menurun' },
+			{ keterangan: 'SMG - Saldo Menurun Ganda' },
+			{ keterangan: 'JJJ - Jumlah Jam Jasa' },
+			{ keterangan: 'JSP - Jumlah Satuan Produksi' },
+			{ keterangan: 'ML - Metode Lainnya' }
 		])
 		.onConflictDoNothing();
 	console.log(metodePenyusutanKomersial);

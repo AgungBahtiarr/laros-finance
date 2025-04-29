@@ -31,24 +31,40 @@ export const actions: Actions = {
 	create: async ({ request }) => {
 		const formData = await request.formData();
 
+		const jenisHartaId = parseInt(formData.get('jenisHartaId') as string);
+		const kelompokHartaId = parseInt(formData.get('kelompokHartaId') as string);
+		const jenisUsaha = formData.get('jenisUsaha') as string;
+		const namaHarta = formData.get('namaHarta') as string;
+		const bulanPerolehan = parseInt(formData.get('bulanPerolehan') as string);
+		const tahunPerolehan = parseInt(formData.get('tahunPerolehan') as string);
+		const metodePenyusutanKomersialId = parseInt(
+			formData.get('metodePenyusutanKomersialId') as string
+		);
+		
+		const metodePenyusutanFiskalId = parseInt(formData.get('metodePenyusutanFiskalId') as string);
+		const hargaPerolehan = parseInt(formData.get('hargaPerolehan') as string);
+		const nilaiSisaBuku = parseInt(formData.get('nilaiSisaBuku') as string);
+		const penyusutanFiskalTahunIni = parseInt(formData.get('penyusutanFiskalTahunIni') as string);
+		const keterangan = formData.get('keterangan') as string;
+		const lokasi = formData.get('lokasi') as string;
+		const kode = formData.get('kode') as string;
+
 		try {
 			await db.insert(asset).values({
-				jenisHartaId: parseInt(formData.get('jenisHartaId') as string),
-				kelompokHartaId: parseInt(formData.get('kelompokHartaId') as string),
-				jenisUsaha: formData.get('jenisUsaha') as string,
-				namaHarta: formData.get('namaHarta') as string,
-				bulanPerolehan: parseInt(formData.get('bulanPerolehan') as string),
-				tahunPerolehan: parseInt(formData.get('tahunPerolehan') as string),
-				metodePenyusutanKomersialId: parseInt(
-					formData.get('metodePenyusutanKomersialId') as string
-				),
-				metodePenyusutanFiskalId: parseInt(formData.get('metodePenyusutanFiskalId') as string),
-				hargaPerolehan: parseInt(formData.get('hargaPerolehan') as string),
-				nilaiSisaBuku: parseInt(formData.get('nilaiSisaBuku') as string),
-				penyusutanFiskalTahunIni: parseInt(formData.get('penyusutanFiskalTahunIni') as string),
-				keterangan: formData.get('keterangan') as string,
-				lokasi: formData.get('lokasi') as string,
-				kode: formData.get('kode') as string
+				jenisHartaId,
+				kelompokHartaId,
+				jenisUsaha,
+				namaHarta,
+				bulanPerolehan,
+				tahunPerolehan,
+				metodePenyusutanKomersialId,
+				metodePenyusutanFiskalId,
+				hargaPerolehan,
+				nilaiSisaBuku,
+				penyusutanFiskalTahunIni,
+				keterangan,
+				lokasi,
+				kode
 			});
 
 			return { success: true };

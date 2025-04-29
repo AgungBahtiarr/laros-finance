@@ -60,20 +60,17 @@ export const jenisHarta = pgTable('jenis_harta', {
 
 export const kelompokHarta = pgTable('kelompok_harta', {
 	id: serial('id').primaryKey(),
-	kode: integer('kode').notNull(),
 	keterangan: varchar('keterangan', { length: 255 }).notNull(),
 	jenis: varchar('jenis', { length: 100 }).notNull()
 });
 
 export const metodePenyusutanKomersial = pgTable('metode_penyusutan_komersial', {
 	id: serial('id').primaryKey(),
-	kode: integer('kode').notNull(),
 	keterangan: varchar('keterangan', { length: 255 }).notNull()
 });
 
 export const metodePenyusutanFiskal = pgTable('metode_penyusutan_fiskal', {
 	id: serial('id').primaryKey(),
-	kode: integer('kode').notNull(),
 	keterangan: varchar('keterangan', { length: 255 }).notNull()
 });
 

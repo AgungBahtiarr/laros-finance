@@ -11,6 +11,19 @@
 	let nilaiSisaBuku = $state('');
 	let penyusutanFiskalTahunIni = $state('');
 
+	// jenisUsaha otomatis
+	let jenisUsaha = $state('');
+	let jenisHartaId = $state('');
+	let kelompokHartaId = $state('');
+
+	$effect(() => {
+		if (jenisHartaId && kelompokHartaId) {
+			jenisUsaha = `${jenisHartaId}${kelompokHartaId}`;
+		} else {
+			jenisUsaha = '';
+		}
+	});
+
 	// Format number to IDR
 	function formatRupiah(number: string) {
 		const numericValue = number.replace(/\D/g, '');
@@ -95,8 +108,9 @@
 	$effect(() => {
 		if (form) form.reset();
 		hargaPerolehan = '';
-		nilaiSisaBuku = '';
-		penyusutanFiskalTahunIni = '';
+		jenisUsaha = '';
+		jenisHartaId = '';
+		kelompokHartaId = '';
 	});
 
 	function handleSubmit() {
@@ -149,10 +163,9 @@
 									id="jenisUsaha"
 									type="text"
 									name="jenisUsaha"
+									value={jenisUsaha}
 									class="input input-bordered w-full"
 									required
-									minlength="3"
-									maxlength="255"
 								/>
 							</div>
 
@@ -205,6 +218,7 @@
 								<select
 									id="jenisHartaId"
 									name="jenisHartaId"
+									bind:value={jenisHartaId}
 									class="select select-bordered w-full"
 									required
 								>
@@ -222,6 +236,7 @@
 								<select
 									id="kelompokHartaId"
 									name="kelompokHartaId"
+									bind:value={kelompokHartaId}
 									class="select select-bordered w-full"
 									required
 								>
@@ -320,67 +335,31 @@
 								<input type="hidden" name="hargaPerolehan" value={hargaPerolehan} />
 							</div>
 
-							<div class="form-control w-full">
-								<label class="label" for="nilaiSisaBuku">
-									<span class="label-text">Nilai Sisa Buku</span>
+							<div class="form-control mt-4 w-full">
+								<label class="label" for="keterangan">
+									<span class="label-text">Keterangan</span>
 								</label>
-								<input
-									id="nilaiSisaBuku"
-									type="text"
-									class="input input-bordered w-full"
-									oninput={(e) => handleCurrencyInput(e, 'nilaiSisaBuku')}
-									maxlength="16"
-									required
-									title="Nilai sisa buku harus berupa angka positif atau 0"
-								/>
-								<input type="hidden" name="nilaiSisaBuku" value={nilaiSisaBuku} />
+								<textarea
+									id="keterangan"
+									name="keterangan"
+									class="textarea textarea-bordered w-full"
+									rows="3"
+									maxlength="1000"
+								></textarea>
 							</div>
 
-							<div class="form-control w-full">
-								<label class="label" for="penyusutanFiskalTahunIni">
-									<span class="label-text">Penyusutan Fiskal Tahun Ini</span>
-								</label>
-								<input
-									id="penyusutanFiskalTahunIni"
-									type="text"
-									class="input input-bordered w-full"
-									oninput={(e) => handleCurrencyInput(e, 'penyusutanFiskalTahunIni')}
-									maxlength="16"
-									required
-									title="Penyusutan fiskal tahun ini harus berupa angka positif atau 0"
-								/>
-								<input
-									type="hidden"
-									name="penyusutanFiskalTahunIni"
-									value={penyusutanFiskalTahunIni}
-								/>
+							<!-- Footer -->
+							<div class="modal-action mt-6 border-t p-4">
+								<button type="submit" class="btn btn-primary">Simpan</button>
+								<button
+									type="button"
+									class="btn"
+									onclick={() => document.getElementById('createAsset')?.close()}
+								>
+									Batal
+								</button>
 							</div>
 						</div>
-					</div>
-
-					<div class="form-control mt-4 w-full">
-						<label class="label" for="keterangan">
-							<span class="label-text">Keterangan</span>
-						</label>
-						<textarea
-							id="keterangan"
-							name="keterangan"
-							class="textarea textarea-bordered w-full"
-							rows="3"
-							maxlength="1000"
-						></textarea>
-					</div>
-
-					<!-- Footer -->
-					<div class="modal-action mt-6 border-t p-4">
-						<button type="submit" class="btn btn-primary">Simpan</button>
-						<button
-							type="button"
-							class="btn"
-							onclick={() => document.getElementById('createAsset')?.close()}
-						>
-							Batal
-						</button>
 					</div>
 				</form>
 			</div>
