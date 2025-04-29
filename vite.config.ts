@@ -4,6 +4,5 @@ import { defineConfig } from 'vite';
 import 'dotenv/config';
 
 export default defineConfig({
-	server: { origin: process.env.BETTER_AUTH_URL },
 	plugins: [tailwindcss(), sveltekit()]
 });
