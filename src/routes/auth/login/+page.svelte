@@ -2,7 +2,6 @@
 	import { goto } from '$app/navigation';
 	import { authClient } from '$lib/auth-client';
 	import { onMount } from 'svelte';
-	import { User, Lock } from '@lucide/svelte';
 
 	onMount(async () => {
 		const session = await authClient.getSession();
@@ -78,15 +77,12 @@
 							<span class="label-text font-medium">Username</span>
 						</label>
 						<div class="relative">
-							<div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-								<User />
-							</div>
 							<input
 								type="text"
 								id="username"
 								name="username"
 								placeholder="Masukkan username"
-								class="input input-bordered w-full pl-10"
+								class="input input-bordered w-full"
 								bind:value={username}
 								required
 							/>
@@ -98,15 +94,12 @@
 							<span class="label-text font-medium">Password</span>
 						</label>
 						<div class="relative">
-							<div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-								<Lock />
-							</div>
 							<input
 								type="password"
 								id="password"
 								name="password"
 								placeholder="Masukkan password"
-								class="input input-bordered w-full pl-10"
+								class="input input-bordered w-full"
 								bind:value={password}
 								required
 							/>

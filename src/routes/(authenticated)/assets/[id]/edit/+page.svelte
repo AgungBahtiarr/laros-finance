@@ -44,6 +44,22 @@
 		}
 	}
 
+	function validateIframe(event) {
+		const textarea = event.target;
+		const value = textarea.value.trim();
+		const errorDiv = document.getElementById('error-lokasi');
+
+		const iframeRegex = /<iframe.*?>.*?<\/iframe>/i; // regex iframe sederhana
+
+		if (!iframeRegex.test(value)) {
+			errorDiv.textContent = 'Masukkan iframe Google Maps yang valid!';
+			textarea.classList.add('border-red-500');
+		} else {
+			errorDiv.textContent = '';
+			textarea.classList.remove('border-red-500');
+		}
+	}
+
 	function handleSubmit() {
 		return async ({ result }) => {
 			goto(`/assets/${data.asset.id}`, { invalidateAll: true });
@@ -77,6 +93,10 @@
 								class="input input-bordered w-full"
 								value={data.asset.namaHarta}
 								required
+								minlength="3"
+								maxlength="255"
+								pattern="[A-Za-z0-9\s\-_.]+"
+								title="Nama harta hanya boleh mengandung huruf, angka, spasi, tanda hubung, garis bawah, dan titik"
 							/>
 						</div>
 
@@ -91,6 +111,8 @@
 								class="input input-bordered w-full"
 								value={data.asset.jenisUsaha}
 								required
+								minlength="3"
+								maxlength="255"
 							/>
 						</div>
 
@@ -104,8 +126,11 @@
 								name="lokasi"
 								class="textarea textarea-bordered w-full"
 								placeholder="Paste iframe Google Maps di sini (<iframe src=...>)"
-								rows="3">{data.asset.lokasi || ''}</textarea
+								rows="3"
+								onchange={validateIframe}
+								title="Masukkan iframe Google Maps yang valid">{data.asset.lokasi || ''}</textarea
 							>
+							<div id="error-lokasi" class="mt-2 text-sm text-red-500"></div>
 						</div>
 
 						<div class="form-control w-full">
@@ -120,6 +145,8 @@
 								placeholder="Kode unik aset"
 								value={data.asset.kode || ''}
 								required
+								minlength="5"
+								maxlength="100"
 							/>
 						</div>
 
@@ -178,6 +205,7 @@
 									max="12"
 									value={data.asset.bulanPerolehan}
 									required
+									title="Bulan perolehan harus antara 1-12"
 								/>
 							</div>
 							<div class="form-control w-full">
@@ -190,8 +218,11 @@
 									name="tahunPerolehan"
 									class="input input-bordered w-full"
 									min="1900"
+									max={new Date().getFullYear()}
 									value={data.asset.tahunPerolehan}
+									step="1"
 									required
+									title="Tahun perolehan harus antara 1900 hingga tahun sekarang"
 								/>
 							</div>
 						</div>
@@ -250,7 +281,9 @@
 								class="input input-bordered w-full"
 								value={formatRupiah(data.asset.hargaPerolehan)}
 								oninput={(e) => handleCurrencyInput(e, 'hargaPerolehan')}
+								maxlength="16"
 								required
+								title="Harga perolehan harus berupa angka positif"
 							/>
 							<input type="hidden" name="hargaPerolehan" value={hargaPerolehan} />
 						</div>
@@ -265,6 +298,7 @@
 								class="input input-bordered w-full"
 								value={formatRupiah(data.asset.nilaiSisaBuku)}
 								oninput={(e) => handleCurrencyInput(e, 'nilaiSisaBuku')}
+								maxlength="16"
 								required
 							/>
 							<input type="hidden" name="nilaiSisaBuku" value={nilaiSisaBuku} />
@@ -280,7 +314,9 @@
 								class="input input-bordered w-full"
 								value={formatRupiah(data.asset.penyusutanFiskalTahunIni)}
 								oninput={(e) => handleCurrencyInput(e, 'penyusutanFiskalTahunIni')}
+								maxlength="16"
 								required
+								title="Penyusutan fiskal tahun ini harus berupa angka positif atau 0"
 							/>
 							<input
 								type="hidden"
@@ -299,7 +335,8 @@
 						id="keterangan"
 						name="keterangan"
 						class="textarea textarea-bordered w-full"
-						rows="3">{data.asset.keterangan || ''}</textarea
+						rows="3"
+						maxlength="1000">{data.asset.keterangan || ''}</textarea
 					>
 				</div>
 
@@ -311,17 +348,13 @@
 					</button>
 				</div>
 			</form>
-		</div><svg
-		xmlns="http://www.w3.org/2000/svg"
-		class="h-4 w-4"
-		viewBox="0 0 20 20"
-		fill="currentColor"
-	>
-		<path
-			fill-rule="evenodd"
-			d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
-			clip-rule="evenodd"
-		/>
-	</svg>
+		</div>
+		<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+			<path
+				fill-rule="evenodd"
+				d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
+				clip-rule="evenodd"
+			/>
+		</svg>
 	</div>
 </div>

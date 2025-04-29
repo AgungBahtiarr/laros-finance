@@ -3,7 +3,7 @@
 	import { enhance } from '$app/forms';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
-	import { Eye, Edit, Trash } from '@lucide/svelte';
+	import { Eye, Trash } from '@lucide/svelte';
 
 	let { data } = $props();
 	let searchTerm = $state('');
@@ -39,6 +39,7 @@
 			<h2 class="text-lg font-medium text-gray-900">Daftar Aset</h2>
 			<p class="mt-1 text-sm text-gray-500">Kelola semua aset perusahaan di sini</p>
 		</div>
+
 		<button
 			class="btn btn-primary btn-sm normal-case"
 			onclick={() => document.getElementById('createAsset').showModal()}
@@ -118,7 +119,17 @@
 									>
 										<Eye />
 									</button>
-									<form method="POST" action="?/delete" use:enhance={handleDelete}>
+									<form
+										method="POST"
+										action="?/delete"
+										use:enhance={() => {
+											if (confirm('Hapus data')) {
+												handleDelete;
+											} else {
+												goto(page.url.pathname, { invalidateAll: true });
+											}
+										}}
+									>
 										<input type="hidden" name="id" value={asset.id} />
 										<button type="submit" class="btn btn-ghost btn-sm text-error">
 											<Trash />
