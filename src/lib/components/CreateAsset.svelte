@@ -2,6 +2,7 @@
 	import { enhance } from '$app/forms';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
+	import { onMount } from 'svelte';
 
 	let { masterData } = $props();
 	let form;
@@ -15,12 +16,213 @@
 	let jenisUsaha = $state('');
 	let jenisHartaId = $state('');
 	let kelompokHartaId = $state('');
+	let metodePenyusutanFiskalId = $state('');
+	let tahunPerolehan = $state(new Date().getFullYear());
+	let bulanPerolehan = $state(new Date().getMonth() + 1);
 
+	// Mendapatkan tahun berjalan dan masa pemakaian aset
+	const currentYear = new Date().getFullYear();
+	const currentMonth = new Date().getMonth() + 1;
+
+	// Track if all required fields are filled for calculation
+	let allFieldsReady = $derived(
+		hargaPerolehan &&
+			jenisHartaId &&
+			kelompokHartaId &&
+			metodePenyusutanFiskalId &&
+			tahunPerolehan &&
+			bulanPerolehan
+	);
+
+	// Function to calculate book value and depreciation
+	function calculateValues() {
+		if (!allFieldsReady) {
+			return;
+		}
+
+		// Convert values to numbers
+		const hargaPerolehanNum = parseInt(hargaPerolehan);
+		const tahunPerolehanNum = parseInt(tahunPerolehan.toString());
+		const bulanPerolehanNum = parseInt(bulanPerolehan.toString());
+		const jenisHartaIdNum = parseInt(jenisHartaId);
+		const kelompokHartaIdNum = parseInt(kelompokHartaId);
+		const metodePenyusutanFiskalIdNum = parseInt(metodePenyusutanFiskalId);
+
+		// Hitung masa pemakaian dalam tahun (tahun berjalan - tahun perolehan)
+		let lamaPemakaianTahun = currentYear - tahunPerolehanNum;
+
+		// Jika bulan perolehan lebih besar dari bulan saat ini dan belum genap 1 tahun, kurangi 1
+		if (currentMonth < bulanPerolehanNum && lamaPemakaianTahun > 0) {
+			lamaPemakaianTahun -= 1;
+		}
+
+		// Untuk aset baru, lama pemakaian minimal 0
+		lamaPemakaianTahun = Math.max(0, lamaPemakaianTahun);
+
+		// Ambil tarif penyusutan berdasarkan jenis, kelompok dan metode
+		const tarifPenyusutan = getTarifPenyusutan(
+			jenisHartaIdNum,
+			kelompokHartaIdNum,
+			metodePenyusutanFiskalIdNum
+		);
+
+
+		// Tentukan masa manfaat berdasarkan kelompok harta
+		let masaManfaat = getMasaManfaat(jenisHartaIdNum, kelompokHartaIdNum);
+
+		let nilaiSisaBukuValue = 0;
+		let penyusutanTahunIniValue = 0;
+
+		// Metode Garis Lurus (id: 1)
+		if (metodePenyusutanFiskalIdNum === 1) {
+			// Penyusutan per tahun
+			const penyusutanPerTahun = hargaPerolehanNum / masaManfaat;
+
+			// Jika masih dalam masa manfaat, hitung nilai sisa buku dan penyusutan normal
+			if (lamaPemakaianTahun < masaManfaat) {
+				// Total penyusutan sampai tahun ini
+				const totalPenyusutan = lamaPemakaianTahun * penyusutanPerTahun;
+
+				// Nilai sisa buku = harga perolehan - total penyusutan
+				nilaiSisaBukuValue = hargaPerolehanNum - totalPenyusutan;
+
+				// Penyusutan tahun ini
+				penyusutanTahunIniValue = penyusutanPerTahun;
+			}
+			// Jika sudah melebihi masa manfaat
+			else {
+				// Nilai sisa buku adalah nilai residu (0 atau nilai minimal)
+				nilaiSisaBukuValue = 0;
+
+				// Tidak ada penyusutan tahun ini
+				penyusutanTahunIniValue = 0;
+			}
+
+		}
+		// Metode Saldo Menurun (id: 2)
+		else if (metodePenyusutanFiskalIdNum === 2) {
+
+			// Nilai sisa buku awal adalah harga perolehan
+			let nilaiSisaBukuAwal = hargaPerolehanNum;
+
+			// Hitung penyusutan dan nilai sisa buku selama tahun-tahun pemakaian sebelumnya
+			for (let tahun = 1; tahun <= lamaPemakaianTahun; tahun++) {
+				// Jika sudah melebihi masa manfaat, tidak ada penyusutan lagi
+				if (tahun > masaManfaat) {
+					break;
+				}
+
+				const penyusutanTahun = nilaiSisaBukuAwal * tarifPenyusutan;
+				nilaiSisaBukuAwal -= penyusutanTahun;
+
+			}
+
+			// Nilai sisa buku untuk tahun saat ini adalah hasil perhitungan sebelumnya
+			nilaiSisaBukuValue = nilaiSisaBukuAwal;
+
+			// Hitung penyusutan untuk tahun ini
+			if (lamaPemakaianTahun < masaManfaat) {
+				penyusutanTahunIniValue = nilaiSisaBukuValue * tarifPenyusutan;
+
+				// Perbarui nilai sisa buku setelah penyusutan tahun ini
+				nilaiSisaBukuValue -= penyusutanTahunIniValue;
+			} else {
+				// Tidak ada penyusutan jika sudah melebihi masa manfaat
+				penyusutanTahunIniValue = 0;
+			}
+
+		}
+
+		// Jangan sampai nilai sisa buku negatif
+		nilaiSisaBukuValue = Math.max(0, nilaiSisaBukuValue);
+
+		// Update state dengan pembulatan
+		nilaiSisaBuku = Math.round(nilaiSisaBukuValue).toString();
+		penyusutanFiskalTahunIni = Math.round(penyusutanTahunIniValue).toString();
+
+
+
+		// Update input fields (dengan setTimeout agar diberikan waktu DOM update)
+		setTimeout(() => {
+			const nilaiSisaBukuInput = document.getElementById('nilaiSisaBuku') as HTMLInputElement;
+			const penyusutanInput = document.getElementById(
+				'penyusutanFiskalTahunIni'
+			) as HTMLInputElement;
+
+			if (nilaiSisaBukuInput) nilaiSisaBukuInput.value = formatRupiah(nilaiSisaBuku);
+			if (penyusutanInput) penyusutanInput.value = formatRupiah(penyusutanFiskalTahunIni);
+		}, 0);
+	}
+
+	// Function to get masa manfaat based on jenis harta and kelompok
+	function getMasaManfaat(jenisHartaId, kelompokHartaId) {
+		// Harta Berwujud Bukan Bangunan or Harta Tak Berwujud
+		if (jenisHartaId === 1 || jenisHartaId === 3) {
+			if (kelompokHartaId === 1) return 4; // Kelompok 1
+			if (kelompokHartaId === 2) return 8; // Kelompok 2
+			if (kelompokHartaId === 3) return 16; // Kelompok 3
+			if (kelompokHartaId === 4) return 20; // Kelompok 4
+		}
+		// Harta Berwujud Bangunan
+		else if (jenisHartaId === 2) {
+			if (kelompokHartaId === 5) return 20; // Permanen
+			if (kelompokHartaId === 6) return 10; // Tidak Permanen
+		}
+		return 4; // Default value
+	}
+
+	function getTarifPenyusutan(jenisHartaId, kelompokHartaId, metodePenyusutanFiskalId) {
+		// Jenis Harta: 1 = Harta Berwujud Bukan Bangunan, 2 = Harta Berwujud Bangunan, 3 = Harta Tak Berwujud
+		// Metode Penyusutan: 1 = Garis Lurus, 2 = Saldo Menurun
+
+		const isGarisLurus = metodePenyusutanFiskalId === 1;
+
+		// Harta Berwujud Bukan Bangunan
+		if (jenisHartaId === 1) {
+			// Kelompok 1 (masa manfaat 4 tahun)
+			if (kelompokHartaId === 1) return isGarisLurus ? 0.25 : 0.5;
+			// Kelompok 2 (masa manfaat 8 tahun)
+			if (kelompokHartaId === 2) return isGarisLurus ? 0.125 : 0.25;
+			// Kelompok 3 (masa manfaat 16 tahun)
+			if (kelompokHartaId === 3) return isGarisLurus ? 0.0625 : 0.125;
+			// Kelompok 4 (masa manfaat 20 tahun)
+			if (kelompokHartaId === 4) return isGarisLurus ? 0.05 : 0.1;
+		}
+		// Harta Berwujud Bangunan (hanya boleh Garis Lurus)
+		else if (jenisHartaId === 2) {
+			// Permanen (masa manfaat 20 tahun)
+			if (kelompokHartaId === 5) return 0.05;
+			// Tidak Permanen (masa manfaat 10 tahun)
+			if (kelompokHartaId === 6) return 0.1;
+		}
+		// Harta Tak Berwujud (tergantung masa manfaat)
+		else if (jenisHartaId === 3) {
+			// Kelompok 1 (masa manfaat 4 tahun)
+			if (kelompokHartaId === 1) return isGarisLurus ? 0.25 : 0.5;
+			// Kelompok 2 (masa manfaat 8 tahun)
+			if (kelompokHartaId === 2) return isGarisLurus ? 0.125 : 0.25;
+			// Kelompok 3 (masa manfaat 16 tahun)
+			if (kelompokHartaId === 3) return isGarisLurus ? 0.0625 : 0.125;
+			// Kelompok 4 (masa manfaat 20 tahun)
+			if (kelompokHartaId === 4) return isGarisLurus ? 0.05 : 0.1;
+		}
+
+		return 0;
+	}
+
+	// Watch for changes in state that should trigger calculation
 	$effect(() => {
 		if (jenisHartaId && kelompokHartaId) {
 			jenisUsaha = `${jenisHartaId}${kelompokHartaId}`;
 		} else {
 			jenisUsaha = '';
+		}
+	});
+
+	// Separate effect to watch for all required fields and trigger calculation
+	$effect(() => {
+		if (allFieldsReady) {
+			calculateValues();
 		}
 	});
 
@@ -47,6 +249,7 @@
 		switch (binding) {
 			case 'hargaPerolehan':
 				hargaPerolehan = numericValue;
+				// Calculation is handled by the effect now
 				break;
 			case 'nilaiSisaBuku':
 				nilaiSisaBuku = numericValue;
@@ -105,12 +308,50 @@
 		}
 	}
 
-	$effect(() => {
-		if (form) form.reset();
+	// Reset modal state when opened/closed
+	function resetModalState() {
 		hargaPerolehan = '';
+		nilaiSisaBuku = '';
+		penyusutanFiskalTahunIni = '';
 		jenisUsaha = '';
 		jenisHartaId = '';
 		kelompokHartaId = '';
+		metodePenyusutanFiskalId = '';
+		tahunPerolehan = new Date().getFullYear();
+		bulanPerolehan = new Date().getMonth() + 1;
+
+		if (form) form.reset();
+
+		// Clear the readonly fields
+		setTimeout(() => {
+			const nilaiSisaBukuInput = document.getElementById('nilaiSisaBuku') as HTMLInputElement;
+			const penyusutanInput = document.getElementById(
+				'penyusutanFiskalTahunIni'
+			) as HTMLInputElement;
+
+			if (nilaiSisaBukuInput) nilaiSisaBukuInput.value = '';
+			if (penyusutanInput) penyusutanInput.value = '';
+		}, 0);
+	}
+
+	// When the dialog opens
+	function handleDialogOpened() {
+		resetModalState();
+	}
+
+	$effect(() => {
+		// Dialog initialization using MutationObserver to detect when it's opened
+		const dialog = document.getElementById('createAsset');
+		if (dialog) {
+			const observer = new MutationObserver((mutations) => {
+				mutations.forEach((mutation) => {
+					if (mutation.attributeName === 'open' && dialog.hasAttribute('open')) {
+						handleDialogOpened();
+					}
+				});
+			});
+			observer.observe(dialog, { attributes: true });
+		}
 	});
 
 	function handleSubmit() {
@@ -121,6 +362,14 @@
 			}
 		};
 	}
+
+	onMount(() => {
+		// Initialize modal event listeners
+		const dialogElement = document.getElementById('createAsset');
+		if (dialogElement) {
+			dialogElement.addEventListener('close', resetModalState);
+		}
+	});
 </script>
 
 <dialog id="createAsset" class="modal">
@@ -152,20 +401,6 @@
 									pattern="[A-Za-z0-9\s\-_.]+"
 									title="Nama harta hanya boleh mengandung huruf, angka, spasi, tanda hubung, garis bawah, dan titik"
 									onchange={generateKode}
-								/>
-							</div>
-
-							<div class="form-control w-full">
-								<label class="label" for="jenisUsaha">
-									<span class="label-text">Jenis Usaha</span>
-								</label>
-								<input
-									id="jenisUsaha"
-									type="text"
-									name="jenisUsaha"
-									value={jenisUsaha}
-									class="input input-bordered w-full"
-									required
 								/>
 							</div>
 
@@ -246,6 +481,21 @@
 									{/each}
 								</select>
 							</div>
+
+							<div class="form-control w-full">
+								<label class="label" for="jenisUsaha">
+									<span class="label-text">Jenis Usaha</span>
+								</label>
+								<input
+									id="jenisUsaha"
+									type="text"
+									name="jenisUsaha"
+									value={jenisUsaha}
+									class="input input-bordered w-full"
+									required
+									readonly
+								/>
+							</div>
 						</div>
 
 						<!-- Kolom Kanan -->
@@ -263,6 +513,7 @@
 										min="1"
 										max="12"
 										step="1"
+										bind:value={bulanPerolehan}
 										required
 										title="Bulan perolehan harus antara 1-12"
 									/>
@@ -279,6 +530,7 @@
 										min="1900"
 										max={new Date().getFullYear()}
 										step="1"
+										bind:value={tahunPerolehan}
 										required
 										title="Tahun perolehan harus antara 1900 hingga tahun sekarang"
 									/>
@@ -309,6 +561,7 @@
 								<select
 									id="metodePenyusutanFiskalId"
 									name="metodePenyusutanFiskalId"
+									bind:value={metodePenyusutanFiskalId}
 									class="select select-bordered w-full"
 									required
 								>
@@ -333,6 +586,42 @@
 									title="Harga perolehan harus berupa angka positif"
 								/>
 								<input type="hidden" name="hargaPerolehan" value={hargaPerolehan} />
+							</div>
+
+							<div class="form-control w-full">
+								<label class="label" for="nilaiSisaBuku">
+									<span class="label-text">Nilai Sisa Buku</span>
+									<span class="label-text-alt text-gray-500">(Otomatis)</span>
+								</label>
+								<input
+									id="nilaiSisaBuku"
+									type="text"
+									class="input input-bordered w-full bg-gray-50"
+									readonly
+									maxlength="16"
+									required
+								/>
+								<input type="hidden" name="nilaiSisaBuku" value={nilaiSisaBuku} />
+							</div>
+
+							<div class="form-control w-full">
+								<label class="label" for="penyusutanFiskalTahunIni">
+									<span class="label-text">Penyusutan Fiskal Tahun Ini</span>
+									<span class="label-text-alt text-gray-500">(Otomatis)</span>
+								</label>
+								<input
+									id="penyusutanFiskalTahunIni"
+									type="text"
+									class="input input-bordered w-full bg-gray-50"
+									readonly
+									maxlength="16"
+									required
+								/>
+								<input
+									type="hidden"
+									name="penyusutanFiskalTahunIni"
+									value={penyusutanFiskalTahunIni}
+								/>
 							</div>
 
 							<div class="form-control mt-4 w-full">
