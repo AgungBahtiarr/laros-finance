@@ -89,7 +89,7 @@
 						<th class="w-10">No</th>
 						<th>Nama Harta</th>
 						<th>Jumlah(qty)</th>
-						<th>Jenis & Lokasi</th>
+						<th>Jenis Harta</th>
 						<th>Jenis Usaha</th>
 						<th>Tgl Perolehan</th>
 						<th>Harga Perolehan</th>
