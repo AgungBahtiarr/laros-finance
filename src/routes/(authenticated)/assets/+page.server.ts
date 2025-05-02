@@ -31,6 +31,8 @@ export const actions: Actions = {
 	create: async ({ request }) => {
 		const formData = await request.formData();
 
+		const qty = parseInt(formData.get('quantity') as string);
+
 		const jenisHartaId = parseInt(formData.get('jenisHartaId') as string);
 		const kelompokHartaId = parseInt(formData.get('kelompokHartaId') as string);
 		const jenisUsaha = formData.get('jenisUsaha') as string;
@@ -40,7 +42,7 @@ export const actions: Actions = {
 		const metodePenyusutanKomersialId = parseInt(
 			formData.get('metodePenyusutanKomersialId') as string
 		);
-		
+
 		const metodePenyusutanFiskalId = parseInt(formData.get('metodePenyusutanFiskalId') as string);
 		const hargaPerolehan = parseInt(formData.get('hargaPerolehan') as string);
 		const nilaiSisaBuku = parseInt(formData.get('nilaiSisaBuku') as string);
@@ -51,6 +53,7 @@ export const actions: Actions = {
 
 		try {
 			await db.insert(asset).values({
+				qty,
 				jenisHartaId,
 				kelompokHartaId,
 				jenisUsaha,
@@ -66,7 +69,6 @@ export const actions: Actions = {
 				lokasi,
 				kode
 			});
-
 			return { success: true };
 		} catch (error) {
 			console.error('Error creating asset:', error);

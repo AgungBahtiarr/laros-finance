@@ -90,6 +90,7 @@ export const asset = pgTable('asset', {
 	keterangan: text('keterangan'),
 	lokasi: text('lokasi'),
 	kode: varchar('kode', { length: 100 }),
+	qty: integer('qty').notNull(),
 	createdAt: timestamp('created_at').notNull().defaultNow(),
 	updatedAt: timestamp('updated_at').notNull().defaultNow()
 });

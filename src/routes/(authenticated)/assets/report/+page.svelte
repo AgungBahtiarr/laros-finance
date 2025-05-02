@@ -85,21 +85,23 @@
 		const csvRows = [header];
 
 		data.assets.forEach((asset) => {
-			const row = [
-				asset.jenisHartaId.toString(), // Using ID instead of keterangan as per format
-				asset.kelompokHartaId.toString(), // Using ID instead of keterangan
-				asset.jenisUsaha,
-				asset.namaHarta,
-				asset.bulanPerolehan.toString(),
-				asset.tahunPerolehan.toString(),
-				asset.metodePenyusutanKomersialId.toString(), // Using ID
-				asset.metodePenyusutanFiskalId.toString(), // Using ID
-				asset.hargaPerolehan.toString(),
-				asset.nilaiSisaBuku.toString(),
-				asset.penyusutanFiskalTahunIni.toString(),
-				asset.keterangan || ''
-			];
-			csvRows.push(row);
+			for (let i = 0; i < asset.qty; i++) {
+				const row = [
+					asset.jenisHartaId.toString(), // Using ID instead of keterangan as per format
+					asset.kelompokHartaId.toString(), // Using ID instead of keterangan
+					asset.jenisUsaha,
+					asset.namaHarta,
+					asset.bulanPerolehan.toString(),
+					asset.tahunPerolehan.toString(),
+					asset.metodePenyusutanKomersialId.toString(), // Using ID
+					asset.metodePenyusutanFiskalId.toString(), // Using ID
+					asset.hargaPerolehan.toString(),
+					asset.nilaiSisaBuku.toString(),
+					asset.penyusutanFiskalTahunIni.toString(),
+					asset.keterangan || ''
+				];
+				csvRows.push(row);
+			}
 		});
 
 		// Using tab as separator for compatibility with Excel
@@ -354,4 +356,3 @@
 		</div>
 	</div>
 </div>
-

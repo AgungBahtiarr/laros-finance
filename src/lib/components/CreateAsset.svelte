@@ -5,7 +5,17 @@
 	import { onMount } from 'svelte';
 
 	let { masterData } = $props();
+	// console.log(masterData.kelompokHarta);
 	let form;
+
+	// const kelompokHarta = [
+	// 	{ id: 1, keterangan: 'Kelompok 1', jenis: 'Penyusutan Fiskal' },
+	// 	{ id: 2, keterangan: 'Kelompok 2', jenis: 'Penyusutan Fiskal' },
+	// 	{ id: 3, keterangan: 'Kelompok 3', jenis: 'Penyusutan Fiskal' },
+	// 	{ id: 4, keterangan: 'Kelompok 4', jenis: 'Penyusutan Fiskal' },
+	// 	{ id: 5, keterangan: 'Permanen', jenis: 'Penyusutan Fiskal' },
+	// 	{ id: 6, keterangan: 'Tidak Permanen', jenis: 'Penyusutan Fiskal' }
+	// ];
 
 	// State untuk nilai currency
 	let hargaPerolehan = $state('');
@@ -66,7 +76,6 @@
 			metodePenyusutanFiskalIdNum
 		);
 
-
 		// Tentukan masa manfaat berdasarkan kelompok harta
 		let masaManfaat = getMasaManfaat(jenisHartaIdNum, kelompokHartaIdNum);
 
@@ -97,11 +106,9 @@
 				// Tidak ada penyusutan tahun ini
 				penyusutanTahunIniValue = 0;
 			}
-
 		}
 		// Metode Saldo Menurun (id: 2)
 		else if (metodePenyusutanFiskalIdNum === 2) {
-
 			// Nilai sisa buku awal adalah harga perolehan
 			let nilaiSisaBukuAwal = hargaPerolehanNum;
 
@@ -114,7 +121,6 @@
 
 				const penyusutanTahun = nilaiSisaBukuAwal * tarifPenyusutan;
 				nilaiSisaBukuAwal -= penyusutanTahun;
-
 			}
 
 			// Nilai sisa buku untuk tahun saat ini adalah hasil perhitungan sebelumnya
@@ -130,7 +136,6 @@
 				// Tidak ada penyusutan jika sudah melebihi masa manfaat
 				penyusutanTahunIniValue = 0;
 			}
-
 		}
 
 		// Jangan sampai nilai sisa buku negatif
@@ -139,8 +144,6 @@
 		// Update state dengan pembulatan
 		nilaiSisaBuku = Math.round(nilaiSisaBukuValue).toString();
 		penyusutanFiskalTahunIni = Math.round(penyusutanTahunIniValue).toString();
-
-
 
 		// Update input fields (dengan setTimeout agar diberikan waktu DOM update)
 		setTimeout(() => {
@@ -260,37 +263,6 @@
 		}
 	}
 
-	// Generate kode asset based on input fields
-	function generateKode() {
-		const namaHartaInput = document.getElementById('namaHarta') as HTMLInputElement;
-		const lokasiInput = document.getElementById('lokasi') as HTMLTextAreaElement;
-		const kodeInput = document.getElementById('kode') as HTMLInputElement;
-
-		if (namaHartaInput?.value) {
-			const namaPart = namaHartaInput.value.slice(0, 3).toUpperCase();
-			const timestamp = new Date().getTime().toString().slice(-6);
-
-			// Try to extract a location identifier or use LOC as default
-			let lokasiPart = 'LOC';
-			if (lokasiInput?.value) {
-				// If it's an iframe, try to extract some location info
-				const match = lokasiInput.value.match(/!3d([\d.-]+)!2d([\d.-]+)/);
-				if (match) {
-					// Use part of the coordinates for uniqueness
-					lokasiPart = 'MAP';
-				} else {
-					// Just use the first 3 non-tag characters
-					const textOnly = lokasiInput.value.replace(/<[^>]*>/g, '').trim();
-					if (textOnly.length >= 3) {
-						lokasiPart = textOnly.slice(0, 3).toUpperCase();
-					}
-				}
-			}
-
-			kodeInput.value = `${namaPart}-${lokasiPart}-${timestamp}`;
-		}
-	}
-
 	function validateIframe(event) {
 		const textarea = event.target;
 		const value = textarea.value.trim();
@@ -304,7 +276,6 @@
 		} else {
 			errorDiv.textContent = '';
 			textarea.classList.remove('border-red-500');
-			generateKode();
 		}
 	}
 
@@ -386,22 +357,117 @@
 					<div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
 						<!-- Kolom Kiri -->
 						<div class="space-y-4">
-							<div class="form-control w-full">
-								<label class="label" for="namaHarta">
-									<span class="label-text">Nama Harta</span>
-								</label>
-								<input
-									id="namaHarta"
-									type="text"
-									name="namaHarta"
-									class="input input-bordered w-full"
-									required
-									minlength="3"
-									maxlength="255"
-									pattern="[A-Za-z0-9\s\-_.]+"
-									title="Nama harta hanya boleh mengandung huruf, angka, spasi, tanda hubung, garis bawah, dan titik"
-									onchange={generateKode}
-								/>
+							<div class="grid grid-cols-2 gap-4">
+								<div class="form-control w-full">
+									<label class="label" for="namaHarta">
+										<span class="label-text">Nama Harta</span>
+									</label>
+									<input
+										id="namaHarta"
+										type="text"
+										name="namaHarta"
+										class="input input-bordered w-full"
+										required
+										minlength="3"
+										maxlength="255"
+										pattern="[A-Za-z0-9\s\-_.]+"
+										title="Nama harta hanya boleh mengandung huruf, angka, spasi, tanda hubung, garis bawah, dan titik"
+									/>
+								</div>
+								<div class="form-control w-full">
+									<label class="label" for="tahunPerolehan">
+										<span class="label-text">Jumlah</span>
+									</label>
+									<input
+										id="quantity"
+										type="number"
+										name="quantity"
+										class="input input-bordered w-full"
+										min="1"
+										required
+										title="Jumlah barang"
+									/>
+								</div>
+							</div>
+
+							<div class="grid grid-cols-2 gap-4">
+								<div class="form-control w-full">
+									<label class="label" for="jenisHartaId">
+										<span class="label-text">Jenis Harta</span>
+									</label>
+									<select
+										id="jenisHartaId"
+										name="jenisHartaId"
+										bind:value={jenisHartaId}
+										class="select select-bordered w-full"
+										required
+									>
+										<option value="">Pilih Jenis Harta</option>
+										{#each masterData.jenisHarta as jenis}
+											<option value={jenis.id}>{jenis.keterangan}</option>
+										{/each}
+									</select>
+								</div>
+
+								<div class="form-control w-full">
+									<label class="label" for="kelompokHartaId">
+										<span class="label-text">Kelompok Harta</span>
+									</label>
+									<select
+										id="kelompokHartaId"
+										name="kelompokHartaId"
+										bind:value={kelompokHartaId}
+										class="select select-bordered w-full"
+										required
+									>
+										<option value="">Pilih Kelompok Harta</option>
+										{#if parseInt(jenisHartaId) === 1 || parseInt(jenisHartaId) === 3}
+											{#each masterData.kelompokHarta.filter((k) => k.id >= 1 && k.id <= 4) as kelompok}
+												<option value={kelompok.id}>{kelompok.keterangan}</option>
+											{/each}
+										{:else if parseInt(jenisHartaId) === 2}
+											{#each masterData.kelompokHarta.filter((k) => k.id >= 5 && k.id <= 6) as kelompok}
+												<option value={kelompok.id}>{kelompok.keterangan}</option>
+											{/each}
+										{:else}
+											{#each masterData.kelompokHarta as kelompok}
+												<option value={kelompok.id}>{kelompok.keterangan}</option>
+											{/each}
+										{/if}
+									</select>
+								</div>
+							</div>
+
+							<div class="grid grid-cols-2 gap-4">
+								<div class="form-control w-full">
+									<label class="label" for="kode">
+										<span class="label-text">Kode Aset</span>
+									</label>
+									<input
+										id="kode"
+										type="text"
+										name="kode"
+										class="input input-bordered w-full"
+										placeholder="Kode unik aset"
+										required
+										minlength="5"
+										maxlength="100"
+									/>
+								</div>
+								<div class="form-control w-full">
+									<label class="label" for="jenisUsaha">
+										<span class="label-text">Jenis Usaha (Otomatis)</span>
+									</label>
+									<input
+										id="jenisUsaha"
+										type="text"
+										name="jenisUsaha"
+										value={jenisUsaha}
+										class="input input-bordered w-full"
+										required
+										readonly
+									/>
+								</div>
 							</div>
 
 							<div class="form-control w-full">
@@ -420,81 +486,17 @@
 								></textarea>
 								<div id="error-lokasi" class="mt-2 text-sm text-red-500"></div>
 							</div>
-
 							<div class="form-control w-full">
-								<label class="label" for="kode">
-									<span class="label-text">Kode Aset</span>
-									<span class="label-text-alt">
-										<button
-											type="button"
-											class="text-primary text-xs hover:underline"
-											onclick={generateKode}
-										>
-											Generate
-										</button>
-									</span>
+								<label class="label" for="keterangan">
+									<span class="label-text">Keterangan</span>
 								</label>
-								<input
-									id="kode"
-									type="text"
-									name="kode"
-									class="input input-bordered w-full"
-									placeholder="Kode unik aset"
-									required
-									minlength="5"
-									maxlength="100"
-								/>
-							</div>
-
-							<div class="form-control w-full">
-								<label class="label" for="jenisHartaId">
-									<span class="label-text">Jenis Harta</span>
-								</label>
-								<select
-									id="jenisHartaId"
-									name="jenisHartaId"
-									bind:value={jenisHartaId}
-									class="select select-bordered w-full"
-									required
-								>
-									<option value="">Pilih Jenis Harta</option>
-									{#each masterData.jenisHarta as jenis}
-										<option value={jenis.id}>{jenis.keterangan}</option>
-									{/each}
-								</select>
-							</div>
-
-							<div class="form-control w-full">
-								<label class="label" for="kelompokHartaId">
-									<span class="label-text">Kelompok Harta</span>
-								</label>
-								<select
-									id="kelompokHartaId"
-									name="kelompokHartaId"
-									bind:value={kelompokHartaId}
-									class="select select-bordered w-full"
-									required
-								>
-									<option value="">Pilih Kelompok Harta</option>
-									{#each masterData.kelompokHarta as kelompok}
-										<option value={kelompok.id}>{kelompok.keterangan}</option>
-									{/each}
-								</select>
-							</div>
-
-							<div class="form-control w-full">
-								<label class="label" for="jenisUsaha">
-									<span class="label-text">Jenis Usaha</span>
-								</label>
-								<input
-									id="jenisUsaha"
-									type="text"
-									name="jenisUsaha"
-									value={jenisUsaha}
-									class="input input-bordered w-full"
-									required
-									readonly
-								/>
+								<textarea
+									id="keterangan"
+									name="keterangan"
+									class="textarea textarea-bordered w-full"
+									rows="3"
+									maxlength="1000"
+								></textarea>
 							</div>
 						</div>
 
@@ -622,19 +624,6 @@
 									name="penyusutanFiskalTahunIni"
 									value={penyusutanFiskalTahunIni}
 								/>
-							</div>
-
-							<div class="form-control mt-4 w-full">
-								<label class="label" for="keterangan">
-									<span class="label-text">Keterangan</span>
-								</label>
-								<textarea
-									id="keterangan"
-									name="keterangan"
-									class="textarea textarea-bordered w-full"
-									rows="3"
-									maxlength="1000"
-								></textarea>
 							</div>
 
 							<!-- Footer -->

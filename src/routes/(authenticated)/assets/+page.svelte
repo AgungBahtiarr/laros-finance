@@ -88,8 +88,9 @@
 					<tr>
 						<th class="w-10">No</th>
 						<th>Nama Harta</th>
+						<th>Jumlah(qty)</th>
 						<th>Jenis & Lokasi</th>
-						<th>Kelompok</th>
+						<th>Jenis Usaha</th>
 						<th>Tgl Perolehan</th>
 						<th>Harga Perolehan</th>
 						<th>Nilai Sisa Buku</th>
@@ -102,10 +103,10 @@
 							<td class="font-medium">{i + 1}</td>
 							<td>
 								<div class="font-medium">{asset.namaHarta}</div>
-								<div class="text-sm text-gray-500">{asset.jenisUsaha}</div>
 							</td>
+							<td>{asset.qty}</td>
 							<td>{asset.jenisHarta.keterangan}</td>
-							<td>{asset.kelompokHarta.keterangan}</td>
+							<td>{asset.jenisUsaha}</td>
 							<td>{asset.bulanPerolehan}/{asset.tahunPerolehan}</td>
 							<td class="tabular-nums">Rp {asset.hargaPerolehan.toLocaleString()}</td>
 							<td class="tabular-nums">Rp {asset.nilaiSisaBuku.toLocaleString()}</td>

@@ -255,6 +255,20 @@
 		}
 	}
 
+	$effect(() => {
+		if (jenisHartaId && kelompokHartaId) {
+			jenisUsaha = `${jenisHartaId}${kelompokHartaId}`;
+		} else {
+			jenisUsaha = '';
+		}
+	});
+
+	$effect(() => {
+		if (allFieldsReady) {
+			calculateValues();
+		}
+	});
+
 	function handleSubmit() {
 		return async ({ result }) => {
 			goto(`/assets/${data.asset.id}`, { invalidateAll: true });
@@ -323,6 +337,99 @@
 							/>
 						</div>
 
+						<div class="grid grid-cols-2 gap-4">
+							<div class="form-control w-full">
+								<label class="label" for="jenisHartaId">
+									<span class="label-text">Jenis Harta</span>
+								</label>
+								<select
+									id="jenisHartaId"
+									name="jenisHartaId"
+									bind:value={jenisHartaId}
+									class="select select-bordered w-full"
+									required
+								>
+									<option value="">Pilih Jenis Harta</option>
+									{#each data.masterData.jenisHarta as jenis}
+										<option
+											value={jenis.id}
+											selected={parseInt(jenis.id) === data.asset.jenisHartaId}
+										>
+											{jenis.keterangan}
+										</option>
+									{/each}
+								</select>
+							</div>
+
+							<div class="form-control w-full">
+								<label class="label" for="kelompokHartaId">
+									<span class="label-text">Kelompok Harta</span>
+								</label>
+								<select
+									id="kelompokHartaId"
+									name="kelompokHartaId"
+									bind:value={kelompokHartaId}
+									class="select select-bordered w-full"
+									required
+								>
+									<option value="">Pilih Kelompok Harta</option>
+									{#if parseInt(jenisHartaId) === 1 || parseInt(jenisHartaId) === 3}
+										{#each data.masterData.kelompokHarta.filter((k) => k.id >= 1 && k.id <= 4) as kelompok}
+											<option value={kelompok.id.toString()}>
+												{kelompok.keterangan}
+											</option>
+										{/each}
+									{:else if parseInt(jenisHartaId) === 2}
+										{#each data.masterData.kelompokHarta.filter((k) => k.id >= 5 && k.id <= 6) as kelompok}
+											<option value={kelompok.id.toString()}>
+												{kelompok.keterangan}
+											</option>
+										{/each}
+									{:else}
+										{#each data.masterData.kelompokHarta as kelompok}
+											<option value={kelompok.id.toString()}>
+												{kelompok.keterangan}
+											</option>
+										{/each}
+									{/if}
+								</select>
+							</div>
+						</div>
+
+						<div class="grid grid-cols-2 gap-4">
+							<div class="form-control w-full">
+								<label class="label" for="kode">
+									<span class="label-text">Kode Aset</span>
+								</label>
+								<input
+									id="kode"
+									type="text"
+									name="kode"
+									class="input input-bordered w-full"
+									placeholder="Kode unik aset"
+									value={data.asset.kode || ''}
+									required
+									minlength="5"
+									maxlength="100"
+								/>
+							</div>
+
+							<div class="form-control w-full">
+								<label class="label" for="jenisUsaha">
+									<span class="label-text">Jenis Usaha</span>
+								</label>
+								<input
+									id="jenisUsaha"
+									type="text"
+									name="jenisUsaha"
+									class="input input-bordered w-full"
+									value={jenisUsaha}
+									required
+									readonly
+								/>
+							</div>
+						</div>
+
 						<div class="form-control w-full">
 							<label class="label" for="lokasi">
 								<span class="label-text">Lokasi</span>
@@ -340,80 +447,17 @@
 							<div id="error-lokasi" class="mt-2 text-sm text-red-500"></div>
 						</div>
 
-						<div class="form-control w-full">
-							<label class="label" for="kode">
-								<span class="label-text">Kode Aset</span>
+						<div class="form-control mt-4 w-full">
+							<label class="label" for="keterangan">
+								<span class="label-text">Keterangan</span>
 							</label>
-							<input
-								id="kode"
-								type="text"
-								name="kode"
-								class="input input-bordered w-full"
-								placeholder="Kode unik aset"
-								value={data.asset.kode || ''}
-								required
-								minlength="5"
-								maxlength="100"
-							/>
-						</div>
-
-						<div class="form-control w-full">
-							<label class="label" for="jenisHartaId">
-								<span class="label-text">Jenis Harta</span>
-							</label>
-							<select
-								id="jenisHartaId"
-								name="jenisHartaId"
-								class="select select-bordered w-full"
-								required
+							<textarea
+								id="keterangan"
+								name="keterangan"
+								class="textarea textarea-bordered w-full"
+								rows="3"
+								maxlength="1000">{data.asset.keterangan || ''}</textarea
 							>
-								<option value="">Pilih Jenis Harta</option>
-								{#each data.masterData.jenisHarta as jenis}
-									<option
-										value={jenis.id}
-										selected={parseInt(jenis.id) === data.asset.jenisHartaId}
-									>
-										{jenis.keterangan}
-									</option>
-								{/each}
-							</select>
-						</div>
-
-						<div class="form-control w-full">
-							<label class="label" for="kelompokHartaId">
-								<span class="label-text">Kelompok Harta</span>
-							</label>
-							<select
-								id="kelompokHartaId"
-								name="kelompokHartaId"
-								class="select select-bordered w-full"
-								required
-							>
-								<option value="">Pilih Kelompok Harta</option>
-								{#each data.masterData.kelompokHarta as kelompok}
-									<option
-										value={kelompok.id}
-										selected={parseInt(kelompok.id) === data.asset.kelompokHartaId}
-									>
-										{kelompok.keterangan}
-									</option>
-								{/each}
-							</select>
-						</div>
-
-						<div class="form-control w-full">
-							<label class="label" for="jenisUsaha">
-								<span class="label-text">Jenis Usaha</span>
-							</label>
-							<input
-								id="jenisUsaha"
-								type="text"
-								name="jenisUsaha"
-								class="input input-bordered w-full"
-								value={jenisUsaha}
-								required
-								readonly
-							/>
 						</div>
 					</div>
 
@@ -555,19 +599,6 @@
 							/>
 						</div>
 					</div>
-				</div>
-
-				<div class="form-control mt-4 w-full">
-					<label class="label" for="keterangan">
-						<span class="label-text">Keterangan</span>
-					</label>
-					<textarea
-						id="keterangan"
-						name="keterangan"
-						class="textarea textarea-bordered w-full"
-						rows="3"
-						maxlength="1000">{data.asset.keterangan || ''}</textarea
-					>
 				</div>
 
 				<div class="mt-6 flex justify-end space-x-4">
