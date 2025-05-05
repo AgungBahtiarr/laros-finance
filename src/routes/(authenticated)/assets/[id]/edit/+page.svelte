@@ -489,7 +489,7 @@
 									class="input input-bordered w-full"
 									min="1900"
 									max={new Date().getFullYear()}
-									value={tahunPerolehan}
+                                    bind:value={tahunPerolehan}
 									step="1"
 									required
 									title="Tahun perolehan harus antara 1900 hingga tahun sekarang"
