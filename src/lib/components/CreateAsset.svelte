@@ -136,7 +136,7 @@
 		nilaiSisaBuku = Math.round(nilaiSisaBukuValue).toString();
 		// penyusutanFiskalTahunIni = Math.round(penyusutanTahunIniValue).toString();
 
-		penyusutanFiskalTahunIni = (
+		penyusutanFiskalTahunIni = Math.round(
 			(penyusutanTahunIniValue / 12) *
 			(12 - bulanPerolehanNum + 1)
 		).toString();
