@@ -8,15 +8,6 @@
 	// console.log(masterData.kelompokHarta);
 	let form;
 
-	// const kelompokHarta = [
-	// 	{ id: 1, keterangan: 'Kelompok 1', jenis: 'Penyusutan Fiskal' },
-	// 	{ id: 2, keterangan: 'Kelompok 2', jenis: 'Penyusutan Fiskal' },
-	// 	{ id: 3, keterangan: 'Kelompok 3', jenis: 'Penyusutan Fiskal' },
-	// 	{ id: 4, keterangan: 'Kelompok 4', jenis: 'Penyusutan Fiskal' },
-	// 	{ id: 5, keterangan: 'Permanen', jenis: 'Penyusutan Fiskal' },
-	// 	{ id: 6, keterangan: 'Tidak Permanen', jenis: 'Penyusutan Fiskal' }
-	// ];
-
 	// State untuk nilai currency
 	let hargaPerolehan = $state('');
 	let nilaiSisaBuku = $state('');
@@ -143,7 +134,9 @@
 
 		// Update state dengan pembulatan
 		nilaiSisaBuku = Math.round(nilaiSisaBukuValue).toString();
-		penyusutanFiskalTahunIni = Math.round(penyusutanTahunIniValue).toString();
+		// penyusutanFiskalTahunIni = Math.round(penyusutanTahunIniValue).toString();
+
+		let penyusutanFiskalTahunIni = (penyusutanTahunIniValue / 12) * (12 - bulanPerolehanNum + 1);
 
 		// Update input fields (dengan setTimeout agar diberikan waktu DOM update)
 		setTimeout(() => {
@@ -153,7 +146,8 @@
 			) as HTMLInputElement;
 
 			if (nilaiSisaBukuInput) nilaiSisaBukuInput.value = formatRupiah(nilaiSisaBuku);
-			if (penyusutanInput) penyusutanInput.value = formatRupiah(penyusutanFiskalTahunIni);
+			if (penyusutanInput)
+				penyusutanInput.value = formatRupiah(penyusutanFiskalTahunIni.toString());
 		}, 0);
 	}
 
