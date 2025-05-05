@@ -35,7 +35,7 @@ export const actions: Actions = {
 
 		const jenisHartaId = parseInt(formData.get('jenisHartaId') as string);
 		const kelompokHartaId = parseInt(formData.get('kelompokHartaId') as string);
-		const jenisUsaha = formData.get('jenisUsaha') as string;
+		const jenisUsaha = parseInt(formData.get('jenisUsaha') as string);
 		const namaHarta = formData.get('namaHarta') as string;
 		const bulanPerolehan = parseInt(formData.get('bulanPerolehan') as string);
 		const tahunPerolehan = parseInt(formData.get('tahunPerolehan') as string);

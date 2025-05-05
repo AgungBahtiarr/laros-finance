@@ -136,7 +136,10 @@
 		nilaiSisaBuku = Math.round(nilaiSisaBukuValue).toString();
 		// penyusutanFiskalTahunIni = Math.round(penyusutanTahunIniValue).toString();
 
-		let penyusutanFiskalTahunIni = (penyusutanTahunIniValue / 12) * (12 - bulanPerolehanNum + 1);
+		penyusutanFiskalTahunIni = (
+			(penyusutanTahunIniValue / 12) *
+			(12 - bulanPerolehanNum + 1)
+		).toString();
 
 		// Update input fields (dengan setTimeout agar diberikan waktu DOM update)
 		setTimeout(() => {
@@ -146,8 +149,7 @@
 			) as HTMLInputElement;
 
 			if (nilaiSisaBukuInput) nilaiSisaBukuInput.value = formatRupiah(nilaiSisaBuku);
-			if (penyusutanInput)
-				penyusutanInput.value = formatRupiah(penyusutanFiskalTahunIni.toString());
+			if (penyusutanInput) penyusutanInput.value = formatRupiah(penyusutanFiskalTahunIni);
 		}, 0);
 	}
 
