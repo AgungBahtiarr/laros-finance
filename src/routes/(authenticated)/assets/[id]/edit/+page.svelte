@@ -135,7 +135,11 @@
 
 		// Update state dengan pembulatan
 		nilaiSisaBuku = Math.round(nilaiSisaBukuValue).toString();
-		penyusutanFiskalTahunIni = Math.round(penyusutanTahunIniValue).toString();
+        penyusutanFiskalTahunIni = (
+            (penyusutanTahunIniValue / 12) *
+                (12 - bulanPerolehanNum + 1)
+        ).toString();
+
 
 		// Update input fields (dengan setTimeout agar diberikan waktu DOM update)
 		setTimeout(() => {
@@ -205,6 +209,12 @@
 		return 0;
 	}
 
+	$effect(() => {
+		if (allFieldsReady) {
+			calculateValues();
+		}
+	});
+
 	// Format number to IDR
 	function formatRupiah(number: string | number) {
 		const numericValue = number.toString().replace(/\D/g, '');
@@ -263,12 +273,6 @@
 		}
 	});
 
-	$effect(() => {
-		if (allFieldsReady) {
-			calculateValues();
-		}
-	});
-
 	function handleSubmit() {
 		return async ({ result }) => {
 			goto(`/assets/${data.asset.id}`, { invalidateAll: true });
@@ -292,11 +296,6 @@
 			if (kelompokHartaSelect) kelompokHartaSelect.value = kelompokHartaId;
 			if (metodePenyusutanFiskalSelect)
 				metodePenyusutanFiskalSelect.value = metodePenyusutanFiskalId;
-
-			// Generate jenis usaha from ids
-			if (jenisHartaId && kelompokHartaId) {
-				jenisUsaha = `${jenisHartaId}${kelompokHartaId}`;
-			}
 
 			// Only call calculate after ensuring all values are properly set
 			calculateValues();
@@ -332,8 +331,7 @@
 								required
 								minlength="3"
 								maxlength="255"
-								pattern="[A-Za-z0-9\s\-_.]+"
-								title="Nama harta hanya boleh mengandung huruf, angka, spasi, tanda hubung, garis bawah, dan titik"
+								title="Nama harta"
 							/>
 						</div>
 
@@ -475,7 +473,7 @@
 									class="input input-bordered w-full"
 									min="1"
 									max="12"
-									value={bulanPerolehan}
+                                    bind:value={bulanPerolehan}
 									required
 									title="Bulan perolehan harus antara 1-12"
 								/>

@@ -366,8 +366,7 @@
 										required
 										minlength="3"
 										maxlength="255"
-										pattern="[A-Za-z0-9\s\-_.]+"
-										title="Nama harta hanya boleh mengandung huruf, angka, spasi, tanda hubung, garis bawah, dan titik"
+										title="Nama harta"
 									/>
 								</div>
 								<div class="form-control w-full">
