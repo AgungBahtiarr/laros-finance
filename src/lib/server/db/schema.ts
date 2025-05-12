@@ -1,5 +1,5 @@
 import { relations } from 'drizzle-orm';
-import { pgTable, serial, text, varchar, integer, boolean, timestamp } from 'drizzle-orm/pg-core';
+import { pgTable, serial, text, varchar, integer, boolean, timestamp, date, decimal, uniqueIndex, primaryKey } from 'drizzle-orm/pg-core';
 export const user = pgTable('user', {
 	id: text('id').primaryKey(),
 	name: text('name').notNull(),
@@ -131,4 +131,235 @@ export const metodePenyusutanKomersialRelations = relations(
 
 export const metodePenyusutanFiskalRelations = relations(metodePenyusutanFiskal, ({ many }) => ({
 	assets: many(asset)
+}));
+
+// General Ledger Schema
+
+// Account Types (Asset, Liability, Equity, Revenue, Expense)
+export const accountType = pgTable('account_type', {
+	id: serial('id').primaryKey(),
+	code: varchar('code', { length: 10 }).notNull().unique(),
+	name: varchar('name', { length: 100 }).notNull(),
+	normalBalance: varchar('normal_balance', { length: 10 }).notNull(), // "DEBIT" or "CREDIT"
+	createdAt: timestamp('created_at').notNull().defaultNow(),
+	updatedAt: timestamp('updated_at').notNull().defaultNow()
+});
+
+// Chart of Accounts
+export const chartOfAccount = pgTable('chart_of_account', {
+	id: serial('id').primaryKey(),
+	code: varchar('code', { length: 20 }).notNull().unique(),
+	name: varchar('name', { length: 255 }).notNull(),
+	description: text('description'),
+	accountTypeId: integer('account_type_id').notNull().references(() => accountType.id),
+	parentId: integer('parent_id').references(() => chartOfAccount.id),
+	level: integer('level').notNull().default(1),
+	isActive: boolean('is_active').notNull().default(true),
+	isLocked: boolean('is_locked').notNull().default(false),
+	createdAt: timestamp('created_at').notNull().defaultNow(),
+	updatedAt: timestamp('updated_at').notNull().defaultNow()
+});
+
+export const chartOfAccountRelations = relations(chartOfAccount, ({ one, many }) => ({
+	accountType: one(accountType, {
+		fields: [chartOfAccount.accountTypeId],
+		references: [accountType.id]
+	}),
+	parent: one(chartOfAccount, {
+		fields: [chartOfAccount.parentId],
+		references: [chartOfAccount.id]
+	}),
+	children: many(chartOfAccount),
+	journalEntryLines: many(journalEntryLine)
+}));
+
+export const accountTypeRelations = relations(accountType, ({ many }) => ({
+	accounts: many(chartOfAccount)
+}));
+
+// Fiscal Periods
+export const fiscalPeriod = pgTable('fiscal_period', {
+	id: serial('id').primaryKey(),
+	name: varchar('name', { length: 100 }).notNull(),
+	startDate: date('start_date').notNull(),
+	endDate: date('end_date').notNull(),
+	isClosed: boolean('is_closed').notNull().default(false),
+	createdAt: timestamp('created_at').notNull().defaultNow(),
+	updatedAt: timestamp('updated_at').notNull().defaultNow()
+});
+
+// Journal Entries
+export const journalEntry = pgTable('journal_entry', {
+	id: serial('id').primaryKey(),
+	number: varchar('number', { length: 50 }).notNull().unique(),
+	date: date('date').notNull(),
+	description: text('description'),
+	reference: varchar('reference', { length: 100 }),
+	fiscalPeriodId: integer('fiscal_period_id').notNull().references(() => fiscalPeriod.id),
+	totalDebit: decimal('total_debit', { precision: 15, scale: 2 }).notNull().default('0'),
+	totalCredit: decimal('total_credit', { precision: 15, scale: 2 }).notNull().default('0'),
+	status: varchar('status', { length: 20 }).notNull().default('DRAFT'), // DRAFT, POSTED, REVERSED
+	postedAt: timestamp('posted_at'),
+	postedBy: text('posted_by').references(() => user.id),
+	createdBy: text('created_by').notNull().references(() => user.id),
+	createdAt: timestamp('created_at').notNull().defaultNow(),
+	updatedAt: timestamp('updated_at').notNull().defaultNow()
+});
+
+export const journalEntryRelations = relations(journalEntry, ({ one, many }) => ({
+	fiscalPeriod: one(fiscalPeriod, {
+		fields: [journalEntry.fiscalPeriodId],
+		references: [fiscalPeriod.id]
+	}),
+	createdByUser: one(user, {
+		fields: [journalEntry.createdBy],
+		references: [user.id]
+	}),
+	postedByUser: one(user, {
+		fields: [journalEntry.postedBy],
+		references: [user.id]
+	}),
+	lines: many(journalEntryLine)
+}));
+
+export const fiscalPeriodRelations = relations(fiscalPeriod, ({ many }) => ({
+	journalEntries: many(journalEntry)
+}));
+
+// Journal Entry Lines
+export const journalEntryLine = pgTable('journal_entry_line', {
+	id: serial('id').primaryKey(),
+	journalEntryId: integer('journal_entry_id').notNull().references(() => journalEntry.id, { onDelete: 'cascade' }),
+	accountId: integer('account_id').notNull().references(() => chartOfAccount.id),
+	description: text('description'),
+	debitAmount: decimal('debit_amount', { precision: 15, scale: 2 }).notNull().default('0'),
+	creditAmount: decimal('credit_amount', { precision: 15, scale: 2 }).notNull().default('0'),
+	lineNumber: integer('line_number').notNull(),
+	createdAt: timestamp('created_at').notNull().defaultNow(),
+	updatedAt: timestamp('updated_at').notNull().defaultNow()
+});
+
+export const journalEntryLineRelations = relations(journalEntryLine, ({ one }) => ({
+	journalEntry: one(journalEntry, {
+		fields: [journalEntryLine.journalEntryId],
+		references: [journalEntry.id]
+	}),
+	account: one(chartOfAccount, {
+		fields: [journalEntryLine.accountId],
+		references: [chartOfAccount.id]
+	})
+}));
+
+// Account Balances
+export const accountBalance = pgTable('account_balance', {
+	id: serial('id').primaryKey(),
+	accountId: integer('account_id').notNull().references(() => chartOfAccount.id),
+	fiscalPeriodId: integer('fiscal_period_id').notNull().references(() => fiscalPeriod.id),
+	openingBalance: decimal('opening_balance', { precision: 15, scale: 2 }).notNull().default('0'),
+	debitMovement: decimal('debit_movement', { precision: 15, scale: 2 }).notNull().default('0'),
+	creditMovement: decimal('credit_movement', { precision: 15, scale: 2 }).notNull().default('0'),
+	closingBalance: decimal('closing_balance', { precision: 15, scale: 2 }).notNull().default('0'),
+	createdAt: timestamp('created_at').notNull().defaultNow(),
+	updatedAt: timestamp('updated_at').notNull().defaultNow()
+}, (table) => {
+	return {
+		accountPeriodIdx: uniqueIndex('account_period_idx').on(table.accountId, table.fiscalPeriodId)
+	};
+});
+
+export const accountBalanceRelations = relations(accountBalance, ({ one }) => ({
+	account: one(chartOfAccount, {
+		fields: [accountBalance.accountId],
+		references: [chartOfAccount.id]
+	}),
+	fiscalPeriod: one(fiscalPeriod, {
+		fields: [accountBalance.fiscalPeriodId],
+		references: [fiscalPeriod.id]
+	})
+}));
+
+// Financial Report Templates
+export const reportTemplate = pgTable('report_template', {
+	id: serial('id').primaryKey(),
+	name: varchar('name', { length: 100 }).notNull(),
+	type: varchar('type', { length: 50 }).notNull(), // BALANCE_SHEET, INCOME_STATEMENT, CASH_FLOW, etc.
+	description: text('description'),
+	createdAt: timestamp('created_at').notNull().defaultNow(),
+	updatedAt: timestamp('updated_at').notNull().defaultNow()
+});
+
+// Report Template Lines - defines the structure of the report
+export const reportTemplateLine = pgTable('report_template_line', {
+	id: serial('id').primaryKey(),
+	reportTemplateId: integer('report_template_id').notNull().references(() => reportTemplate.id, { onDelete: 'cascade' }),
+	lineNumber: integer('line_number').notNull(),
+	parentLineId: integer('parent_line_id').references(() => reportTemplateLine.id),
+	label: varchar('label', { length: 255 }).notNull(),
+	type: varchar('type', { length: 20 }).notNull(), // HEADER, ACCOUNT, CALCULATION, TOTAL, SUBTOTAL
+	formula: text('formula'), // For calculation lines
+	accountIds: text('account_ids'), // CSV of account IDs, for ACCOUNT type
+	bold: boolean('bold').notNull().default(false),
+	createdAt: timestamp('created_at').notNull().defaultNow(),
+	updatedAt: timestamp('updated_at').notNull().defaultNow()
+});
+
+export const reportTemplateRelations = relations(reportTemplate, ({ many }) => ({
+	lines: many(reportTemplateLine)
+}));
+
+export const reportTemplateLineRelations = relations(reportTemplateLine, ({ one, many }) => ({
+	reportTemplate: one(reportTemplate, {
+		fields: [reportTemplateLine.reportTemplateId],
+		references: [reportTemplate.id]
+	}),
+	parent: one(reportTemplateLine, {
+		fields: [reportTemplateLine.parentLineId],
+		references: [reportTemplateLine.id]
+	}),
+	children: many(reportTemplateLine)
+}));
+
+// Recurring Journal Templates
+export const recurringJournalTemplate = pgTable('recurring_journal_template', {
+	id: serial('id').primaryKey(),
+	name: varchar('name', { length: 100 }).notNull(),
+	description: text('description'),
+	frequency: varchar('frequency', { length: 20 }).notNull(), // MONTHLY, QUARTERLY, YEARLY, etc.
+	nextRunDate: date('next_run_date').notNull(),
+	isActive: boolean('is_active').notNull().default(true),
+	createdBy: text('created_by').notNull().references(() => user.id),
+	createdAt: timestamp('created_at').notNull().defaultNow(),
+	updatedAt: timestamp('updated_at').notNull().defaultNow()
+});
+
+// Recurring Journal Template Lines
+export const recurringJournalTemplateLine = pgTable('recurring_journal_template_line', {
+	id: serial('id').primaryKey(),
+	recurringJournalTemplateId: integer('recurring_journal_template_id').notNull().references(() => recurringJournalTemplate.id, { onDelete: 'cascade' }),
+	accountId: integer('account_id').notNull().references(() => chartOfAccount.id),
+	description: text('description'),
+	debitAmount: decimal('debit_amount', { precision: 15, scale: 2 }).notNull().default('0'),
+	creditAmount: decimal('credit_amount', { precision: 15, scale: 2 }).notNull().default('0'),
+	lineNumber: integer('line_number').notNull(),
+	createdAt: timestamp('created_at').notNull().defaultNow(),
+	updatedAt: timestamp('updated_at').notNull().defaultNow()
+});
+
+export const recurringJournalTemplateRelations = relations(recurringJournalTemplate, ({ one, many }) => ({
+	createdByUser: one(user, {
+		fields: [recurringJournalTemplate.createdBy],
+		references: [user.id]
+	}),
+	lines: many(recurringJournalTemplateLine)
+}));
+
+export const recurringJournalTemplateLineRelations = relations(recurringJournalTemplateLine, ({ one }) => ({
+	recurringJournalTemplate: one(recurringJournalTemplate, {
+		fields: [recurringJournalTemplateLine.recurringJournalTemplateId],
+		references: [recurringJournalTemplate.id]
+	}),
+	account: one(chartOfAccount, {
+		fields: [recurringJournalTemplateLine.accountId],
+		references: [chartOfAccount.id]
+	})
 }));

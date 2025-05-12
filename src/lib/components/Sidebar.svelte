@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import { Home, FileText, Box, ChevronDown, Package } from '@lucide/svelte';
+	import { Home, FileText, Box, ChevronDown, Package, DollarSign, BookOpen, BarChart2, CreditCard, Landmark } from '@lucide/svelte';
 
 	const navigation = [
 		{
@@ -22,6 +22,28 @@
 					name: 'Laporan Aset',
 					href: '/assets/report',
 					icon: FileText
+				}
+			]
+		},
+		{
+			name: 'General Ledger',
+			href: '/gl',
+			icon: BookOpen,
+			submenu: [
+				{
+					name: 'Chart of Accounts',
+					href: '/gl/accounts',
+					icon: Landmark
+				},
+				{
+					name: 'Journal Entry',
+					href: '/gl/journal',
+					icon: CreditCard
+				},
+				{
+					name: 'Financial Reports',
+					href: '/gl/reports',
+					icon: BarChart2
 				}
 			]
 		}
