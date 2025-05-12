@@ -33,27 +33,57 @@
 				{
 					name: 'Chart of Accounts',
 					href: '/gl/accounts',
-					icon: Landmark
+					icon: Landmark,
+					subsubmenu: [
+						{
+							name: 'Account Types',
+							href: '/gl/accounts/types'
+						},
+						{
+							name: 'Account Groups',
+							href: '/gl/accounts/groups'
+						},
+						{
+							name: 'Account List',
+							href: '/gl/accounts/list'
+						}
+					]
 				},
 				{
-					name: 'Journal Entry',
-					href: '/gl/journal',
-					icon: CreditCard
-				},
-				{
-					name: 'Financial Reports',
-					href: '/gl/reports',
-					icon: BarChart2
+					name: 'Ledger',
+					href: '/gl/ledger',
+					icon: CreditCard,
+					subsubmenu: [
+						{
+							name: 'Periods',
+							href: '/gl/ledger/periods'
+						},
+						{
+							name: 'Analyzer',
+							href: '/gl/ledger/analyzer'
+						},
+						{
+							name: 'Journals',
+							href: '/gl/ledger/journals'
+						},
+						{
+							name: 'Report Analysis',
+							href: '/gl/ledger/reports'
+						}
+					]
 				}
 			]
 		}
 	];
 
-	function isActive(item: { href: string; submenu?: { href: string }[] }) {
+	function isActive(item: { href: string; submenu?: { href: string; subsubmenu?: { href: string }[] }[] }) {
 		if (item.submenu) {
 			return (
 				page.url.pathname === item.href ||
-				item.submenu.some((sub) => page.url.pathname.startsWith(sub.href))
+				item.submenu.some((sub) => 
+					page.url.pathname.startsWith(sub.href) || 
+					(sub.subsubmenu && sub.subsubmenu.some(subsub => page.url.pathname.startsWith(subsub.href)))
+				)
 			);
 		}
 		return page.url.pathname === item.href;
@@ -85,17 +115,47 @@
 							</div>
 						</summary>
 						{#each item.submenu as menu}
-							<a
-								href={menu.href}
-								class={`flex items-center gap-3 rounded-lg py-2 pl-8 text-gray-600 transition-all hover:bg-gray-50 ${
-									page.url.pathname === menu.href
-										? 'text-primary font-medium'
-										: 'hover:text-gray-900'
-								}`}
-							>
-								<svelte:component this={menu.icon} class="h-5 w-5" />
-								{menu.name}
-							</a>
+							{#if menu.subsubmenu}
+								<details class="collapse pl-4">
+									<summary
+										class={`flex items-center justify-between rounded-lg px-3 py-2 text-gray-600 transition-all hover:bg-gray-50 ${
+											page.url.pathname.startsWith(menu.href) ? 'text-primary font-medium' : 'hover:text-gray-900'
+										}`}
+									>
+										<div class="flex justify-between">
+											<div class="flex items-center gap-3">
+												<svelte:component this={menu.icon} class="h-5 w-5" />
+												<span>{menu.name}</span>
+											</div>
+											<ChevronDown class="h-4 w-4" />
+										</div>
+									</summary>
+									{#each menu.subsubmenu as submenu}
+										<a
+											href={submenu.href}
+											class={`flex items-center gap-3 rounded-lg py-2 pl-8 text-gray-600 transition-all hover:bg-gray-50 ${
+												page.url.pathname === submenu.href
+													? 'text-primary font-medium'
+													: 'hover:text-gray-900'
+											}`}
+										>
+											<span>{submenu.name}</span>
+										</a>
+									{/each}
+								</details>
+							{:else}
+								<a
+									href={menu.href}
+									class={`flex items-center gap-3 rounded-lg py-2 pl-8 text-gray-600 transition-all hover:bg-gray-50 ${
+										page.url.pathname === menu.href
+											? 'text-primary font-medium'
+											: 'hover:text-gray-900'
+									}`}
+								>
+									<svelte:component this={menu.icon} class="h-5 w-5" />
+									{menu.name}
+								</a>
+							{/if}
 						{/each}
 					</details>
 				{:else}
