@@ -14,14 +14,16 @@
 		name: '',
 		description: '',
 		accountTypeId: '',
+		balanceType: 'DEBIT',
 		isActive: true
 	});
 
 	// Filtered account groups
 	let filteredGroups = $derived(
-		data.groups.filter((group) =>
-			group.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-			group.name.toLowerCase().includes(searchTerm.toLowerCase())
+		data.groups.filter(
+			(group) =>
+				group.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+				group.name.toLowerCase().includes(searchTerm.toLowerCase())
 		)
 	);
 
@@ -34,6 +36,7 @@
 			name: '',
 			description: '',
 			accountTypeId: '',
+			balanceType: 'DEBIT',
 			isActive: true
 		};
 		showModal = true;
@@ -48,6 +51,7 @@
 			name: group.name,
 			description: group.description || '',
 			accountTypeId: group.accountTypeId.toString(),
+			balanceType: group.balanceType,
 			isActive: group.isActive
 		};
 		showModal = true;
@@ -86,11 +90,6 @@
 		};
 	}
 
-	// Format account code with dots
-	function formatCode(code) {
-		return code.replace(/(\d{2})(?=\d)/g, '$1.');
-	}
-
 	// Get the color for account type
 	function getAccountTypeColor(typeCode) {
 		const colors = {
@@ -101,6 +100,11 @@
 			EXPENSE: 'bg-orange-100 text-orange-800'
 		};
 		return colors[typeCode] || 'bg-gray-100 text-gray-800';
+	}
+
+	// Get the color for balance type
+	function getBalanceTypeColor(balanceType) {
+		return balanceType === 'DEBIT' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800';
 	}
 </script>
 
@@ -113,7 +117,7 @@
 				</a>
 				<h1 class="text-2xl font-bold text-gray-900">Account Groups</h1>
 			</div>
-			<p class="text-sm text-gray-500">Manage top-level account groups</p>
+			<p class="text-sm text-gray-500">Manage your account classification groups</p>
 		</div>
 		<div class="flex gap-2">
 			<button class="btn btn-primary btn-sm gap-1" onclick={openCreateModal}>
@@ -141,9 +145,10 @@
 			<table class="table">
 				<thead class="bg-base-200">
 					<tr>
-						<th class="w-32">Code</th>
+						<th>Code</th>
 						<th>Name</th>
 						<th>Account Type</th>
+						<th>Balance Type</th>
 						<th>Status</th>
 						<th class="w-32 text-center">Actions</th>
 					</tr>
@@ -151,7 +156,7 @@
 				<tbody>
 					{#each filteredGroups as group}
 						<tr class="hover">
-							<td class="font-mono font-medium">{formatCode(group.code)}</td>
+							<td class="font-medium">{group.code}</td>
 							<td>
 								<div class="font-medium">{group.name}</div>
 								{#if group.description}
@@ -161,6 +166,11 @@
 							<td>
 								<div class={`badge ${getAccountTypeColor(group.accountType.code)}`}>
 									{group.accountType.name}
+								</div>
+							</td>
+							<td>
+								<div class={`badge ${getBalanceTypeColor(group.balanceType)}`}>
+									{group.balanceType}
 								</div>
 							</td>
 							<td>
@@ -178,16 +188,13 @@
 									>
 										<Edit class="h-4 w-4" />
 									</button>
-									<form
-										method="POST"
-										action="?/update"
-										use:enhance={handleToggleStatus}
-									>
+									<form method="POST" action="?/update" use:enhance={handleToggleStatus}>
 										<input type="hidden" name="id" value={group.id} />
 										<input type="hidden" name="code" value={group.code} />
 										<input type="hidden" name="name" value={group.name} />
 										<input type="hidden" name="description" value={group.description || ''} />
 										<input type="hidden" name="accountTypeId" value={group.accountTypeId} />
+										<input type="hidden" name="balanceType" value={group.balanceType} />
 										<input type="hidden" name="isActive" value={!group.isActive} />
 										<button type="submit" class="btn btn-ghost btn-sm">
 											<ToggleLeft class="h-4 w-4" />
@@ -214,7 +221,7 @@
 
 					{#if filteredGroups.length === 0}
 						<tr>
-							<td colspan="5" class="py-8 text-center text-gray-500">
+							<td colspan="6" class="py-8 text-center text-gray-500">
 								{searchTerm
 									? 'No account groups match your search criteria'
 									: 'No account groups found'}
@@ -232,9 +239,9 @@
 		<div>
 			<div class="font-bold">About Account Groups</div>
 			<div class="text-xs">
-				Account groups represent the top-level categories in your chart of accounts. Each group should
-				contain accounts of the same type (Asset, Liability, etc.) and typically share the first digit
-				of their account codes.
+				Account groups classify accounts by their financial purpose. Each account group belongs to an
+				account type (Asset, Liability, etc.) and has a normal balance direction (Debit or Credit)
+				that determines how account balances are calculated.
 			</div>
 		</div>
 	</div>
@@ -255,7 +262,6 @@
 			>
 				{#if isEditing}
 					<input type="hidden" name="id" value={currentGroup.id} />
-					<input type="hidden" name="isActive" value={currentGroup.isActive} />
 				{/if}
 
 				<div class="form-control">
@@ -267,7 +273,7 @@
 						id="code"
 						name="code"
 						class="input input-bordered"
-						placeholder="e.g. 1000"
+						placeholder="e.g. CASH_AND_EQUIV"
 						maxlength="20"
 						required
 						bind:value={currentGroup.code}
@@ -286,8 +292,8 @@
 						id="name"
 						name="name"
 						class="input input-bordered"
-						placeholder="e.g. Assets"
-						maxlength="255"
+						placeholder="e.g. Cash and Cash Equivalents"
+						maxlength="100"
 						required
 						bind:value={currentGroup.name}
 					/>
@@ -312,6 +318,25 @@
 				</div>
 
 				<div class="form-control">
+					<label class="label" for="balanceType">
+						<span class="label-text">Balance Type</span>
+					</label>
+					<select
+						id="balanceType"
+						name="balanceType"
+						class="select select-bordered"
+						required
+						bind:value={currentGroup.balanceType}
+					>
+						<option value="DEBIT">DEBIT</option>
+						<option value="CREDIT">CREDIT</option>
+					</select>
+					<label class="label">
+						<span class="label-text-alt">Normal balance direction for this account group</span>
+					</label>
+				</div>
+
+				<div class="form-control">
 					<label class="label" for="description">
 						<span class="label-text">Description</span>
 					</label>
@@ -333,11 +358,11 @@
 				</div>
 			</form>
 		</div>
-		<div 
-			class="modal-backdrop" 
-			onclick={closeModal} 
-			role="button" 
-			tabindex="0" 
+		<div
+			class="modal-backdrop"
+			onclick={closeModal}
+			role="button"
+			tabindex="0"
 			onkeydown={(e) => e.key === 'Enter' && closeModal()}
 		></div>
 	</div>

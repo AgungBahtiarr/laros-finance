@@ -1,16 +1,17 @@
 import { db } from '$lib/server/db';
-import { chartOfAccount, accountType } from '$lib/server/db/schema';
+import { chartOfAccount, accountType, accountGroup } from '$lib/server/db/schema';
 import type { Actions, PageServerLoad } from './$types';
 import { error, fail } from '@sveltejs/kit';
 import { eq, asc, desc } from 'drizzle-orm';
 
 export const load: PageServerLoad = async () => {
 	try {
-		// Get all accounts with their related account type and parent
+		// Get all accounts with their related account type, parent, and group
 		const accounts = await db.query.chartOfAccount.findMany({
 			with: {
 				accountType: true,
-				parent: true
+				parent: true,
+				accountGroup: true
 			},
 			orderBy: [asc(chartOfAccount.code)]
 		});
@@ -19,6 +20,14 @@ export const load: PageServerLoad = async () => {
 		const accountTypes = await db.query.accountType.findMany({
 			orderBy: [asc(accountType.name)]
 		});
+		
+		// Get all account groups for the form
+		const accountGroups = await db.query.accountGroup.findMany({
+			with: {
+				accountType: true
+			},
+			orderBy: [asc(accountGroup.name)]
+		});
 
 		// Transform accounts into a hierarchical structure
 		const accountHierarchy = buildAccountHierarchy(accounts);
@@ -26,7 +35,8 @@ export const load: PageServerLoad = async () => {
 		return {
 			accounts,
 			accountHierarchy,
-			accountTypes
+			accountTypes,
+			accountGroups
 		};
 	} catch (err) {
 		console.error('Error loading accounts:', err);
@@ -42,8 +52,10 @@ export const actions: Actions = {
 		const name = formData.get('name') as string;
 		const description = formData.get('description') as string;
 		const accountTypeId = parseInt(formData.get('accountTypeId') as string);
+		const accountGroupId = formData.get('accountGroupId') ? parseInt(formData.get('accountGroupId') as string) : null;
 		const parentId = formData.get('parentId') ? parseInt(formData.get('parentId') as string) : null;
 		const level = parentId ? parseInt(formData.get('level') as string) : 1;
+		const balanceType = formData.get('balanceType') as string || null;
 		
 		try {
 			// Check if code already exists
@@ -63,8 +75,10 @@ export const actions: Actions = {
 				name,
 				description,
 				accountTypeId,
+				accountGroupId,
 				parentId,
 				level,
+				balanceType,
 				isActive: true,
 				isLocked: false
 			});
@@ -87,8 +101,10 @@ export const actions: Actions = {
 		const name = formData.get('name') as string;
 		const description = formData.get('description') as string;
 		const accountTypeId = parseInt(formData.get('accountTypeId') as string);
+		const accountGroupId = formData.get('accountGroupId') ? parseInt(formData.get('accountGroupId') as string) : null;
 		const parentId = formData.get('parentId') ? parseInt(formData.get('parentId') as string) : null;
 		const level = parentId ? parseInt(formData.get('level') as string) : 1;
+		const balanceType = formData.get('balanceType') as string || null;
 		const isActive = formData.get('isActive') === 'true';
 		
 		try {
@@ -110,8 +126,10 @@ export const actions: Actions = {
 					name,
 					description,
 					accountTypeId,
+					accountGroupId,
 					parentId,
 					level,
+					balanceType,
 					isActive,
 					updatedAt: new Date()
 				})

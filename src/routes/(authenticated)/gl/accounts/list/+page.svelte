@@ -28,8 +28,10 @@
 		name: '',
 		description: '',
 		accountTypeId: '',
+		accountGroupId: '',
 		parentId: '',
-		level: '1'
+		level: '1',
+		balanceType: ''
 	});
 
 	// Reference to form element
@@ -87,8 +89,10 @@
 			name: '',
 			description: '',
 			accountTypeId: '',
+			accountGroupId: '',
 			parentId: '',
-			level: '1'
+			level: '1',
+			balanceType: ''
 		};
 		showForm = true;
 	}
@@ -102,8 +106,10 @@
 			name: account.name,
 			description: account.description || '',
 			accountTypeId: account.accountTypeId.toString(),
+			accountGroupId: account.accountGroupId ? account.accountGroupId.toString() : '',
 			parentId: account.parentId ? account.parentId.toString() : '',
-			level: account.level.toString()
+			level: account.level.toString(),
+			balanceType: account.balanceType || ''
 		};
 		showForm = true;
 	}
@@ -242,6 +248,7 @@
 						<th class="w-1/6">Code</th>
 						<th class="w-1/3">Account Name</th>
 						<th>Type</th>
+						<th>Group</th>
 						<th>Status</th>
 						<th class="w-32 text-center">Actions</th>
 					</tr>
@@ -265,6 +272,15 @@
 									</div>
 								</td>
 								<td>
+									{#if account.accountGroup}
+										<div class="badge badge-outline">
+											{account.accountGroup.name}
+										</div>
+									{:else}
+										<div class="text-xs text-gray-500">-</div>
+									{/if}
+								</td>
+								<td>
 									{#if account.isActive}
 										<div class="badge badge-success badge-sm">Active</div>
 									{:else}
@@ -279,22 +295,14 @@
 										>
 											<Edit class="h-4 w-4" />
 										</button>
-										<form
-											method="POST"
-											action="?/toggleStatus"
-											use:enhance={handleToggleStatus}
-										>
+										<form method="POST" action="?/toggleStatus" use:enhance={handleToggleStatus}>
 											<input type="hidden" name="id" value={account.id} />
 											<input type="hidden" name="isActive" value={account.isActive} />
 											<button type="submit" class="btn btn-ghost btn-sm">
 												<ToggleLeft class="h-4 w-4" />
 											</button>
 										</form>
-										<form
-											method="POST"
-											action="?/delete"
-											use:enhance={handleDelete}
-										>
+										<form method="POST" action="?/delete" use:enhance={handleDelete}>
 											<input type="hidden" name="id" value={account.id} />
 											<button
 												type="submit"
@@ -356,22 +364,14 @@
 										>
 											<Edit class="h-4 w-4" />
 										</button>
-										<form
-											method="POST"
-											action="?/toggleStatus"
-											use:enhance={handleToggleStatus}
-										>
+										<form method="POST" action="?/toggleStatus" use:enhance={handleToggleStatus}>
 											<input type="hidden" name="id" value={account.id} />
 											<input type="hidden" name="isActive" value={account.isActive} />
 											<button type="submit" class="btn btn-ghost btn-sm">
 												<ToggleLeft class="h-4 w-4" />
 											</button>
 										</form>
-										<form
-											method="POST"
-											action="?/delete"
-											use:enhance={handleDelete}
-										>
+										<form method="POST" action="?/delete" use:enhance={handleDelete}>
 											<input type="hidden" name="id" value={account.id} />
 											<button
 												type="submit"
@@ -419,6 +419,15 @@
 											</div>
 										</td>
 										<td>
+											{#if childAccount.accountGroup}
+												<div class="badge badge-outline">
+													{childAccount.accountGroup.name}
+												</div>
+											{:else}
+												<div class="text-xs text-gray-500">-</div>
+											{/if}
+										</td>
+										<td>
 											{#if childAccount.isActive}
 												<div class="badge badge-success badge-sm">Active</div>
 											{:else}
@@ -444,11 +453,7 @@
 														<ToggleLeft class="h-4 w-4" />
 													</button>
 												</form>
-												<form
-													method="POST"
-													action="?/delete"
-													use:enhance={handleDelete}
-												>
+												<form method="POST" action="?/delete" use:enhance={handleDelete}>
 													<input type="hidden" name="id" value={childAccount.id} />
 													<button
 														type="submit"
@@ -490,6 +495,15 @@
 													</div>
 												</td>
 												<td>
+													{#if grandChildAccount.accountGroup}
+														<div class="badge badge-outline">
+															{grandChildAccount.accountGroup.name}
+														</div>
+													{:else}
+														<div class="text-xs text-gray-500">-</div>
+													{/if}
+												</td>
+												<td>
 													{#if grandChildAccount.isActive}
 														<div class="badge badge-success badge-sm">Active</div>
 													{:else}
@@ -519,11 +533,7 @@
 																<ToggleLeft class="h-4 w-4" />
 															</button>
 														</form>
-														<form
-															method="POST"
-															action="?/delete"
-															use:enhance={handleDelete}
-														>
+														<form method="POST" action="?/delete" use:enhance={handleDelete}>
 															<input type="hidden" name="id" value={grandChildAccount.id} />
 															<button
 																type="submit"
@@ -549,7 +559,7 @@
 
 					{#if (searchTerm ? filteredAccounts : data.accounts).length === 0}
 						<tr>
-							<td colspan="5" class="py-8 text-center text-gray-500">
+							<td colspan="6" class="py-8 text-center text-gray-500">
 								{searchTerm
 									? 'No accounts match your search criteria'
 									: 'No accounts found. Create your first account.'}
@@ -563,16 +573,16 @@
 
 	<!-- Quick Help -->
 	<div class="alert alert-info">
-		<AlertTriangle class="h-5 w-5" />
-		<div>
-			<div class="font-bold">Chart of Accounts Structure</div>
-			<div class="text-xs">
-				Your chart of accounts is organized hierarchically, with top-level groups and sub-accounts. Each
-				account is identified by a unique code and must belong to an account type. Use the table
-				controls to expand/collapse account groups.
+			<AlertTriangle class="h-5 w-5" />
+			<div>
+				<div class="font-bold">Chart of Accounts Structure</div>
+				<div class="text-xs">
+					Your chart of accounts is organized hierarchically, with account types, account groups, and individual accounts.
+					Each account has a unique code, belongs to an account type, and can be assigned to a functional group like 
+					"Retained Earnings" or "Current Earnings". Account groups determine how accounts appear in financial reports.
+				</div>
 			</div>
 		</div>
-	</div>
 </div>
 
 <!-- Account Form Modal -->
@@ -645,6 +655,28 @@
 					</div>
 
 					<div class="form-control w-full">
+						<label class="label" for="accountGroupId">
+							<span class="label-text">Account Group</span>
+						</label>
+						<select
+							id="accountGroupId"
+							name="accountGroupId"
+							class="select select-bordered w-full"
+							bind:value={formData.accountGroupId}
+						>
+							<option value="">No Group</option>
+							{#each data.accountGroups.filter(g => !formData.accountTypeId || g.accountTypeId.toString() === formData.accountTypeId) as group}
+								<option value={group.id}>
+									{group.code} - {group.name} ({group.balanceType})
+								</option>
+							{/each}
+						</select>
+						<label class="label">
+							<span class="label-text-alt">Functional grouping for financial reports</span>
+						</label>
+					</div>
+
+					<div class="form-control w-full">
 						<label class="label" for="parentId">
 							<span class="label-text">Parent Account</span>
 						</label>
@@ -665,6 +697,25 @@
 					</div>
 
 					<input type="hidden" name="level" bind:value={formData.level} />
+					
+					<div class="form-control w-full">
+						<label class="label" for="balanceType">
+							<span class="label-text">Balance Type Override (Optional)</span>
+						</label>
+						<select
+							id="balanceType"
+							name="balanceType"
+							class="select select-bordered w-full"
+							bind:value={formData.balanceType}
+						>
+							<option value="">Use Group/Type Default</option>
+							<option value="DEBIT">DEBIT</option>
+							<option value="CREDIT">CREDIT</option>
+						</select>
+						<label class="label">
+							<span class="label-text-alt">For contra accounts (e.g., Accumulated Depreciation)</span>
+						</label>
+					</div>
 
 					<div class="form-control col-span-1 md:col-span-2">
 						<label class="label" for="description">
