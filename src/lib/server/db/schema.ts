@@ -150,7 +150,7 @@ export const metodePenyusutanFiskalRelations = relations(metodePenyusutanFiskal,
 // Account Types (Asset, Liability, Equity, Revenue, Expense)
 export const accountType = pgTable('account_type', {
 	id: serial('id').primaryKey(),
-	code: varchar('code', { length: 10 }).notNull().unique(),
+	code: varchar('code', { length: 20 }).notNull().unique(),
 	name: varchar('name', { length: 100 }).notNull(),
 	normalBalance: varchar('normal_balance', { length: 10 }).notNull(), // "DEBIT" or "CREDIT"
 	createdAt: timestamp('created_at').notNull().defaultNow(),

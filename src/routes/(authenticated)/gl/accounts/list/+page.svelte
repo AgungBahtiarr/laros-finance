@@ -58,6 +58,8 @@
 		} else {
 			expandedAccounts.add(accountId);
 		}
+		// Force reactivity
+		expandedAccounts = new Set(expandedAccounts);
 	}
 
 	// Recursively check if account is expanded and matches search term
@@ -146,11 +148,6 @@
 				goto(page.url.pathname, { invalidateAll: true });
 			}
 		};
-	}
-
-	// Format account code
-	function formatCode(code) {
-		return code.replace(/(\d{2})(?=\d)/g, '$1.');
 	}
 
 	// Get the color for account type
@@ -258,7 +255,7 @@
 						{#each filteredAccounts as account}
 							<tr class="hover">
 								<td class="font-mono">
-									{formatCode(account.code)}
+									{account.code}
 								</td>
 								<td>
 									<div class="font-medium">{account.name}</div>
@@ -291,7 +288,7 @@
 									<div class="flex justify-center gap-1">
 										<button
 											class="btn btn-ghost btn-sm text-primary"
-											onclick={() => openEditForm(account)}
+											onclick={() => openEditForm(childAccount)}
 										>
 											<Edit class="h-4 w-4" />
 										</button>
@@ -325,17 +322,21 @@
 							<tr class="hover">
 								<td class="font-mono">
 									<div class="flex items-center">
-										<button
-											class="btn btn-ghost btn-xs mr-2"
-											onclick={() => toggleExpand(account.id)}
-										>
-											{#if expandedAccounts.has(account.id)}
-												<ChevronDown class="h-4 w-4" />
-											{:else}
-												<ChevronRight class="h-4 w-4" />
-											{/if}
-										</button>
-										{formatCode(account.code)}
+										{#if account.children && account.children.length > 0}
+											<button
+												class="btn btn-ghost btn-xs mr-2"
+												onclick={() => toggleExpand(account.id)}
+											>
+												{#if expandedAccounts.has(account.id)}
+													<ChevronDown class="h-4 w-4" />
+												{:else}
+													<ChevronRight class="h-4 w-4" />
+												{/if}
+											</button>
+										{:else}
+											<div class="w-8"></div>
+										{/if}
+										{account.code}
 									</div>
 								</td>
 								<td>
@@ -389,22 +390,26 @@
 								</td>
 							</tr>
 
-							{#if expandedAccounts.has(account.id) && account.children.length > 0}
+							{#if expandedAccounts.has(account.id) && account.children && account.children.length > 0}
 								{#each account.children as childAccount}
 									<tr class="hover bg-base-200/30">
 										<td class="pl-10 font-mono">
 											<div class="flex items-center">
-												<button
-													class="btn btn-ghost btn-xs mr-2"
-													onclick={() => toggleExpand(childAccount.id)}
-												>
-													{#if expandedAccounts.has(childAccount.id)}
-														<ChevronDown class="h-4 w-4" />
-													{:else}
-														<ChevronRight class="h-4 w-4" />
-													{/if}
-												</button>
-												{formatCode(childAccount.code)}
+												{#if childAccount.children && childAccount.children.length > 0}
+													<button
+														class="btn btn-ghost btn-xs mr-2"
+														onclick={() => toggleExpand(childAccount.id)}
+													>
+														{#if expandedAccounts.has(childAccount.id)}
+															<ChevronDown class="h-4 w-4" />
+														{:else}
+															<ChevronRight class="h-4 w-4" />
+														{/if}
+													</button>
+												{:else}
+													<div class="w-8"></div>
+												{/if}
+												{childAccount.code}
 											</div>
 										</td>
 										<td>
@@ -470,88 +475,6 @@
 											</div>
 										</td>
 									</tr>
-
-									{#if expandedAccounts.has(childAccount.id) && childAccount.children.length > 0}
-										{#each childAccount.children as grandChildAccount}
-											<tr class="hover bg-base-200/10">
-												<td class="pl-16 font-mono">
-													{formatCode(grandChildAccount.code)}
-												</td>
-												<td>
-													<div class="font-medium">{grandChildAccount.name}</div>
-													{#if grandChildAccount.description}
-														<div class="text-xs text-gray-500">
-															{grandChildAccount.description}
-														</div>
-													{/if}
-												</td>
-												<td>
-													<div
-														class={`badge ${getAccountTypeColor(
-															grandChildAccount.accountType.code
-														)}`}
-													>
-														{grandChildAccount.accountType.name}
-													</div>
-												</td>
-												<td>
-													{#if grandChildAccount.accountGroup}
-														<div class="badge badge-outline">
-															{grandChildAccount.accountGroup.name}
-														</div>
-													{:else}
-														<div class="text-xs text-gray-500">-</div>
-													{/if}
-												</td>
-												<td>
-													{#if grandChildAccount.isActive}
-														<div class="badge badge-success badge-sm">Active</div>
-													{:else}
-														<div class="badge badge-ghost badge-sm">Inactive</div>
-													{/if}
-												</td>
-												<td>
-													<div class="flex justify-center gap-1">
-														<button
-															class="btn btn-ghost btn-sm text-primary"
-															onclick={() => openEditForm(grandChildAccount)}
-														>
-															<Edit class="h-4 w-4" />
-														</button>
-														<form
-															method="POST"
-															action="?/toggleStatus"
-															use:enhance={handleToggleStatus}
-														>
-															<input type="hidden" name="id" value={grandChildAccount.id} />
-															<input
-																type="hidden"
-																name="isActive"
-																value={grandChildAccount.isActive}
-															/>
-															<button type="submit" class="btn btn-ghost btn-sm">
-																<ToggleLeft class="h-4 w-4" />
-															</button>
-														</form>
-														<form method="POST" action="?/delete" use:enhance={handleDelete}>
-															<input type="hidden" name="id" value={grandChildAccount.id} />
-															<button
-																type="submit"
-																class="btn btn-ghost btn-sm text-error"
-																onclick={(e) => {
-																	if (!confirm('Are you sure you want to delete this account?')) {
-																		e.preventDefault();
-																	}
-																}}
-															>
-																<Trash2 class="h-4 w-4" />
-															</button>
-														</form>
-													</div>
-												</td>
-											</tr>
-										{/each}
-									{/if}
 								{/each}
 							{/if}
 						{/each}
@@ -573,16 +496,17 @@
 
 	<!-- Quick Help -->
 	<div class="alert alert-info">
-			<AlertTriangle class="h-5 w-5" />
-			<div>
-				<div class="font-bold">Chart of Accounts Structure</div>
-				<div class="text-xs">
-					Your chart of accounts is organized hierarchically, with account types, account groups, and individual accounts.
-					Each account has a unique code, belongs to an account type, and can be assigned to a functional group like 
-					"Retained Earnings" or "Current Earnings". Account groups determine how accounts appear in financial reports.
-				</div>
+		<AlertTriangle class="h-5 w-5" />
+		<div>
+			<div class="font-bold">Chart of Accounts Structure</div>
+			<div class="text-xs">
+				Your chart of accounts is organized hierarchically, with account types, account groups, and
+				individual accounts. Each account has a unique code, belongs to an account type, and can be
+				assigned to a functional group like "Retained Earnings" or "Current Earnings". Account
+				groups determine how accounts appear in financial reports.
 			</div>
 		</div>
+	</div>
 </div>
 
 <!-- Account Form Modal -->
@@ -665,7 +589,7 @@
 							bind:value={formData.accountGroupId}
 						>
 							<option value="">No Group</option>
-							{#each data.accountGroups.filter(g => !formData.accountTypeId || g.accountTypeId.toString() === formData.accountTypeId) as group}
+							{#each data.accountGroups.filter((g) => !formData.accountTypeId || g.accountTypeId.toString() === formData.accountTypeId) as group}
 								<option value={group.id}>
 									{group.code} - {group.name} ({group.balanceType})
 								</option>
@@ -690,14 +614,14 @@
 							<option value="">No Parent (Level 1)</option>
 							{#each getValidParentOptions(data.accounts, isEditing ? formData.id : null) as account}
 								<option value={account.id}>
-									{formatCode(account.code)} - {account.name}
+									{account.code} - {account.name}
 								</option>
 							{/each}
 						</select>
 					</div>
 
 					<input type="hidden" name="level" bind:value={formData.level} />
-					
+
 					<div class="form-control w-full">
 						<label class="label" for="balanceType">
 							<span class="label-text">Balance Type Override (Optional)</span>
@@ -713,7 +637,9 @@
 							<option value="CREDIT">CREDIT</option>
 						</select>
 						<label class="label">
-							<span class="label-text-alt">For contra accounts (e.g., Accumulated Depreciation)</span>
+							<span class="label-text-alt"
+								>For contra accounts (e.g., Accumulated Depreciation)</span
+							>
 						</label>
 					</div>
 

@@ -204,13 +204,25 @@ function buildAccountHierarchy(accounts) {
 	accounts.forEach(account => {
 		const accountWithChildren = accountMap.get(account.id);
 		
-		if (account.parentId === null) {
+		if (!account.parentId) {
 			rootAccounts.push(accountWithChildren);
 		} else {
 			const parent = accountMap.get(account.parentId);
 			if (parent) {
 				parent.children.push(accountWithChildren);
+			} else {
+				// If parent doesn't exist (shouldn't happen with proper references),
+				// add to root level as a fallback
+				console.warn(`Parent account ${account.parentId} not found for ${account.name}, adding to root`);
+				rootAccounts.push(accountWithChildren);
 			}
+		}
+	});
+	
+	// Sort children by code
+	accountMap.forEach(account => {
+		if (account.children.length > 0) {
+			account.children.sort((a, b) => a.code.localeCompare(b.code));
 		}
 	});
 	
