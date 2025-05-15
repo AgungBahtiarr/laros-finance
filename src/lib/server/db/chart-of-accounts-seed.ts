@@ -12,13 +12,12 @@ const db = drizzle(pool);
 async function seedChartOfAccounts() {
 	console.log('Seeding chart of accounts...');
 
-	// First, let's ensure we have account types
+	// Step 1: Seed account types
 	const accountTypeData = [
-		{ code: 'ASSET', name: 'Asset', normalBalance: 'DEBIT' },
-		{ code: 'LIABILITY', name: 'Liability', normalBalance: 'CREDIT' },
-		{ code: 'EQUITY', name: 'Equity', normalBalance: 'CREDIT' },
-		{ code: 'REVENUE', name: 'Revenue', normalBalance: 'CREDIT' },
-		{ code: 'EXPENSE', name: 'Expense', normalBalance: 'DEBIT' }
+		{ code: 'RETAINED_EARNING', name: 'Retained Earning', normalBalance: 'CREDIT' },
+		{ code: 'PROFIT&LOSS', name: 'Profit & Loss', normalBalance: 'CREDIT' },
+		{ code: 'LIABILITY', name: 'Balance (Liabilities)', normalBalance: 'CREDIT' },
+		{ code: 'ASSET', name: 'Balance (Asset)', normalBalance: 'DEBIT' }
 	];
 
 	for (const type of accountTypeData) {
@@ -48,52 +47,63 @@ async function seedChartOfAccounts() {
 
 	// Then seed account groups with the correct type IDs
 	const accountGroups = [
-		{ code: 'AL', name: 'Aktiva Lancar', accountType: 'ASSET', balanceType: 'DEBIT' },
-		{ code: 'AT', name: 'Aktiva Tetap', accountType: 'ASSET', balanceType: 'DEBIT' },
-		{ code: 'AP', name: 'Akumulasi Penyusutan', accountType: 'ASSET', balanceType: 'CREDIT' },
-		{ code: 'ALL', name: 'Aktiva Lain-Lain', accountType: 'ASSET', balanceType: 'DEBIT' },
-		{ code: 'HL', name: 'Hutang Lancar', accountType: 'LIABILITY', balanceType: 'CREDIT' },
-		{ code: 'HJP', name: 'Hutang Jangka Panjang', accountType: 'LIABILITY', balanceType: 'CREDIT' },
 		{
-			code: 'BYHD',
-			name: 'Biaya Yang Masih Harus Dibayar',
+			code: 'LR',
+			name: 'Laba (Rugi) Tahun Berjalan',
+			accountType: 'RETAINED_EARNING',
+			balanceType: 'CREDIT'
+		},
+		{
+			code: 'COGS',
+			name: 'Harga Pokok (COGS/HPP)',
+			accountType: 'PROFIT&LOSS',
+			balanceType: 'DEBIT'
+		},
+		{
+			code: 'PBL',
+			name: '(Pendapatan) Biaya Lain-Lain',
+			accountType: 'PROFIT&LOSS',
+			balanceType: 'DEBIT'
+		},
+		{
+			code: 'BAU',
+			name: 'Biaya Administrasi & Umum',
+			accountType: 'PROFIT&LOSS',
+			balanceType: 'DEBIT'
+		},
+		{
+			code: 'BOL',
+			name: 'Biaya Operasional Lainnya',
+			accountType: 'PROFIT&LOSS',
+			balanceType: 'DEBIT'
+		},
+		{ code: 'BOP', name: 'Biaya Operasional', accountType: 'PROFIT&LOSS', balanceType: 'DEBIT' },
+		{ code: 'PDP', name: 'Pendapatan', accountType: 'PROFIT&LOSS', balanceType: 'CREDIT' },
+		{
+			code: 'PDD',
+			name: 'Pendapatan dibayar dimuka',
 			accountType: 'LIABILITY',
 			balanceType: 'CREDIT'
 		},
+		{ code: 'MDL', name: 'Modal', accountType: 'LIABILITY', balanceType: 'CREDIT' },
+		{ code: 'HJP', name: 'Hutang Jangka Panjang', accountType: 'LIABILITY', balanceType: 'CREDIT' },
 		{
 			code: 'PYMHD',
 			name: 'Pajak Yang Masih Harus Dibayar',
 			accountType: 'LIABILITY',
 			balanceType: 'CREDIT'
 		},
-		{ code: 'MDL', name: 'Modal', accountType: 'EQUITY', balanceType: 'CREDIT' },
 		{
-			code: 'LR',
-			name: 'Laba (Rugi) Tahun Berjalan',
-			accountType: 'EQUITY',
+			code: 'BYHD',
+			name: 'Biaya Yang Masih Harus Dibayar',
+			accountType: 'LIABILITY',
 			balanceType: 'CREDIT'
 		},
-		{ code: 'PDP', name: 'Pendapatan', accountType: 'REVENUE', balanceType: 'CREDIT' },
-		{ code: 'COGS', name: 'Harga Pokok (COGS/HPP)', accountType: 'EXPENSE', balanceType: 'DEBIT' },
-		{ code: 'BOP', name: 'Biaya Operasional', accountType: 'EXPENSE', balanceType: 'DEBIT' },
-		{
-			code: 'BOL',
-			name: 'Biaya Operasional Lainnya',
-			accountType: 'EXPENSE',
-			balanceType: 'DEBIT'
-		},
-		{
-			code: 'BAU',
-			name: 'Biaya Administrasi & Umum',
-			accountType: 'EXPENSE',
-			balanceType: 'DEBIT'
-		},
-		{
-			code: 'PBL',
-			name: '(Pendapatan) Biaya Lain-Lain',
-			accountType: 'EXPENSE',
-			balanceType: 'DEBIT'
-		}
+		{ code: 'HL', name: 'Hutang Lancar', accountType: 'LIABILITY', balanceType: 'CREDIT' },
+		{ code: 'ALL', name: 'Aktiva Lain-Lain', accountType: 'ASSET', balanceType: 'DEBIT' },
+		{ code: 'AP', name: 'Akumulasi Penyusutan', accountType: 'ASSET', balanceType: 'CREDIT' },
+		{ code: 'AT', name: 'Aktiva Tetap', accountType: 'ASSET', balanceType: 'DEBIT' },
+		{ code: 'AL', name: 'Aktiva Lancar', accountType: 'ASSET', balanceType: 'DEBIT' }
 	];
 
 	for (const group of accountGroups) {
@@ -137,7 +147,6 @@ async function seedChartOfAccounts() {
 		{
 			code: '101',
 			name: 'Kas',
-			accountType: 'ASSET',
 			groupName: 'Aktiva Lancar',
 			level: 1,
 			isActive: true,
@@ -146,7 +155,6 @@ async function seedChartOfAccounts() {
 		{
 			code: '102',
 			name: 'Bank',
-			accountType: 'ASSET',
 			groupName: 'Aktiva Lancar',
 			level: 1,
 			isActive: true,
@@ -155,7 +163,6 @@ async function seedChartOfAccounts() {
 		{
 			code: '103',
 			name: 'Piutang',
-			accountType: 'ASSET',
 			groupName: 'Aktiva Lancar',
 			level: 1,
 			isActive: true,
@@ -164,7 +171,6 @@ async function seedChartOfAccounts() {
 		{
 			code: '104',
 			name: 'Piutang Lain',
-			accountType: 'ASSET',
 			groupName: 'Aktiva Lancar',
 			level: 1,
 			isActive: true,
@@ -173,7 +179,6 @@ async function seedChartOfAccounts() {
 		{
 			code: '105',
 			name: 'Persedian',
-			accountType: 'ASSET',
 			groupName: 'Aktiva Lancar',
 			level: 1,
 			isActive: true,
@@ -182,7 +187,6 @@ async function seedChartOfAccounts() {
 		{
 			code: '106',
 			name: 'Biaya Dibayar Dimuka',
-			accountType: 'ASSET',
 			groupName: 'Aktiva Lancar',
 			level: 1,
 			isActive: true,
@@ -191,7 +195,6 @@ async function seedChartOfAccounts() {
 		{
 			code: '107',
 			name: 'Pajak Dibayar Dimuka',
-			accountType: 'ASSET',
 			groupName: 'Aktiva Lancar',
 			level: 1,
 			isActive: true,
@@ -200,7 +203,6 @@ async function seedChartOfAccounts() {
 		{
 			code: '1101',
 			name: 'Tanah & Bangunan',
-			accountType: 'ASSET',
 			groupName: 'Aktiva Tetap',
 			level: 1,
 			isActive: true,
@@ -209,7 +211,6 @@ async function seedChartOfAccounts() {
 		{
 			code: '1102',
 			name: 'Mesin & Peralatan',
-			accountType: 'ASSET',
 			groupName: 'Aktiva Tetap',
 			level: 1,
 			isActive: true,
@@ -218,7 +219,6 @@ async function seedChartOfAccounts() {
 		{
 			code: '1103',
 			name: 'Inventaris Kantor',
-			accountType: 'ASSET',
 			groupName: 'Aktiva Tetap',
 			level: 1,
 			isActive: true,
@@ -227,7 +227,6 @@ async function seedChartOfAccounts() {
 		{
 			code: '1104',
 			name: 'Kendaraan',
-			accountType: 'ASSET',
 			groupName: 'Aktiva Tetap',
 			level: 1,
 			isActive: true,
@@ -236,7 +235,6 @@ async function seedChartOfAccounts() {
 		{
 			code: '1105',
 			name: 'Sarana & Prasarana',
-			accountType: 'ASSET',
 			groupName: 'Aktiva Tetap',
 			level: 1,
 			isActive: true,
@@ -245,7 +243,6 @@ async function seedChartOfAccounts() {
 		{
 			code: '1201',
 			name: 'Akumulasi Penyusutan Inventaris Kantor',
-			accountType: 'ASSET',
 			groupName: 'Akumulasi Penyusutan',
 			level: 1,
 			isActive: true,
@@ -254,7 +251,6 @@ async function seedChartOfAccounts() {
 		{
 			code: '1301',
 			name: 'Uang Jaminan Kendaraan',
-			accountType: 'ASSET',
 			groupName: 'Aktiva Lain-Lain',
 			level: 1,
 			isActive: true,
@@ -263,7 +259,6 @@ async function seedChartOfAccounts() {
 		{
 			code: '1302',
 			name: 'Uang Jaminan Lainnya',
-			accountType: 'ASSET',
 			groupName: 'Aktiva Lain-Lain',
 			level: 1,
 			isActive: true,
@@ -272,7 +267,6 @@ async function seedChartOfAccounts() {
 		{
 			code: '201',
 			name: 'Hutang Usaha',
-			accountType: 'LIABILITY',
 			groupName: 'Hutang Lancar',
 			level: 1,
 			isActive: true,
@@ -281,7 +275,6 @@ async function seedChartOfAccounts() {
 		{
 			code: '202',
 			name: 'Hutang Usaha Lainnya',
-			accountType: 'LIABILITY',
 			groupName: 'Hutang Lancar',
 			level: 1,
 			isActive: true,
@@ -290,7 +283,6 @@ async function seedChartOfAccounts() {
 		{
 			code: '2021',
 			name: 'Hutang Bank',
-			accountType: 'LIABILITY',
 			groupName: 'Hutang Jangka Panjang',
 			level: 1,
 			isActive: true,
@@ -299,7 +291,6 @@ async function seedChartOfAccounts() {
 		{
 			code: '2101',
 			name: 'Hutang Gaji',
-			accountType: 'LIABILITY',
 			groupName: 'Biaya Yang Masih Harus Dibayar',
 			level: 1,
 			isActive: true,
@@ -308,7 +299,6 @@ async function seedChartOfAccounts() {
 		{
 			code: '2102',
 			name: 'Administrasi Bank Atas Gaji',
-			accountType: 'LIABILITY',
 			groupName: 'Biaya Administrasi & Umum',
 			level: 1,
 			isActive: true,
@@ -317,7 +307,6 @@ async function seedChartOfAccounts() {
 		{
 			code: '2103',
 			name: 'THR dan Bonus',
-			accountType: 'LIABILITY',
 			groupName: 'Biaya Operasional',
 			level: 1,
 			isActive: true,
@@ -326,7 +315,6 @@ async function seedChartOfAccounts() {
 		{
 			code: '2104',
 			name: 'BPJS Ketenagakerjaan',
-			accountType: 'LIABILITY',
 			groupName: 'Biaya Administrasi & Umum',
 			level: 1,
 			isActive: true,
@@ -335,7 +323,6 @@ async function seedChartOfAccounts() {
 		{
 			code: '2105',
 			name: 'BPJS Kesehatan',
-			accountType: 'LIABILITY',
 			groupName: 'Biaya Administrasi & Umum',
 			level: 1,
 			isActive: true,
@@ -344,7 +331,6 @@ async function seedChartOfAccounts() {
 		{
 			code: '2106',
 			name: 'BHP dan USO',
-			accountType: 'LIABILITY',
 			groupName: 'Hutang Lancar',
 			level: 1,
 			isActive: true,
@@ -353,7 +339,6 @@ async function seedChartOfAccounts() {
 		{
 			code: '2107',
 			name: 'Hutang BPJS',
-			accountType: 'LIABILITY',
 			groupName: 'Hutang Lancar',
 			level: 1,
 			isActive: true,
@@ -362,7 +347,6 @@ async function seedChartOfAccounts() {
 		{
 			code: '2108',
 			name: 'Hutang Bagi Hasil',
-			accountType: 'LIABILITY',
 			groupName: 'Biaya Yang Masih Harus Dibayar',
 			level: 1,
 			isActive: true,
@@ -371,7 +355,6 @@ async function seedChartOfAccounts() {
 		{
 			code: '2201',
 			name: 'Hutang PPH Pasal 25',
-			accountType: 'LIABILITY',
 			groupName: 'Pajak Yang Masih Harus Dibayar',
 			level: 1,
 			isActive: true,
@@ -380,7 +363,6 @@ async function seedChartOfAccounts() {
 		{
 			code: '2202',
 			name: 'Hutang PPH Pasal 21',
-			accountType: 'LIABILITY',
 			groupName: 'Pajak Yang Masih Harus Dibayar',
 			level: 1,
 			isActive: true,
@@ -389,7 +371,6 @@ async function seedChartOfAccounts() {
 		{
 			code: '2203',
 			name: 'Hutang PPH Pasal 23',
-			accountType: 'LIABILITY',
 			groupName: 'Pajak Yang Masih Harus Dibayar',
 			level: 1,
 			isActive: true,
@@ -398,7 +379,6 @@ async function seedChartOfAccounts() {
 		{
 			code: '2204',
 			name: 'PPN Keluaran',
-			accountType: 'LIABILITY',
 			groupName: 'Pajak Yang Masih Harus Dibayar',
 			level: 1,
 			isActive: true,
@@ -407,7 +387,6 @@ async function seedChartOfAccounts() {
 		{
 			code: '2205',
 			name: 'Hutang PPh Pasal 4 Ayat 2',
-			accountType: 'LIABILITY',
 			groupName: 'Pajak Yang Masih Harus Dibayar',
 			level: 1,
 			isActive: true,
@@ -416,7 +395,6 @@ async function seedChartOfAccounts() {
 		{
 			code: '2206',
 			name: 'Hutang PPh Pasal 29',
-			accountType: 'LIABILITY',
 			groupName: 'Pajak Yang Masih Harus Dibayar',
 			level: 1,
 			isActive: true,
@@ -425,7 +403,6 @@ async function seedChartOfAccounts() {
 		{
 			code: '3001',
 			name: 'Modal Saham Disetor',
-			accountType: 'EQUITY',
 			groupName: 'Modal',
 			level: 1,
 			isActive: true,
@@ -434,7 +411,6 @@ async function seedChartOfAccounts() {
 		{
 			code: '3002',
 			name: 'Laba (Rugi) Ditahan',
-			accountType: 'EQUITY',
 			groupName: 'Modal',
 			level: 1,
 			isActive: true,
@@ -443,7 +419,6 @@ async function seedChartOfAccounts() {
 		{
 			code: '3003',
 			name: 'Laba (Rugi) Berjalan',
-			accountType: 'EQUITY',
 			groupName: 'Laba (Rugi) Tahun Berjalan',
 			level: 1,
 			isActive: true,
@@ -452,7 +427,6 @@ async function seedChartOfAccounts() {
 		{
 			code: '3004',
 			name: 'Ikhtisar Laba Rugi',
-			accountType: 'EQUITY',
 			groupName: 'Modal',
 			level: 1,
 			isActive: true,
@@ -461,7 +435,6 @@ async function seedChartOfAccounts() {
 		{
 			code: '401',
 			name: 'Penjualan',
-			accountType: 'REVENUE',
 			groupName: 'Pendapatan',
 			level: 1,
 			isActive: true,
@@ -470,7 +443,6 @@ async function seedChartOfAccounts() {
 		{
 			code: '402',
 			name: 'Jasa',
-			accountType: 'REVENUE',
 			groupName: 'Pendapatan',
 			level: 1,
 			isActive: true,
@@ -479,7 +451,6 @@ async function seedChartOfAccounts() {
 		{
 			code: '40301',
 			name: 'Pendapatan Project',
-			accountType: 'REVENUE',
 			groupName: 'Pendapatan',
 			level: 1,
 			isActive: true,
@@ -488,7 +459,6 @@ async function seedChartOfAccounts() {
 		{
 			code: '40401',
 			name: 'Pendapatan Rack Colocation',
-			accountType: 'REVENUE',
 			groupName: 'Pendapatan',
 			level: 1,
 			isActive: true,
@@ -497,7 +467,6 @@ async function seedChartOfAccounts() {
 		{
 			code: '40501',
 			name: 'Pendapatan domain',
-			accountType: 'REVENUE',
 			groupName: 'Pendapatan',
 			level: 1,
 			isActive: true,
@@ -506,7 +475,6 @@ async function seedChartOfAccounts() {
 		{
 			code: '40601',
 			name: 'Pendapatan Bunga Bank',
-			accountType: 'REVENUE',
 			groupName: '(Pendapatan) Biaya Lain-Lain',
 			level: 1,
 			isActive: true,
@@ -515,7 +483,6 @@ async function seedChartOfAccounts() {
 		{
 			code: '40701',
 			name: 'Penghasilan Final',
-			accountType: 'REVENUE',
 			groupName: 'Pendapatan',
 			level: 1,
 			isActive: true,
@@ -524,7 +491,6 @@ async function seedChartOfAccounts() {
 		{
 			code: '40801',
 			name: 'Pendapatan Lain-lain',
-			accountType: 'REVENUE',
 			groupName: '(Pendapatan) Biaya Lain-Lain',
 			level: 1,
 			isActive: true,
@@ -533,7 +499,6 @@ async function seedChartOfAccounts() {
 		{
 			code: '5001',
 			name: 'Harga Pokok Penjualan',
-			accountType: 'EXPENSE',
 			groupName: 'Harga Pokok (COGS/HPP)',
 			level: 1,
 			isActive: true,
@@ -542,7 +507,6 @@ async function seedChartOfAccounts() {
 		{
 			code: '6001',
 			name: 'Beban Gaji Pegawai',
-			accountType: 'EXPENSE',
 			groupName: 'Biaya Operasional',
 			level: 1,
 			isActive: true,
@@ -551,7 +515,6 @@ async function seedChartOfAccounts() {
 		{
 			code: '6002',
 			name: 'Beban Project',
-			accountType: 'EXPENSE',
 			groupName: 'Biaya Operasional',
 			level: 1,
 			isActive: true,
@@ -560,7 +523,6 @@ async function seedChartOfAccounts() {
 		{
 			code: '6003',
 			name: 'Biaya Perlengkapan Kantor & ATK',
-			accountType: 'EXPENSE',
 			groupName: 'Biaya Operasional Lainnya',
 			level: 1,
 			isActive: true,
@@ -569,7 +531,6 @@ async function seedChartOfAccounts() {
 		{
 			code: '6004',
 			name: 'Biaya Perjalanan Dinas',
-			accountType: 'EXPENSE',
 			groupName: 'Biaya Operasional Lainnya',
 			level: 1,
 			isActive: true,
@@ -578,7 +539,6 @@ async function seedChartOfAccounts() {
 		{
 			code: '6005',
 			name: 'Biaya Pelatihan Karyawan',
-			accountType: 'EXPENSE',
 			groupName: 'Biaya Administrasi & Umum',
 			level: 1,
 			isActive: true,
@@ -587,7 +547,6 @@ async function seedChartOfAccounts() {
 		{
 			code: '6006',
 			name: 'Biaya Installasi',
-			accountType: 'EXPENSE',
 			groupName: 'Biaya Operasional',
 			level: 1,
 			isActive: true,
@@ -596,7 +555,6 @@ async function seedChartOfAccounts() {
 		{
 			code: '6007',
 			name: 'Beban Pajak',
-			accountType: 'EXPENSE',
 			groupName: 'Biaya Administrasi & Umum',
 			level: 1,
 			isActive: true,
@@ -605,7 +563,6 @@ async function seedChartOfAccounts() {
 		{
 			code: '6009',
 			name: 'Beban Lain-lain',
-			accountType: 'EXPENSE',
 			groupName: 'Biaya Operasional Lainnya',
 			level: 1,
 			isActive: true,
@@ -614,7 +571,6 @@ async function seedChartOfAccounts() {
 		{
 			code: '6010',
 			name: 'Beban Penyusutan Perangkat',
-			accountType: 'EXPENSE',
 			groupName: 'Biaya Operasional Lainnya',
 			level: 1,
 			isActive: true,
@@ -623,7 +579,6 @@ async function seedChartOfAccounts() {
 		{
 			code: '6011',
 			name: 'Biaya Honorarium',
-			accountType: 'EXPENSE',
 			groupName: 'Biaya Operasional',
 			level: 1,
 			isActive: true,
@@ -632,7 +587,6 @@ async function seedChartOfAccounts() {
 		{
 			code: '6012',
 			name: 'Beban PPh Pasal 23',
-			accountType: 'EXPENSE',
 			groupName: 'Biaya Administrasi & Umum',
 			level: 1,
 			isActive: true,
@@ -641,7 +595,6 @@ async function seedChartOfAccounts() {
 		{
 			code: '6101',
 			name: 'Beban Cross Connect',
-			accountType: 'EXPENSE',
 			groupName: 'Biaya Operasional',
 			level: 1,
 			isActive: true,
@@ -650,7 +603,6 @@ async function seedChartOfAccounts() {
 		{
 			code: '6102',
 			name: 'Beban Local Link',
-			accountType: 'EXPENSE',
 			groupName: 'Biaya Operasional',
 			level: 1,
 			isActive: true,
@@ -659,7 +611,6 @@ async function seedChartOfAccounts() {
 		{
 			code: '6103',
 			name: 'Beban Rack Co-location',
-			accountType: 'EXPENSE',
 			groupName: 'Biaya Operasional',
 			level: 1,
 			isActive: true,
@@ -668,7 +619,6 @@ async function seedChartOfAccounts() {
 		{
 			code: '6104',
 			name: 'Beban Listrik, Air, Telp',
-			accountType: 'EXPENSE',
 			groupName: 'Biaya Operasional',
 			level: 1,
 			isActive: true,
@@ -677,7 +627,6 @@ async function seedChartOfAccounts() {
 		{
 			code: '6105',
 			name: 'Beban General Service, Directory Listing, Communication Package',
-			accountType: 'EXPENSE',
 			groupName: 'Biaya Operasional',
 			level: 1,
 			isActive: true,
@@ -686,7 +635,6 @@ async function seedChartOfAccounts() {
 		{
 			code: '6106',
 			name: 'Beban Sewa Kantor',
-			accountType: 'EXPENSE',
 			groupName: 'Biaya Operasional',
 			level: 1,
 			isActive: true,
@@ -695,7 +643,6 @@ async function seedChartOfAccounts() {
 		{
 			code: '6107',
 			name: 'Beban Cpanel, domain, SSL Wildcard',
-			accountType: 'EXPENSE',
 			groupName: 'Biaya Operasional',
 			level: 1,
 			isActive: true,
@@ -704,7 +651,6 @@ async function seedChartOfAccounts() {
 		{
 			code: '6108',
 			name: 'Beban Perlengkapan Usaha Project',
-			accountType: 'EXPENSE',
 			groupName: 'Biaya Operasional',
 			level: 1,
 			isActive: true,
@@ -713,7 +659,6 @@ async function seedChartOfAccounts() {
 		{
 			code: '6109',
 			name: 'Beban IP Transit',
-			accountType: 'EXPENSE',
 			groupName: 'Biaya Operasional',
 			level: 1,
 			isActive: true,
@@ -722,7 +667,6 @@ async function seedChartOfAccounts() {
 		{
 			code: '6110',
 			name: 'Beban Perlengkapan Usaha Trading',
-			accountType: 'EXPENSE',
 			groupName: 'Biaya Operasional',
 			level: 1,
 			isActive: true,
@@ -731,7 +675,6 @@ async function seedChartOfAccounts() {
 		{
 			code: '6111',
 			name: 'Beban Managed Service',
-			accountType: 'EXPENSE',
 			groupName: 'Biaya Operasional',
 			level: 1,
 			isActive: true,
@@ -740,7 +683,6 @@ async function seedChartOfAccounts() {
 		{
 			code: '6112',
 			name: 'Beban Sewa Radio',
-			accountType: 'EXPENSE',
 			groupName: 'Biaya Operasional',
 			level: 1,
 			isActive: true,
@@ -749,7 +691,6 @@ async function seedChartOfAccounts() {
 		{
 			code: '6113',
 			name: 'Beban Broadband',
-			accountType: 'EXPENSE',
 			groupName: 'Biaya Operasional',
 			level: 1,
 			isActive: true,
@@ -758,7 +699,6 @@ async function seedChartOfAccounts() {
 		{
 			code: '6114',
 			name: 'Beban PPN',
-			accountType: 'EXPENSE',
 			groupName: 'Biaya Operasional',
 			level: 1,
 			isActive: true,
@@ -767,7 +707,6 @@ async function seedChartOfAccounts() {
 		{
 			code: '6115',
 			name: 'Biaya Bank',
-			accountType: 'EXPENSE',
 			groupName: 'Biaya Operasional Lainnya',
 			level: 1,
 			isActive: true,
@@ -776,7 +715,6 @@ async function seedChartOfAccounts() {
 		{
 			code: '6116',
 			name: 'Potongan Pembelian',
-			accountType: 'EXPENSE',
 			groupName: 'Biaya Administrasi & Umum',
 			level: 1,
 			isActive: true,
@@ -785,7 +723,6 @@ async function seedChartOfAccounts() {
 		{
 			code: '6201',
 			name: 'Beban Kerugian Piutang',
-			accountType: 'EXPENSE',
 			groupName: 'Biaya Administrasi & Umum',
 			level: 1,
 			isActive: true,
@@ -794,7 +731,6 @@ async function seedChartOfAccounts() {
 		{
 			code: '6202',
 			name: 'Biaya Kirim',
-			accountType: 'EXPENSE',
 			groupName: 'Biaya Operasional Lainnya',
 			level: 1,
 			isActive: true,
@@ -803,7 +739,6 @@ async function seedChartOfAccounts() {
 		{
 			code: '6203',
 			name: 'Biaya Materai',
-			accountType: 'EXPENSE',
 			groupName: 'Biaya Operasional Lainnya',
 			level: 1,
 			isActive: true,
@@ -812,7 +747,6 @@ async function seedChartOfAccounts() {
 		{
 			code: '6204',
 			name: 'Biaya Keanggotaan APJII',
-			accountType: 'EXPENSE',
 			groupName: 'Biaya Operasional Lainnya',
 			level: 1,
 			isActive: true,
@@ -821,7 +755,6 @@ async function seedChartOfAccounts() {
 		{
 			code: '6205',
 			name: 'Biaya Administrasi',
-			accountType: 'EXPENSE',
 			groupName: 'Biaya Administrasi & Umum',
 			level: 1,
 			isActive: true,
@@ -830,7 +763,6 @@ async function seedChartOfAccounts() {
 		{
 			code: '6206',
 			name: 'Biaya Sumbangan',
-			accountType: 'EXPENSE',
 			groupName: 'Biaya Administrasi & Umum',
 			level: 1,
 			isActive: true,
@@ -839,7 +771,6 @@ async function seedChartOfAccounts() {
 		{
 			code: '6207',
 			name: 'Biaya Perizinan dan Legalitas',
-			accountType: 'EXPENSE',
 			groupName: 'Biaya Operasional Lainnya',
 			level: 1,
 			isActive: true,
@@ -848,7 +779,6 @@ async function seedChartOfAccounts() {
 		{
 			code: '6208',
 			name: 'Biaya Entertain',
-			accountType: 'EXPENSE',
 			groupName: 'Biaya Operasional Lainnya',
 			level: 1,
 			isActive: true,
@@ -857,7 +787,6 @@ async function seedChartOfAccounts() {
 		{
 			code: '6209',
 			name: 'Biaya Reparasi dan Pemeliharaan',
-			accountType: 'EXPENSE',
 			groupName: 'Biaya Operasional Lainnya',
 			level: 1,
 			isActive: true,
@@ -866,7 +795,6 @@ async function seedChartOfAccounts() {
 		{
 			code: '6210',
 			name: 'Biaya Perangkat',
-			accountType: 'EXPENSE',
 			groupName: 'Biaya Operasional Lainnya',
 			level: 1,
 			isActive: true,
@@ -875,7 +803,6 @@ async function seedChartOfAccounts() {
 		{
 			code: '6211',
 			name: 'Biaya Sewa Akses',
-			accountType: 'EXPENSE',
 			groupName: 'Biaya Operasional',
 			level: 1,
 			isActive: true,
@@ -884,7 +811,6 @@ async function seedChartOfAccounts() {
 		{
 			code: '7001',
 			name: 'Bunga Bank',
-			accountType: 'EXPENSE',
 			groupName: '(Pendapatan) Biaya Lain-Lain',
 			level: 1,
 			isActive: true,
@@ -893,7 +819,6 @@ async function seedChartOfAccounts() {
 		{
 			code: '7002',
 			name: 'Pajak Atas Bunga Bank',
-			accountType: 'EXPENSE',
 			groupName: '(Pendapatan) Biaya Lain-Lain',
 			level: 1,
 			isActive: true,
@@ -902,7 +827,6 @@ async function seedChartOfAccounts() {
 		{
 			code: '7003',
 			name: 'Selisih Pembulatan',
-			accountType: 'EXPENSE',
 			groupName: '(Pendapatan) Biaya Lain-Lain',
 			level: 1,
 			isActive: true,
@@ -911,7 +835,6 @@ async function seedChartOfAccounts() {
 		{
 			code: '7004',
 			name: 'Laba (Rugi) Selisih Kurs',
-			accountType: 'EXPENSE',
 			groupName: '(Pendapatan) Biaya Lain-Lain',
 			level: 1,
 			isActive: true,
@@ -920,7 +843,6 @@ async function seedChartOfAccounts() {
 		{
 			code: '7005',
 			name: 'Beban PPh Badan',
-			accountType: 'EXPENSE',
 			groupName: '(Pendapatan) Biaya Lain-Lain',
 			level: 1,
 			isActive: true,
@@ -931,15 +853,7 @@ async function seedChartOfAccounts() {
 	const accountBatch = [];
 
 	for (const account of accounts) {
-		const accountTypeId = accountTypeMap.get(account.accountType);
 		const accountGroupId = accountGroupMap.get(account.groupName);
-
-		if (!accountTypeId) {
-			console.log(
-				`Warning: Account type ${account.accountType} not found for account ${account.name}`
-			);
-			continue;
-		}
 
 		if (!accountGroupId) {
 			console.log(
@@ -952,7 +866,6 @@ async function seedChartOfAccounts() {
 			code: account.code,
 			name: account.name,
 			description: `Account untuk ${account.name}`,
-			accountTypeId: accountTypeId,
 			accountGroupId: accountGroupId,
 			parentId: null,
 			level: account.level,

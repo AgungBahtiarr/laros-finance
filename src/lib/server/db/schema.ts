@@ -178,10 +178,9 @@ export const chartOfAccount = pgTable('chart_of_account', {
 	code: varchar('code', { length: 20 }).notNull().unique(),
 	name: varchar('name', { length: 255 }).notNull(),
 	description: text('description'),
-	accountTypeId: integer('account_type_id')
+	accountGroupId: integer('account_group_id')
 		.notNull()
-		.references(() => accountType.id),
-	accountGroupId: integer('account_group_id').references(() => accountGroup.id),
+		.references(() => accountGroup.id),
 	parentId: integer('parent_id').references(() => chartOfAccount.id),
 	level: integer('level').notNull().default(1),
 	isActive: boolean('is_active').notNull().default(true),
@@ -192,10 +191,6 @@ export const chartOfAccount = pgTable('chart_of_account', {
 });
 
 export const chartOfAccountRelations = relations(chartOfAccount, ({ one, many }) => ({
-	accountType: one(accountType, {
-		fields: [chartOfAccount.accountTypeId],
-		references: [accountType.id]
-	}),
 	accountGroup: one(accountGroup, {
 		fields: [chartOfAccount.accountGroupId],
 		references: [accountGroup.id]
@@ -209,7 +204,6 @@ export const chartOfAccountRelations = relations(chartOfAccount, ({ one, many })
 }));
 
 export const accountTypeRelations = relations(accountType, ({ many }) => ({
-	accounts: many(chartOfAccount),
 	groups: many(accountGroup)
 }));
 

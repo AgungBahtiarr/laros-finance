@@ -27,11 +27,11 @@
 		code: '',
 		name: '',
 		description: '',
-		accountTypeId: '',
 		accountGroupId: '',
 		parentId: '',
 		level: '1',
-		balanceType: ''
+		balanceType: '',
+		isActive: true
 	});
 
 	// Reference to form element
@@ -84,36 +84,37 @@
 
 	// Open form for creating a new account
 	function openCreateForm() {
-		isEditing = false;
 		formData = {
 			id: '',
 			code: '',
 			name: '',
 			description: '',
-			accountTypeId: '',
 			accountGroupId: '',
 			parentId: '',
 			level: '1',
-			balanceType: ''
+			balanceType: '',
+			isActive: true
 		};
 		showForm = true;
+		isEditing = false;
 	}
 
 	// Open form for editing an account
+	// Open form for editing an existing account
 	function openEditForm(account) {
-		isEditing = true;
 		formData = {
 			id: account.id.toString(),
 			code: account.code,
 			name: account.name,
 			description: account.description || '',
-			accountTypeId: account.accountTypeId.toString(),
 			accountGroupId: account.accountGroupId ? account.accountGroupId.toString() : '',
 			parentId: account.parentId ? account.parentId.toString() : '',
 			level: account.level.toString(),
-			balanceType: account.balanceType || ''
+			balanceType: account.balanceType || '',
+			isActive: account.isActive
 		};
 		showForm = true;
+		isEditing = true;
 	}
 
 	// Close the form
@@ -157,7 +158,9 @@
 			LIABILITY: 'bg-red-100 text-red-800',
 			EQUITY: 'bg-purple-100 text-purple-800',
 			REVENUE: 'bg-green-100 text-green-800',
-			EXPENSE: 'bg-orange-100 text-orange-800'
+			EXPENSE: 'bg-orange-100 text-orange-800',
+			'PROFIT&LOSS': 'bg-green-100 text-green-800',
+			RETAINED_EARNING: 'bg-purple-100 text-purple-800'
 		};
 		return colors[typeCode] || 'bg-gray-100 text-gray-800';
 	}
@@ -264,18 +267,16 @@
 									{/if}
 								</td>
 								<td>
-									<div class={`badge ${getAccountTypeColor(account.accountType.code)}`}>
-										{account.accountType.name}
+									<div
+										class={`badge ${getAccountTypeColor(account.accountGroup?.accountType?.code || 'ASSET')}`}
+									>
+										{account.accountGroup?.accountType?.name || 'Unknown'}
 									</div>
 								</td>
 								<td>
-									{#if account.accountGroup}
-										<div class="badge badge-outline">
-											{account.accountGroup.name}
-										</div>
-									{:else}
-										<div class="text-xs text-gray-500">-</div>
-									{/if}
+									<div class="badge badge-outline">
+										{account.accountGroup.name}
+									</div>
 								</td>
 								<td>
 									{#if account.isActive}
@@ -346,8 +347,10 @@
 									{/if}
 								</td>
 								<td>
-									<div class={`badge ${getAccountTypeColor(account.accountType.code)}`}>
-										{account.accountType.name}
+									<div
+										class={`badge ${getAccountTypeColor(account.accountGroup?.accountType?.code || 'ASSET')}`}
+									>
+										{account.accountGroup?.accountType?.name || 'Unknown'}
 									</div>
 								</td>
 								<td>
@@ -419,8 +422,10 @@
 											{/if}
 										</td>
 										<td>
-											<div class={`badge ${getAccountTypeColor(childAccount.accountType.code)}`}>
-												{childAccount.accountType.name}
+											<div
+												class={`badge ${getAccountTypeColor(childAccount.accountGroup?.accountType?.code || 'ASSET')}`}
+											>
+												{childAccount.accountGroup?.accountType?.name || 'Unknown'}
 											</div>
 										</td>
 										<td>
@@ -514,7 +519,7 @@
 	<div class="modal modal-open">
 		<div class="modal-box w-11/12 max-w-3xl">
 			<h3 class="text-lg font-bold">
-				{isEditing ? 'Edit Account' : 'Create New Account'}
+				{isEditing ? `Edit Account: ${formData.code} - ${formData.name}` : 'Create New Account'}
 			</h3>
 			<form
 				bind:this={formElement}
@@ -561,24 +566,6 @@
 					</div>
 
 					<div class="form-control w-full">
-						<label class="label" for="accountTypeId">
-							<span class="label-text">Account Type</span>
-						</label>
-						<select
-							id="accountTypeId"
-							name="accountTypeId"
-							class="select select-bordered w-full"
-							required
-							bind:value={formData.accountTypeId}
-						>
-							<option value="">Select Account Type</option>
-							{#each data.accountTypes as type}
-								<option value={type.id}>{type.name}</option>
-							{/each}
-						</select>
-					</div>
-
-					<div class="form-control w-full">
 						<label class="label" for="accountGroupId">
 							<span class="label-text">Account Group</span>
 						</label>
@@ -588,10 +575,10 @@
 							class="select select-bordered w-full"
 							bind:value={formData.accountGroupId}
 						>
-							<option value="">No Group</option>
-							{#each data.accountGroups.filter((g) => !formData.accountTypeId || g.accountTypeId.toString() === formData.accountTypeId) as group}
+							<option value="">Select Account Group</option>
+							{#each data.accountGroups as group}
 								<option value={group.id}>
-									{group.code} - {group.name} ({group.balanceType})
+									{group.code} - {group.name} ({group.accountType.name})
 								</option>
 							{/each}
 						</select>
@@ -643,6 +630,26 @@
 						</label>
 					</div>
 
+					<div class="form-control w-full">
+						<label class="label" for="balanceType">
+							<span class="label-text">Balance Type</span>
+						</label>
+						<select
+							id="balanceType"
+							name="balanceType"
+							class="select select-bordered w-full"
+							required
+							bind:value={formData.balanceType}
+						>
+							<option value="">Select Balance Type</option>
+							<option value="DEBIT">DEBIT</option>
+							<option value="CREDIT">CREDIT</option>
+						</select>
+						<label class="label">
+							<span class="label-text-alt">Normal balance for this account</span>
+						</label>
+					</div>
+
 					<div class="form-control col-span-1 md:col-span-2">
 						<label class="label" for="description">
 							<span class="label-text">Description</span>
@@ -650,8 +657,7 @@
 						<textarea
 							id="description"
 							name="description"
-							class="textarea textarea-bordered w-full"
-							rows="3"
+							class="textarea textarea-bordered h-24"
 							placeholder="Optional description"
 							bind:value={formData.description}
 						></textarea>

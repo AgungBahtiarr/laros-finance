@@ -6,12 +6,15 @@ import { eq, asc, desc } from 'drizzle-orm';
 
 export const load: PageServerLoad = async () => {
 	try {
-		// Get all accounts with their related account type, parent, and group
+		// Get all accounts with their related parent and group (and group's account type)
 		const accounts = await db.query.chartOfAccount.findMany({
 			with: {
-				accountType: true,
 				parent: true,
-				accountGroup: true
+				accountGroup: {
+					with: {
+						accountType: true
+					}
+				}
 			},
 			orderBy: [asc(chartOfAccount.code)]
 		});
@@ -51,8 +54,7 @@ export const actions: Actions = {
 		const code = formData.get('code') as string;
 		const name = formData.get('name') as string;
 		const description = formData.get('description') as string;
-		const accountTypeId = parseInt(formData.get('accountTypeId') as string);
-		const accountGroupId = formData.get('accountGroupId') ? parseInt(formData.get('accountGroupId') as string) : null;
+		const accountGroupId = parseInt(formData.get('accountGroupId') as string);
 		const parentId = formData.get('parentId') ? parseInt(formData.get('parentId') as string) : null;
 		const level = parentId ? parseInt(formData.get('level') as string) : 1;
 		const balanceType = formData.get('balanceType') as string || null;
@@ -74,7 +76,6 @@ export const actions: Actions = {
 				code,
 				name,
 				description,
-				accountTypeId,
 				accountGroupId,
 				parentId,
 				level,
@@ -100,8 +101,7 @@ export const actions: Actions = {
 		const code = formData.get('code') as string;
 		const name = formData.get('name') as string;
 		const description = formData.get('description') as string;
-		const accountTypeId = parseInt(formData.get('accountTypeId') as string);
-		const accountGroupId = formData.get('accountGroupId') ? parseInt(formData.get('accountGroupId') as string) : null;
+		const accountGroupId = parseInt(formData.get('accountGroupId') as string);
 		const parentId = formData.get('parentId') ? parseInt(formData.get('parentId') as string) : null;
 		const level = parentId ? parseInt(formData.get('level') as string) : 1;
 		const balanceType = formData.get('balanceType') as string || null;
@@ -125,7 +125,6 @@ export const actions: Actions = {
 					code,
 					name,
 					description,
-					accountTypeId,
 					accountGroupId,
 					parentId,
 					level,
