@@ -59,10 +59,6 @@
 							href: '/gl/ledger/periods'
 						},
 						{
-							name: 'Analyzer',
-							href: '/gl/ledger/analyzer'
-						},
-						{
 							name: 'Journals',
 							href: '/gl/ledger/journals'
 						},

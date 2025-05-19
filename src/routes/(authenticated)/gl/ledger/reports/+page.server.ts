@@ -1,5 +1,14 @@
 import { db } from '$lib/server/db';
-import { reportTemplate, reportTemplateLine, fiscalPeriod, chartOfAccount, journalEntry, journalEntryLine, accountType } from '$lib/server/db/schema';
+import {
+	reportTemplate,
+	reportTemplateLine,
+	fiscalPeriod,
+	chartOfAccount,
+	journalEntry,
+	journalEntryLine,
+	accountType,
+	accountGroup
+} from '$lib/server/db/schema';
 import type { Actions, PageServerLoad } from './$types';
 import { error, fail } from '@sveltejs/kit';
 import { eq, and, desc, asc, gte, lte, sum, sql } from 'drizzle-orm';
@@ -22,14 +31,18 @@ export const load: PageServerLoad = async ({ url }) => {
 		});
 
 		// Get account types
-		const accountTypes = await db.query.accountType.findMany({
-			orderBy: [asc(accountType.name)]
-		});
+		// const accountTypes = await db.query.accountType.findMany({
+		// 	orderBy: [asc(accountType.name)]
+		// });
 
 		// Get accounts
 		const accounts = await db.query.chartOfAccount.findMany({
 			with: {
-				accountType: true
+				accountGroup: {
+					with: {
+						accountType: true
+					}
+				}
 			},
 			orderBy: [asc(chartOfAccount.code)]
 		});
@@ -96,7 +109,6 @@ export const load: PageServerLoad = async ({ url }) => {
 		return {
 			templates,
 			fiscalPeriods,
-			accountTypes,
 			selectedTemplate,
 			reportData,
 			filters: {
@@ -114,22 +126,25 @@ export const load: PageServerLoad = async ({ url }) => {
 export const actions: Actions = {
 	saveReportTemplate: async ({ request }) => {
 		const formData = await request.formData();
-		
+
 		const name = formData.get('name') as string;
 		const type = formData.get('type') as string;
 		const description = formData.get('description') as string;
-		
+
 		try {
 			// Create report template
-			const result = await db.insert(reportTemplate).values({
-				name,
-				type,
-				description
-			}).returning({ id: reportTemplate.id });
-			
+			const result = await db
+				.insert(reportTemplate)
+				.values({
+					name,
+					type,
+					description
+				})
+				.returning({ id: reportTemplate.id });
+
 			const templateId = result[0].id;
-			
-			return { 
+
+			return {
 				success: true,
 				templateId
 			};
@@ -141,19 +156,21 @@ export const actions: Actions = {
 			});
 		}
 	},
-	
+
 	saveReportLine: async ({ request }) => {
 		const formData = await request.formData();
-		
+
 		const reportTemplateId = parseInt(formData.get('reportTemplateId') as string);
 		const lineNumber = parseInt(formData.get('lineNumber') as string);
-		const parentLineId = formData.get('parentLineId') ? parseInt(formData.get('parentLineId') as string) : null;
+		const parentLineId = formData.get('parentLineId')
+			? parseInt(formData.get('parentLineId') as string)
+			: null;
 		const label = formData.get('label') as string;
 		const type = formData.get('type') as string;
 		const formula = formData.get('formula') as string;
 		const accountIds = formData.get('accountIds') as string;
 		const bold = formData.get('bold') === 'true';
-		
+
 		try {
 			await db.insert(reportTemplateLine).values({
 				reportTemplateId,
@@ -165,7 +182,7 @@ export const actions: Actions = {
 				accountIds,
 				bold
 			});
-			
+
 			return { success: true };
 		} catch (err) {
 			console.error('Error creating report line:', err);
@@ -175,20 +192,20 @@ export const actions: Actions = {
 			});
 		}
 	},
-	
+
 	deleteTemplate: async ({ request }) => {
 		const formData = await request.formData();
 		const templateId = parseInt(formData.get('templateId') as string);
-		
+
 		try {
 			// Delete template lines first (cascade doesn't work with drizzle)
-			await db.delete(reportTemplateLine)
+			await db
+				.delete(reportTemplateLine)
 				.where(eq(reportTemplateLine.reportTemplateId, templateId));
-				
+
 			// Then delete the template
-			await db.delete(reportTemplate)
-				.where(eq(reportTemplate.id, templateId));
-			
+			await db.delete(reportTemplate).where(eq(reportTemplate.id, templateId));
+
 			return { success: true };
 		} catch (err) {
 			console.error('Error deleting report template:', err);
@@ -206,53 +223,53 @@ async function generateReportData(template, startDate, endDate, accounts) {
 		endDate,
 		lineResults: []
 	};
-	
+
 	// Process each template line
 	for (const line of template.lines) {
 		let lineValue = 0;
-		
+
 		// Process based on line type
 		switch (line.type) {
 			case 'HEADER':
 				// Headers have no value
 				break;
-				
+
 			case 'ACCOUNT':
 				// Sum account balances
 				if (line.accountIds) {
-					const accountIdList = line.accountIds.split(',').map(id => parseInt(id.trim()));
-					
+					const accountIdList = line.accountIds.split(',').map((id) => parseInt(id.trim()));
+
 					// Calculate balances for these accounts
 					lineValue = await calculateAccountsBalance(accountIdList, startDate, endDate);
 				}
 				break;
-				
+
 			case 'CALCULATION':
 				// Process formula - simple implementation for now
 				if (line.formula) {
 					// This is a very basic implementation - you'd need more sophisticated
 					// formula parsing for a real system
 					const matches = line.formula.match(/L(\d+)([\+\-]L\d+)*/g);
-					
+
 					if (matches) {
 						for (const match of matches) {
 							// Extract line numbers and operations
 							const parts = match.split(/([+\-])/);
 							let value = 0;
 							let operation = '+';
-							
+
 							for (let i = 0; i < parts.length; i++) {
 								const part = parts[i].trim();
-								
+
 								if (part === '+' || part === '-') {
 									operation = part;
 								} else if (part.startsWith('L')) {
 									// Reference to another line
 									const referencedLineNumber = parseInt(part.substring(1));
 									const referencedLine = reportData.lineResults.find(
-										r => r.line.lineNumber === referencedLineNumber
+										(r) => r.line.lineNumber === referencedLineNumber
 									);
-									
+
 									if (referencedLine) {
 										if (operation === '+') {
 											value += referencedLine.value;
@@ -262,39 +279,35 @@ async function generateReportData(template, startDate, endDate, accounts) {
 									}
 								}
 							}
-							
+
 							lineValue = value;
 						}
 					}
 				}
 				break;
-				
+
 			case 'TOTAL':
 				// Sum child lines if this is a total line
-				const childLines = reportData.lineResults.filter(
-					r => r.line.parentLineId === line.id
-				);
-				
+				const childLines = reportData.lineResults.filter((r) => r.line.parentLineId === line.id);
+
 				lineValue = childLines.reduce((sum, child) => sum + child.value, 0);
 				break;
-				
+
 			case 'SUBTOTAL':
 				// Similar to TOTAL but may have different presentation
-				const groupLines = reportData.lineResults.filter(
-					r => r.line.parentLineId === line.id
-				);
-				
+				const groupLines = reportData.lineResults.filter((r) => r.line.parentLineId === line.id);
+
 				lineValue = groupLines.reduce((sum, child) => sum + child.value, 0);
 				break;
 		}
-		
+
 		// Add result
 		reportData.lineResults.push({
 			line,
 			value: lineValue
 		});
 	}
-	
+
 	return reportData;
 }
 
@@ -318,29 +331,31 @@ async function calculateAccountsBalance(accountIds, startDate, endDate) {
 			)
 		)
 		.groupBy(journalEntryLine.accountId);
-	
+
 	// Get account details to determine normal balance
 	const accountsInfo = await db.query.chartOfAccount.findMany({
 		where: chartOfAccount.id.in(accountIds),
 		with: {
-			accountType: true
+			accountGroup: {
+				with: { accountType: true }
+			}
 		}
 	});
-	
+
 	// Calculate total balance based on normal balance direction
 	let totalBalance = 0;
-	
+
 	for (const line of journalLines) {
-		const account = accountsInfo.find(a => a.id === line.accountId);
-		
+		const account = accountsInfo.find((a) => a.id === line.accountId);
+
 		if (account) {
-			if (account.accountType.normalBalance === 'DEBIT') {
+			if (account.accountGroup.accountType.normalBalance === 'DEBIT') {
 				totalBalance += Number(line.debitSum) - Number(line.creditSum);
 			} else {
 				totalBalance += Number(line.creditSum) - Number(line.debitSum);
 			}
 		}
 	}
-	
+
 	return totalBalance;
 }
