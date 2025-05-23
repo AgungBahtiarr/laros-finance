@@ -117,12 +117,12 @@
 				</a>
 				<h1 class="text-2xl font-bold text-gray-900">Account Groups</h1>
 			</div>
-			<p class="text-sm text-gray-500">Manage your account classification groups</p>
+			<p class="text-sm text-gray-500">Kelola semua grup klasifikasi akun</p>
 		</div>
 		<div class="flex gap-2">
 			<button class="btn btn-primary btn-sm gap-1" onclick={openCreateModal}>
 				<Plus class="h-4 w-4" />
-				Add Account Group
+				Tambah Grup Akun
 			</button>
 		</div>
 	</div>
@@ -239,9 +239,9 @@
 		<div>
 			<div class="font-bold">About Account Groups</div>
 			<div class="text-xs">
-				Account groups classify accounts by their financial purpose. Each account group belongs to an
-				account type (Asset, Liability, etc.) and has a normal balance direction (Debit or Credit)
-				that determines how account balances are calculated.
+				Account groups classify accounts by their financial purpose. Each account group belongs to
+				an account type (Asset, Liability, etc.) and has a normal balance direction (Debit or
+				Credit) that determines how account balances are calculated.
 			</div>
 		</div>
 	</div>

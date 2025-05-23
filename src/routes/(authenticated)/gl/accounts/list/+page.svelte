@@ -16,7 +16,7 @@
 
 	let { data } = $props();
 	let searchTerm = $state('');
-	let showInactive = $state(false);
+	let showInactive = $state(true);
 	let expandedAccounts = $state(new Set<number>());
 
 	// Form for creating/editing account
@@ -38,18 +38,16 @@
 	let formElement = $state(null);
 
 	// Filtered accounts
-	let filteredAccounts = $derived(() => {
+	let filteredAccounts = $derived(
 		// Filter the flat list of accounts
-		return data.accounts.filter((account) => {
+		data.accounts.filter((account) => {
 			const matchSearch =
-				account.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-				account.name.toLowerCase().includes(searchTerm.toLowerCase());
-
+				account.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+				account.code.toLowerCase().includes(searchTerm.toLowerCase());
 			const matchStatus = showInactive ? true : account.isActive;
-
 			return matchSearch && matchStatus;
-		});
-	});
+		})
+	);
 
 	// Handle hierarchy expansion
 	function toggleExpand(accountId: number) {
@@ -157,10 +155,8 @@
 			ASSET: 'bg-blue-100 text-blue-800',
 			LIABILITY: 'bg-red-100 text-red-800',
 			EQUITY: 'bg-purple-100 text-purple-800',
-			REVENUE: 'bg-green-100 text-green-800',
-			EXPENSE: 'bg-orange-100 text-orange-800',
-			'PROFIT&LOSS': 'bg-green-100 text-green-800',
-			RETAINED_EARNING: 'bg-purple-100 text-purple-800'
+			RETAINED_EARNING: 'bg-green-100 text-green-800',
+			'PROFIT&LOSS': 'bg-orange-100 text-orange-800'
 		};
 		return colors[typeCode] || 'bg-gray-100 text-gray-800';
 	}
@@ -209,14 +205,14 @@
 				<a href="/gl/accounts" class="btn btn-ghost btn-sm px-2">
 					<ArrowLeft class="h-4 w-4" />
 				</a>
-				<h1 class="text-2xl font-bold text-gray-900">Account List</h1>
+				<h1 class="text-2xl font-bold text-gray-900">Daftar Account</h1>
 			</div>
-			<p class="text-sm text-gray-500">Manage all accounts in your chart of accounts</p>
+			<p class="text-sm text-gray-500">Kelola semua akun dalam chart of accounts</p>
 		</div>
 		<div class="flex gap-2">
 			<button class="btn btn-primary btn-sm gap-1" onclick={openCreateForm}>
 				<Plus class="h-4 w-4" />
-				Add Account
+				Tambah Akun
 			</button>
 		</div>
 	</div>
@@ -233,7 +229,7 @@
 		</div>
 		<div class="form-control">
 			<label class="label cursor-pointer gap-2">
-				<span class="label-text">Show inactive accounts</span>
+				<span class="label-text">Tampilkan akun inaktif</span>
 				<input type="checkbox" class="toggle toggle-primary" bind:checked={showInactive} />
 			</label>
 		</div>
@@ -254,7 +250,7 @@
 					</tr>
 				</thead>
 				<tbody>
-					{#if searchTerm}
+					{#if searchTerm || showInactive}
 						{#each filteredAccounts as account}
 							<tr class="hover">
 								<td class="font-mono">
@@ -351,6 +347,11 @@
 										class={`badge ${getAccountTypeColor(account.accountGroup?.accountType?.code || 'ASSET')}`}
 									>
 										{account.accountGroup?.accountType?.name || 'Unknown'}
+									</div>
+								</td>
+								<td>
+									<div class="badge badge-outline">
+										{account.accountGroup.name}
 									</div>
 								</td>
 								<td>
@@ -469,7 +470,7 @@
 														type="submit"
 														class="btn btn-ghost btn-sm text-error"
 														onclick={(e) => {
-															if (!confirm('Are you sure you want to delete this account?')) {
+															if (!confirm('Apakah anda yakin ingin menghapus akun ini?')) {
 																e.preventDefault();
 															}
 														}}
@@ -489,8 +490,8 @@
 						<tr>
 							<td colspan="6" class="py-8 text-center text-gray-500">
 								{searchTerm
-									? 'No accounts match your search criteria'
-									: 'No accounts found. Create your first account.'}
+									? 'Tidak ada akun yang cocok dengan kriteria pencarian Anda'
+									: 'Tidak ada akun yang ditemukan. Buat akun pertama Anda.'}
 							</td>
 						</tr>
 					{/if}
@@ -503,12 +504,12 @@
 	<div class="alert alert-info">
 		<AlertTriangle class="h-5 w-5" />
 		<div>
-			<div class="font-bold">Chart of Accounts Structure</div>
+			<div class="font-bold">Struktur Chart of Accounts</div>
 			<div class="text-xs">
-				Your chart of accounts is organized hierarchically, with account types, account groups, and
-				individual accounts. Each account has a unique code, belongs to an account type, and can be
-				assigned to a functional group like "Retained Earnings" or "Current Earnings". Account
-				groups determine how accounts appear in financial reports.
+				Chart of Account Anda disusun secara hierarkis, dengan jenis akun, grup akun, dan akun
+				individual. Setiap akun memiliki kode unik, termasuk dalam jenis akun, dan dapat ditetapkan
+				ke grup fungsional seperti "Aktiva Lancar" atau "Biaya Operasional". Grup akun menentukan
+				bagaimana akun muncul dalam laporan keuangan.
 			</div>
 		</div>
 	</div>
