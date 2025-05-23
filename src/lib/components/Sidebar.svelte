@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import { Home, FileText, Box, ChevronDown, Package, DollarSign, BookOpen, BarChart2, CreditCard, Landmark } from '@lucide/svelte';
+	import { Home, FileText, Box, ChevronDown, Package, CreditCard, Landmark } from '@lucide/svelte';
 
 	const navigation = [
 		{
@@ -26,59 +26,57 @@
 			]
 		},
 		{
-			name: 'General Ledger',
-			href: '/gl',
-			icon: BookOpen,
+			name: 'Chart of Accounts',
+			href: '/gl/accounts',
+			icon: Landmark,
 			submenu: [
 				{
-					name: 'Chart of Accounts',
-					href: '/gl/accounts',
-					icon: Landmark,
-					subsubmenu: [
-						{
-							name: 'Account Types',
-							href: '/gl/accounts/types'
-						},
-						{
-							name: 'Account Groups',
-							href: '/gl/accounts/groups'
-						},
-						{
-							name: 'Account List',
-							href: '/gl/accounts/list'
-						}
-					]
+					name: 'Account Types',
+					href: '/gl/accounts/types'
 				},
 				{
-					name: 'Ledger',
-					href: '/gl/ledger',
-					icon: CreditCard,
-					subsubmenu: [
-						{
-							name: 'Periods',
-							href: '/gl/ledger/periods'
-						},
-						{
-							name: 'Journals',
-							href: '/gl/ledger/journals'
-						},
-						{
-							name: 'Report Analysis',
-							href: '/gl/ledger/reports'
-						}
-					]
+					name: 'Account Groups',
+					href: '/gl/accounts/groups'
+				},
+				{
+					name: 'Account List',
+					href: '/gl/accounts/list'
+				}
+			]
+		},
+		{
+			name: 'Ledger',
+			href: '/gl/ledger',
+			icon: CreditCard,
+			submenu: [
+				{
+					name: 'Periods',
+					href: '/gl/ledger/periods'
+				},
+				{
+					name: 'Journals',
+					href: '/gl/ledger/journals'
+				},
+				{
+					name: 'Report Analysis',
+					href: '/gl/ledger/reports'
 				}
 			]
 		}
 	];
 
-	function isActive(item: { href: string; submenu?: { href: string; subsubmenu?: { href: string }[] }[] }) {
+	function isActive(item: {
+		href: string;
+		submenu?: { href: string; subsubmenu?: { href: string }[] }[];
+	}) {
 		if (item.submenu) {
 			return (
 				page.url.pathname === item.href ||
-				item.submenu.some((sub) => 
-					page.url.pathname.startsWith(sub.href) || 
-					(sub.subsubmenu && sub.subsubmenu.some(subsub => page.url.pathname.startsWith(subsub.href)))
+				item.submenu.some(
+					(sub) =>
+						page.url.pathname.startsWith(sub.href) ||
+						(sub.subsubmenu &&
+							sub.subsubmenu.some((subsub) => page.url.pathname.startsWith(subsub.href)))
 				)
 			);
 		}
@@ -87,7 +85,7 @@
 </script>
 
 <div class="flex h-[100vh] flex-col border-r">
-	<div class="flex h-14 justify-center items-center border-b px-6 gap-2">
+	<div class="flex h-14 items-center justify-center gap-2 border-b px-6">
 		<img class="h-8" src="/images/laros-logo.png" alt="Laros" />
 		<span class="text-primary text-lg font-bold">Laros Finance.</span>
 	</div>
@@ -115,7 +113,9 @@
 								<details class="collapse pl-4">
 									<summary
 										class={`flex items-center justify-between rounded-lg px-3 py-2 text-gray-600 transition-all hover:bg-gray-50 ${
-											page.url.pathname.startsWith(menu.href) ? 'text-primary font-medium' : 'hover:text-gray-900'
+											page.url.pathname.startsWith(menu.href)
+												? 'text-primary font-medium'
+												: 'hover:text-gray-900'
 										}`}
 									>
 										<div class="flex justify-between">
