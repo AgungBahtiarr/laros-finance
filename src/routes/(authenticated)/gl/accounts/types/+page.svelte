@@ -1,8 +1,9 @@
 <script lang="ts">
-	import { enhance } from '$app/forms';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
-	import { ArrowLeft, Edit, Plus, Trash2, AlertTriangle } from '@lucide/svelte';
+	import FormType from '$lib/components/Types/FormType.svelte';
+	import Types from '$lib/components/Types/Types.svelte';
+	import { ArrowLeft, Plus, AlertTriangle } from '@lucide/svelte';
 
 	let { data } = $props();
 	let searchTerm = $state('');
@@ -17,9 +18,10 @@
 
 	// Filtered account types
 	let filteredTypes = $derived(
-		data.accountTypes.filter((type) =>
-			type.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-			type.name.toLowerCase().includes(searchTerm.toLowerCase())
+		data.accountTypes.filter(
+			(type) =>
+				type.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+				type.name.toLowerCase().includes(searchTerm.toLowerCase())
 		)
 	);
 
@@ -60,20 +62,6 @@
 				goto(page.url.pathname, { invalidateAll: true });
 			}
 		};
-	}
-
-	// Handle delete form submission
-	function handleDelete() {
-		return async ({ result }) => {
-			if (result.type === 'success') {
-				goto(page.url.pathname, { invalidateAll: true });
-			}
-		};
-	}
-
-	// Determine color for normal balance badge
-	function getBalanceColor(balance) {
-		return balance === 'DEBIT' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800';
 	}
 </script>
 
@@ -121,51 +109,7 @@
 					</tr>
 				</thead>
 				<tbody>
-					{#each filteredTypes as type}
-						<tr class="hover">
-							<td class="font-mono font-medium">{type.code}</td>
-							<td>{type.name}</td>
-							<td>
-								<div class={`badge ${getBalanceColor(type.normalBalance)}`}>
-									{type.normalBalance}
-								</div>
-							</td>
-							<td>
-								<div class="flex justify-center gap-1">
-									<button
-										class="btn btn-ghost btn-sm text-primary"
-										onclick={() => openEditModal(type)}
-									>
-										<Edit class="h-4 w-4" />
-									</button>
-									<form method="POST" action="?/delete" use:enhance={handleDelete}>
-										<input type="hidden" name="id" value={type.id} />
-										<button
-											type="submit"
-											class="btn btn-ghost btn-sm text-error"
-											onclick={(e) => {
-												if (!confirm('Are you sure you want to delete this account type?')) {
-													e.preventDefault();
-												}
-											}}
-										>
-											<Trash2 class="h-4 w-4" />
-										</button>
-									</form>
-								</div>
-							</td>
-						</tr>
-					{/each}
-
-					{#if filteredTypes.length === 0}
-						<tr>
-							<td colspan="4" class="py-8 text-center text-gray-500">
-								{searchTerm
-									? 'No account types match your search criteria'
-									: 'No account types found'}
-							</td>
-						</tr>
-					{/if}
+					<Types {filteredTypes} {openEditModal} {searchTerm} />
 				</tbody>
 			</table>
 		</div>
@@ -186,89 +130,5 @@
 
 <!-- Account Type Modal -->
 {#if showModal}
-	<div class="modal modal-open">
-		<div class="modal-box max-w-md">
-			<h3 class="text-lg font-bold">
-				{isEditing ? 'Edit Account Type' : 'Create Account Type'}
-			</h3>
-			<form
-				method="POST"
-				action={isEditing ? '?/update' : '?/create'}
-				use:enhance={handleSubmit}
-				class="mt-4 space-y-4"
-			>
-				{#if isEditing}
-					<input type="hidden" name="id" value={currentType.id} />
-				{/if}
-
-				<div class="form-control">
-					<label class="label" for="code">
-						<span class="label-text">Code</span>
-					</label>
-					<input
-						type="text"
-						id="code"
-						name="code"
-						class="input input-bordered"
-						placeholder="e.g. ASSET"
-						maxlength="10"
-						required
-						bind:value={currentType.code}
-					/>
-					<label class="label">
-						<span class="label-text-alt">Unique identifier for the account type</span>
-					</label>
-				</div>
-
-				<div class="form-control">
-					<label class="label" for="name">
-						<span class="label-text">Name</span>
-					</label>
-					<input
-						type="text"
-						id="name"
-						name="name"
-						class="input input-bordered"
-						placeholder="e.g. Asset"
-						maxlength="100"
-						required
-						bind:value={currentType.name}
-					/>
-				</div>
-
-				<div class="form-control">
-					<label class="label" for="normalBalance">
-						<span class="label-text">Normal Balance</span>
-					</label>
-					<select
-						id="normalBalance"
-						name="normalBalance"
-						class="select select-bordered"
-						required
-						bind:value={currentType.normalBalance}
-					>
-						<option value="DEBIT">DEBIT</option>
-						<option value="CREDIT">CREDIT</option>
-					</select>
-					<label class="label">
-						<span class="label-text-alt">The side that increases this account type's balance</span>
-					</label>
-				</div>
-
-				<div class="modal-action">
-					<button type="submit" class="btn btn-primary">
-						{isEditing ? 'Update' : 'Create'}
-					</button>
-					<button type="button" class="btn" onclick={closeModal}>Cancel</button>
-				</div>
-			</form>
-		</div>
-		<div 
-			class="modal-backdrop" 
-			onclick={closeModal} 
-			role="button" 
-			tabindex="0" 
-			onkeydown={(e) => e.key === 'Enter' && closeModal()}
-		></div>
-	</div>
+	<FormType {closeModal} {currentType} {handleSubmit} {isEditing} />
 {/if}
