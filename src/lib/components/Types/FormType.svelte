@@ -1,7 +1,7 @@
 <script>
 	import { enhance } from '$app/forms';
 
-	const { isEditing, handleSubmit, currentType, closeModal } = $props();
+	let { isEditing, handleSubmit, currentType, closeModal } = $props();
 </script>
 
 <div class="modal modal-open">
