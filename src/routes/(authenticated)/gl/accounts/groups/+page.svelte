@@ -15,7 +15,6 @@
 		name: '',
 		description: '',
 		accountTypeId: '',
-		balanceType: 'DEBIT',
 		isActive: true
 	});
 
@@ -37,7 +36,6 @@
 			name: '',
 			description: '',
 			accountTypeId: '',
-			balanceType: 'DEBIT',
 			isActive: true
 		};
 		showModal = true;
@@ -52,7 +50,6 @@
 			name: group.name,
 			description: group.description || '',
 			accountTypeId: group.accountTypeId.toString(),
-			balanceType: group.balanceType,
 			isActive: group.isActive
 		};
 		showModal = true;
@@ -113,7 +110,6 @@
 						<th>Code</th>
 						<th>Name</th>
 						<th>Account Type</th>
-						<th>Balance Type</th>
 						<th>Status</th>
 						<th class="w-32 text-center">Actions</th>
 					</tr>

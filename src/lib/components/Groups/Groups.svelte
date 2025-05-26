@@ -16,10 +16,6 @@
 		return colors[typeCode] || 'bg-gray-100 text-gray-800';
 	}
 
-	function getBalanceTypeColor(balanceType) {
-		return balanceType === 'DEBIT' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800';
-	}
-
 	// Handle delete form submission
 	function handleDelete() {
 		return async ({ result }) => {
@@ -54,11 +50,6 @@
 			</div>
 		</td>
 		<td>
-			<div class={`badge ${getBalanceTypeColor(group.balanceType)}`}>
-				{group.balanceType}
-			</div>
-		</td>
-		<td>
 			{#if group.isActive}
 				<div class="badge badge-success badge-sm">Active</div>
 			{:else}
@@ -76,7 +67,6 @@
 					<input type="hidden" name="name" value={group.name} />
 					<input type="hidden" name="description" value={group.description || ''} />
 					<input type="hidden" name="accountTypeId" value={group.accountTypeId} />
-					<input type="hidden" name="balanceType" value={group.balanceType} />
 					<input type="hidden" name="isActive" value={!group.isActive} />
 					<button type="submit" class="btn btn-ghost btn-sm">
 						<ToggleLeft class="h-4 w-4" />

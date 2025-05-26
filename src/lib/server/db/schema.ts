@@ -152,7 +152,7 @@ export const accountType = pgTable('account_type', {
 	id: serial('id').primaryKey(),
 	code: varchar('code', { length: 20 }).notNull().unique(),
 	name: varchar('name', { length: 100 }).notNull(),
-	normalBalance: varchar('normal_balance', { length: 10 }).notNull(), // "DEBIT" or "CREDIT"
+	balanceType: varchar('balance_type', { length: 10 }).notNull(), // "DEBIT" or "CREDIT"
 	createdAt: timestamp('created_at').notNull().defaultNow(),
 	updatedAt: timestamp('updated_at').notNull().defaultNow()
 });
@@ -165,7 +165,6 @@ export const accountGroup = pgTable('account_group', {
 	accountTypeId: integer('account_type_id')
 		.notNull()
 		.references(() => accountType.id),
-	balanceType: varchar('balance_type', { length: 10 }).notNull(), // "DEBIT" or "CREDIT"
 	description: text('description'),
 	isActive: boolean('is_active').notNull().default(true),
 	createdAt: timestamp('created_at').notNull().defaultNow(),
@@ -185,7 +184,6 @@ export const chartOfAccount = pgTable('chart_of_account', {
 	level: integer('level').notNull().default(1),
 	isActive: boolean('is_active').notNull().default(true),
 	isLocked: boolean('is_locked').notNull().default(false),
-	balanceType: varchar('balance_type', { length: 10 }), // Override normal balance if needed
 	createdAt: timestamp('created_at').notNull().defaultNow(),
 	updatedAt: timestamp('updated_at').notNull().defaultNow()
 });

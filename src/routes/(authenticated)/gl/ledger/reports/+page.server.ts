@@ -349,7 +349,7 @@ async function calculateAccountsBalance(accountIds, startDate, endDate) {
 		const account = accountsInfo.find((a) => a.id === line.accountId);
 
 		if (account) {
-			if (account.accountGroup.accountType.normalBalance === 'DEBIT') {
+			if (account.accountGroup.accountType.balanceType === 'DEBIT') {
 				totalBalance += Number(line.debitSum) - Number(line.creditSum);
 			} else {
 				totalBalance += Number(line.creditSum) - Number(line.debitSum);

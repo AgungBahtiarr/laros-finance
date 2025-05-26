@@ -55,20 +55,20 @@
 			</div>
 
 			<div class="form-control">
-				<label class="label" for="normalBalance">
+				<label class="label" for="balanceType">
 					<span class="label-text">Normal Balance</span>
 				</label>
 				<select
-					id="normalBalance"
-					name="normalBalance"
+					id="balanceType"
+					name="balanceType"
 					class="select select-bordered"
 					required
-					bind:value={currentType.normalBalance}
+					bind:value={currentType.balanceType}
 				>
 					<option value="DEBIT">DEBIT</option>
 					<option value="CREDIT">CREDIT</option>
 				</select>
-				<label class="label" for="normalBalance">
+				<label class="label" for="balanceType">
 					<span class="label-text-alt">The side that increases this account type's balance</span>
 				</label>
 			</div>

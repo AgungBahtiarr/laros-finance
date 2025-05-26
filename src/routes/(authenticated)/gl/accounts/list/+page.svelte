@@ -21,7 +21,6 @@
 		accountGroupId: '',
 		parentId: '',
 		level: '1',
-		balanceType: '',
 		isActive: true
 	});
 
@@ -80,7 +79,6 @@
 			accountGroupId: '',
 			parentId: '',
 			level: '1',
-			balanceType: '',
 			isActive: true
 		};
 		showForm = true;
@@ -98,7 +96,6 @@
 			accountGroupId: account.accountGroupId ? account.accountGroupId.toString() : '',
 			parentId: account.parentId ? account.parentId.toString() : '',
 			level: account.level.toString(),
-			balanceType: account.balanceType || '',
 			isActive: account.isActive
 		};
 		showForm = true;

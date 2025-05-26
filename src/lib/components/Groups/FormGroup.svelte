@@ -72,24 +72,6 @@
 				</select>
 			</div>
 
-			<div class="form-control">
-				<label class="label" for="balanceType">
-					<span class="label-text">Balance Type</span>
-				</label>
-				<select
-					id="balanceType"
-					name="balanceType"
-					class="select select-bordered"
-					required
-					bind:value={currentGroup.balanceType}
-				>
-					<option value="DEBIT">DEBIT</option>
-					<option value="CREDIT">CREDIT</option>
-				</select>
-				<label class="label" for='balanceType'>
-					<span class="label-text-alt">Normal balance direction for this account group</span>
-				</label>
-			</div>
 
 			<div class="form-control">
 				<label class="label" for="description">

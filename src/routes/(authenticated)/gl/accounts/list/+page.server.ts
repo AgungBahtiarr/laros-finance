@@ -57,7 +57,6 @@ export const actions: Actions = {
 		const accountGroupId = parseInt(formData.get('accountGroupId') as string);
 		const parentId = formData.get('parentId') ? parseInt(formData.get('parentId') as string) : null;
 		const level = parentId ? parseInt(formData.get('level') as string) : 1;
-		const balanceType = (formData.get('balanceType') as string) || null;
 
 		try {
 			// Check if code already exists
@@ -79,7 +78,6 @@ export const actions: Actions = {
 				accountGroupId,
 				parentId,
 				level,
-				balanceType,
 				isActive: true,
 				isLocked: false
 			});
@@ -104,7 +102,6 @@ export const actions: Actions = {
 		const accountGroupId = parseInt(formData.get('accountGroupId') as string);
 		const parentId = formData.get('parentId') ? parseInt(formData.get('parentId') as string) : null;
 		const level = parentId ? parseInt(formData.get('level') as string) : 1;
-		const balanceType = (formData.get('balanceType') as string) || null;
 		const isActive = formData.get('isActive') === 'true';
 
 		try {
@@ -129,7 +126,6 @@ export const actions: Actions = {
 					accountGroupId,
 					parentId,
 					level,
-					balanceType,
 					isActive,
 					updatedAt: new Date()
 				})

@@ -13,7 +13,7 @@
 		id: '',
 		code: '',
 		name: '',
-		normalBalance: 'DEBIT'
+		balanceType: 'DEBIT'
 	});
 
 	// Filtered account types
@@ -32,7 +32,7 @@
 			id: '',
 			code: '',
 			name: '',
-			normalBalance: 'DEBIT'
+			balanceType: 'DEBIT'
 		};
 		showModal = true;
 	}
@@ -44,7 +44,7 @@
 			id: type.id.toString(),
 			code: type.code,
 			name: type.name,
-			normalBalance: type.normalBalance
+			balanceType: type.balanceType
 		};
 		showModal = true;
 	}

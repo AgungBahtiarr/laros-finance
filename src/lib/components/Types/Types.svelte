@@ -23,8 +23,8 @@
 		<td class="font-mono font-medium">{type.code}</td>
 		<td>{type.name}</td>
 		<td>
-			<div class={`badge ${getBalanceColor(type.normalBalance)}`}>
-				{type.normalBalance}
+			<div class={`badge ${getBalanceColor(type.balanceType)}`}>
+				{type.balanceType}
 			</div>
 		</td>
 		<td>

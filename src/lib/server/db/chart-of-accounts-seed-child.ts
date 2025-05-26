@@ -38,8 +38,7 @@ async function seedChildAccounts() {
 			parent: 'Kas',
 			groupName: 'Aktiva Lancar',
 			level: 2,
-			isActive: true,
-			balanceType: 'DEBIT'
+			isActive: true
 		},
 		{
 			code: '10201',
@@ -47,8 +46,7 @@ async function seedChildAccounts() {
 			parent: 'Bank',
 			groupName: 'Aktiva Lancar',
 			level: 2,
-			isActive: true,
-			balanceType: 'DEBIT'
+			isActive: true
 		},
 		{
 			code: '10202',
@@ -56,8 +54,7 @@ async function seedChildAccounts() {
 			parent: 'Bank',
 			groupName: 'Aktiva Lancar',
 			level: 2,
-			isActive: true,
-			balanceType: 'DEBIT'
+			isActive: true
 		},
 		{
 			code: '10203',
@@ -65,8 +62,7 @@ async function seedChildAccounts() {
 			parent: 'Bank',
 			groupName: 'Aktiva Lancar',
 			level: 2,
-			isActive: true,
-			balanceType: 'DEBIT'
+			isActive: true
 		},
 		{
 			code: '10204',
@@ -74,8 +70,7 @@ async function seedChildAccounts() {
 			parent: 'Bank',
 			groupName: 'Aktiva Lancar',
 			level: 2,
-			isActive: true,
-			balanceType: 'DEBIT'
+			isActive: true
 		},
 		{
 			code: '10301',
@@ -83,8 +78,7 @@ async function seedChildAccounts() {
 			parent: 'Piutang',
 			groupName: 'Aktiva Lancar',
 			level: 2,
-			isActive: true,
-			balanceType: 'DEBIT'
+			isActive: true
 		},
 		{
 			code: '10401',
@@ -92,8 +86,7 @@ async function seedChildAccounts() {
 			parent: 'Piutang Lain',
 			groupName: 'Aktiva Lancar',
 			level: 2,
-			isActive: true,
-			balanceType: 'DEBIT'
+			isActive: true
 		},
 		{
 			code: '10402',
@@ -101,8 +94,7 @@ async function seedChildAccounts() {
 			parent: 'Piutang Lain',
 			groupName: 'Aktiva Lancar',
 			level: 2,
-			isActive: true,
-			balanceType: 'DEBIT'
+			isActive: true
 		},
 		{
 			code: '10501',
@@ -110,8 +102,7 @@ async function seedChildAccounts() {
 			parent: 'Persedian',
 			groupName: 'Aktiva Lancar',
 			level: 2,
-			isActive: true,
-			balanceType: 'DEBIT'
+			isActive: true
 		},
 		{
 			code: '10601',
@@ -119,8 +110,7 @@ async function seedChildAccounts() {
 			parent: 'Biaya Dibayar Dimuka',
 			groupName: 'Aktiva Lancar',
 			level: 2,
-			isActive: true,
-			balanceType: 'DEBIT'
+			isActive: true
 		},
 		{
 			code: '10602',
@@ -128,8 +118,7 @@ async function seedChildAccounts() {
 			parent: 'Biaya Dibayar Dimuka',
 			groupName: 'Aktiva Lancar',
 			level: 2,
-			isActive: true,
-			balanceType: 'DEBIT'
+			isActive: true
 		},
 		{
 			code: '10603',
@@ -137,8 +126,7 @@ async function seedChildAccounts() {
 			parent: 'Biaya Dibayar Dimuka',
 			groupName: 'Aktiva Lancar',
 			level: 2,
-			isActive: true,
-			balanceType: 'DEBIT'
+			isActive: true
 		},
 		{
 			code: '10701',
@@ -146,8 +134,7 @@ async function seedChildAccounts() {
 			parent: 'Pajak Dibayar Dimuka',
 			groupName: 'Aktiva Lancar',
 			level: 2,
-			isActive: true,
-			balanceType: 'DEBIT'
+			isActive: true
 		},
 		{
 			code: '10702',
@@ -155,8 +142,7 @@ async function seedChildAccounts() {
 			parent: 'Pajak Dibayar Dimuka',
 			groupName: 'Aktiva Lancar',
 			level: 2,
-			isActive: true,
-			balanceType: 'DEBIT'
+			isActive: true
 		},
 		{
 			code: '10703',
@@ -164,8 +150,7 @@ async function seedChildAccounts() {
 			parent: 'Pajak Dibayar Dimuka',
 			groupName: 'Aktiva Lancar',
 			level: 2,
-			isActive: true,
-			balanceType: 'DEBIT'
+			isActive: true
 		},
 		{
 			code: '10704',
@@ -173,8 +158,7 @@ async function seedChildAccounts() {
 			parent: 'Pajak Dibayar Dimuka',
 			groupName: 'Aktiva Lancar',
 			level: 2,
-			isActive: true,
-			balanceType: 'DEBIT'
+			isActive: true
 		},
 		{
 			code: '10705',
@@ -182,8 +166,7 @@ async function seedChildAccounts() {
 			parent: 'Pajak Dibayar Dimuka',
 			groupName: 'Aktiva Lancar',
 			level: 2,
-			isActive: true,
-			balanceType: 'DEBIT'
+			isActive: true
 		},
 		{
 			code: '10706',
@@ -191,8 +174,7 @@ async function seedChildAccounts() {
 			parent: 'Pajak Dibayar Dimuka',
 			groupName: 'Aktiva Lancar',
 			level: 2,
-			isActive: true,
-			balanceType: 'DEBIT'
+			isActive: true
 		},
 		{
 			code: '20101',
@@ -200,8 +182,7 @@ async function seedChildAccounts() {
 			parent: 'Hutang Usaha',
 			groupName: 'Hutang Lancar',
 			level: 2,
-			isActive: true,
-			balanceType: 'CREDIT'
+			isActive: true
 		},
 		{
 			code: '20102',
@@ -209,8 +190,7 @@ async function seedChildAccounts() {
 			parent: 'Hutang Usaha',
 			groupName: 'Hutang Jangka Panjang',
 			level: 2,
-			isActive: true,
-			balanceType: 'CREDIT'
+			isActive: true
 		},
 		{
 			code: '40101',
@@ -218,8 +198,7 @@ async function seedChildAccounts() {
 			parent: 'Penjualan',
 			groupName: 'Pendapatan',
 			level: 2,
-			isActive: true,
-			balanceType: 'CREDIT'
+			isActive: true
 		},
 		{
 			code: '40201',
@@ -227,8 +206,7 @@ async function seedChildAccounts() {
 			parent: 'Jasa',
 			groupName: 'Pendapatan',
 			level: 2,
-			isActive: true,
-			balanceType: 'CREDIT'
+			isActive: true
 		},
 		{
 			code: '40202',
@@ -236,8 +214,7 @@ async function seedChildAccounts() {
 			parent: 'Jasa',
 			groupName: 'Pendapatan',
 			level: 2,
-			isActive: true,
-			balanceType: 'CREDIT'
+			isActive: true
 		},
 		{
 			code: '40203',
@@ -245,8 +222,7 @@ async function seedChildAccounts() {
 			parent: 'Jasa',
 			groupName: 'Pendapatan',
 			level: 2,
-			isActive: true,
-			balanceType: 'CREDIT'
+			isActive: true
 		},
 		{
 			code: '40204',
@@ -254,8 +230,7 @@ async function seedChildAccounts() {
 			parent: 'Jasa',
 			groupName: 'Pendapatan',
 			level: 2,
-			isActive: true,
-			balanceType: 'CREDIT'
+			isActive: true
 		},
 		{
 			code: '40205',
@@ -263,8 +238,7 @@ async function seedChildAccounts() {
 			parent: 'Jasa',
 			groupName: 'Pendapatan',
 			level: 2,
-			isActive: true,
-			balanceType: 'CREDIT'
+			isActive: true
 		},
 		{
 			code: '40206',
@@ -272,8 +246,7 @@ async function seedChildAccounts() {
 			parent: 'Jasa',
 			groupName: 'Pendapatan',
 			level: 2,
-			isActive: true,
-			balanceType: 'CREDIT'
+			isActive: true
 		}
 	];
 
@@ -303,7 +276,6 @@ async function seedChildAccounts() {
 				level: account.level,
 				isActive: account.isActive,
 				isLocked: false,
-				balanceType: account.balanceType,
 				createdAt: new Date(),
 				updatedAt: new Date()
 			})

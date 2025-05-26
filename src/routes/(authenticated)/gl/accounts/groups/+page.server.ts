@@ -40,7 +40,6 @@ export const actions: Actions = {
 		const name = formData.get('name') as string;
 		const description = formData.get('description') as string;
 		const accountTypeId = parseInt(formData.get('accountTypeId') as string);
-		const balanceType = formData.get('balanceType') as string;
 
 		try {
 			// Check if code already exists
@@ -60,7 +59,6 @@ export const actions: Actions = {
 				name,
 				description,
 				accountTypeId,
-				balanceType,
 				isActive: true
 			});
 
@@ -81,7 +79,6 @@ export const actions: Actions = {
 		const name = formData.get('name') as string;
 		const description = formData.get('description') as string;
 		const accountTypeId = parseInt(formData.get('accountTypeId') as string);
-		const balanceType = formData.get('balanceType') as string;
 		const isActive = formData.get('isActive') === 'true';
 
 		try {
@@ -104,7 +101,6 @@ export const actions: Actions = {
 					name,
 					description,
 					accountTypeId,
-					balanceType,
 					isActive,
 					updatedAt: new Date()
 				})

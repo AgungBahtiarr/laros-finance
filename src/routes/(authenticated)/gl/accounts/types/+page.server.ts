@@ -27,7 +27,7 @@ export const actions: Actions = {
         const formData = await request.formData();
         const code = (formData.get('code') as string).toUpperCase();
         const name = formData.get('name') as string;
-        const normalBalance = (formData.get('normalBalance') as string).toUpperCase();
+        const balanceType = (formData.get('balanceType') as string).toUpperCase();
 
         try {
             // Check if code already exists
@@ -45,7 +45,7 @@ export const actions: Actions = {
             await db.insert(accountType).values({
                 code,
                 name,
-                normalBalance
+                balanceType
             });
 
             return { success: true };
@@ -63,7 +63,7 @@ export const actions: Actions = {
         const id = parseInt(formData.get('id') as string);
         const code = (formData.get('code') as string).toUpperCase();
         const name = formData.get('name') as string;
-        const normalBalance = (formData.get('normalBalance') as string).toUpperCase();
+        const balanceType = (formData.get('balanceType') as string).toUpperCase();
 
         try {
             // Check if code already exists but with different id
@@ -82,7 +82,7 @@ export const actions: Actions = {
                 .set({
                     code,
                     name,
-                    normalBalance,
+                    balanceType,
                     updatedAt: new Date()
                 })
                 .where(eq(accountType.id, id));
