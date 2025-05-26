@@ -5,8 +5,7 @@ import {
 	chartOfAccount,
 	accountGroup,
 	accountType,
-	fiscalPeriod,
-	type ChartOfAccount
+	fiscalPeriod
 } from '$lib/server/db/schema';
 
 export interface AccountBalance {
@@ -18,16 +17,20 @@ export interface AccountBalance {
 	debit: number;
 	credit: number;
 	balance: number;
+	groupCode?: string;
 }
 
-interface DateRange {
+export interface DateRange {
 	start: string;
 	end: string;
 }
 
-interface ReportFilters {
+export interface ReportFilters {
 	dateRange: DateRange;
 	showPercentages?: boolean;
+	compareWithPrevious?: boolean;
+	selectedAccounts?: string[];
+	includeSubAccounts?: boolean;
 }
 
 export async function getAccountBalances(
@@ -36,6 +39,8 @@ export async function getAccountBalances(
 ): Promise<AccountBalance[]> {
 	const { db } = event.locals;
 	const { dateRange } = filters;
+
+
 
 	// Get the fiscal period for the date range
 	const period = await db.query.fiscalPeriod.findFirst({
@@ -55,11 +60,12 @@ export async function getAccountBalances(
 			id: chartOfAccount.id,
 			code: chartOfAccount.code,
 			name: chartOfAccount.name,
-			type: accountType.name,
+			type: accountType.code,
 			level: chartOfAccount.level,
 			debitMovement: accountBalance.debitMovement,
 			creditMovement: accountBalance.creditMovement,
-			openingBalance: accountBalance.openingBalance
+			openingBalance: accountBalance.openingBalance,
+			groupCode: accountGroup.code
 		})
 		.from(chartOfAccount)
 		.leftJoin(accountGroup, eq(chartOfAccount.accountGroupId, accountGroup.id))
@@ -73,8 +79,10 @@ export async function getAccountBalances(
 		)
 		.where(eq(chartOfAccount.isActive, true));
 
+
+
 	// Transform the results
-	return balances.map((row) => {
+	const transformedBalances = balances.map((row) => {
 		const openingBalance = Number(row.openingBalance || 0);
 		const debitMovement = Number(row.debitMovement || 0);
 		const creditMovement = Number(row.creditMovement || 0);
@@ -89,13 +97,16 @@ export async function getAccountBalances(
 			id: row.id,
 			code: row.code,
 			name: row.name,
-			type: row.type,
+			type: row.type || 'UNKNOWN',
 			level: row.level,
 			debit: debitMovement,
 			credit: creditMovement,
-			balance
+			balance,
+			groupCode: row.groupCode || undefined
 		};
 	});
+
+	return transformedBalances;
 }
 
 export async function getRevenueExpenseAccounts(
@@ -111,9 +122,29 @@ export async function getRevenueExpenseAccounts(
 	// Get all account balances
 	const balances = await getAccountBalances(event, filters);
 
-	// Split into revenues and expenses
-	const revenues = balances.filter((account) => account.type === 'REVENUE');
-	const expenses = balances.filter((account) => account.type === 'EXPENSE');
+
+
+	// Split into revenues and expenses based on account group codes and names
+	const revenues = balances.filter((account) => 
+		account.groupCode === 'REV' ||
+		account.code.startsWith('4') || 
+		account.name.toLowerCase().includes('pendapatan') ||
+		account.name.toLowerCase().includes('penjualan') ||
+		account.name.toLowerCase().includes('revenue')
+	);
+	
+	const expenses = balances.filter((account) => 
+		account.groupCode === 'EXP' ||
+		account.groupCode === 'COGS' ||
+		account.code.startsWith('5') ||
+		account.code.startsWith('6') ||
+		account.name.toLowerCase().includes('beban') ||
+		account.name.toLowerCase().includes('biaya') ||
+		account.name.toLowerCase().includes('expense') ||
+		account.name.toLowerCase().includes('harga pokok')
+	);
+
+
 
 	return {
 		revenues,

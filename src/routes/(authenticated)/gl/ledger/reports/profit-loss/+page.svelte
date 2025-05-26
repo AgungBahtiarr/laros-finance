@@ -4,28 +4,29 @@
 	import { browser } from '$app/environment';
 	import ReportFilters from '$lib/components/ReportFilters.svelte';
 	import { formatCurrency, calculatePercentage, calculateChange } from '$lib/utils.client';
-	import type { PageData } from './$types';
 
 	let { data } = $props();
-
-	let dateRange = {
-		start: new Date().toISOString().split('T')[0],
-		end: new Date().toISOString().split('T')[0]
-	};
 
 	let compareWithPrevious = $state(false);
 	let showPercentages = $state(false);
 
-	// Initialize values from URL params on client-side only
-	if (browser) {
-		const searchParams = new URLSearchParams(window.location.search);
-		dateRange = {
-			start: searchParams.get('startDate') || dateRange.start,
-			end: searchParams.get('endDate') || dateRange.end
-		};
-		compareWithPrevious = searchParams.get('compareWithPrevious') === 'true';
-		showPercentages = searchParams.get('showPercentages') === 'true';
-	}
+	// Initialize dateRange
+	const defaultDate = new Date().toISOString().split('T')[0];
+	let dateRange = $state({
+		start: defaultDate,
+		end: defaultDate
+	});
+
+	// Initialize state from URL params on client-side only
+	$effect(() => {
+		if (browser) {
+			const searchParams = new URLSearchParams(window.location.search);
+			dateRange.start = searchParams.get('startDate') || defaultDate;
+			dateRange.end = searchParams.get('endDate') || defaultDate;
+			compareWithPrevious = searchParams.get('compareWithPrevious') === 'true';
+			showPercentages = searchParams.get('showPercentages') === 'true';
+		}
+	});
 
 	$effect(() => {
 		if (browser) {
@@ -63,7 +64,7 @@
 
 	<div class="print:hidden">
 		<ReportFilters
-			{dateRange}
+			bind:dateRange
 			showCompareOption={true}
 			showPercentagesOption={true}
 			bind:compareWithPrevious

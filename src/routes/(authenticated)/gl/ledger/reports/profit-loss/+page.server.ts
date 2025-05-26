@@ -1,5 +1,5 @@
 import type { PageServerLoad } from './$types';
-import { getAccountBalances, type AccountBalance } from '$lib/utils.server';
+import { getRevenueExpenseAccounts, type AccountBalance } from '../utils.server';
 
 interface ProfitLossData {
 	revenues: AccountBalance[];
@@ -35,9 +35,7 @@ export const load: PageServerLoad = async (event) => {
 	};
 
 	// Get current period data
-	const accounts = await getAccountBalances(event, filters);
-	const revenues = accounts.filter((acc) => acc.type === 'REVENUE');
-	const expenses = accounts.filter((acc) => acc.type === 'EXPENSE');
+	const { revenues, expenses } = await getRevenueExpenseAccounts(event, filters);
 
 	const revenueTotals = revenues.reduce(
 		(totals, acc) => ({
@@ -82,9 +80,7 @@ export const load: PageServerLoad = async (event) => {
 			showPercentages
 		};
 
-		const prevAccounts = await getAccountBalances(event, prevFilters);
-		const prevRevenues = prevAccounts.filter((acc) => acc.type === 'REVENUE');
-		const prevExpenses = prevAccounts.filter((acc) => acc.type === 'EXPENSE');
+		const { revenues: prevRevenues, expenses: prevExpenses } = await getRevenueExpenseAccounts(event, prevFilters);
 
 		const prevRevenueTotals = prevRevenues.reduce(
 			(totals, acc) => ({
