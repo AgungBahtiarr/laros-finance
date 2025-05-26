@@ -56,7 +56,7 @@
 
 			<div class="form-control">
 				<label class="label" for="balanceType">
-					<span class="label-text">Normal Balance</span>
+					<span class="label-text">Balance Type</span>
 				</label>
 				<select
 					id="balanceType"

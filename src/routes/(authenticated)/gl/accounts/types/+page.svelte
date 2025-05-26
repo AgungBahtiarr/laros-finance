@@ -104,7 +104,7 @@
 					<tr>
 						<th class="w-32">Code</th>
 						<th>Name</th>
-						<th>Normal Balance</th>
+						<th>Balance Type</th>
 						<th class="w-24 text-center">Actions</th>
 					</tr>
 				</thead>

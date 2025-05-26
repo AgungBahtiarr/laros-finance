@@ -109,19 +109,17 @@
 
 				<div class="form-control w-full">
 					<label class="label" for="balanceType">
-						<span class="label-text">Balance Type</span>
+						<span class="label-text">Account Type</span>
 					</label>
-					<select
-						id="balanceType"
-						name="balanceType"
-						class="select select-bordered w-full"
-						required
-						bind:value={formData.balanceType}
-					>
-						<option value="">Select Balance Type</option>
-						<option value="DEBIT">DEBIT</option>
-						<option value="CREDIT">CREDIT</option>
-					</select>
+					<input
+						id="accountType"
+						name="accountType"
+						type="text"
+						class="input input-bordered w-full"
+						placeholder="e.g. 1000"
+						readonly
+						maxlength="20"
+					/>
 					<label for="balanceType" class="label">
 						<span class="label-text-alt">Normal balance for this account</span>
 					</label>

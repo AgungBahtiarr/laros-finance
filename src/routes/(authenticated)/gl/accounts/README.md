@@ -16,9 +16,8 @@ Account types represent the five fundamental categories in accounting:
 
 - **Asset** (Normal Balance: DEBIT) - Resources owned by the business
 - **Liability** (Normal Balance: CREDIT) - Obligations owed to others
-- **Equity** (Normal Balance: CREDIT) - Owner's interest in the business
-- **Revenue** (Normal Balance: CREDIT) - Income earned from business activities
-- **Expense** (Normal Balance: DEBIT) - Costs incurred in business operations
+- **Profit&Loss** (Normal Balance: CREDIT) - Income and Loss from bussiness activities
+- **Retained_Earning** (Normal Balance: CREDIT) - Earnings Retained
 
 Each account type has a "normal balance" direction (debit or credit) that determines how increases and decreases affect account balances.
 
