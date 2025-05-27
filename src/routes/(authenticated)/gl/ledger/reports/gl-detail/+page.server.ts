@@ -1,6 +1,6 @@
 import type { PageServerLoad } from './$types';
-import { and, eq, gte, lte, inArray, sql, desc } from 'drizzle-orm';
-import { chartOfAccount, accountBalance, fiscalPeriod, journalEntry, journalEntryLine } from '$lib/server/db/schema';
+import { and, eq, gte, lte, inArray, sql, desc, lt } from 'drizzle-orm';
+import { chartOfAccount, fiscalPeriod, journalEntry, journalEntryLine } from '$lib/server/db/schema';
 
 const PAGE_SIZE = 25;
 
@@ -76,21 +76,28 @@ export const load: PageServerLoad = async (event) => {
 			};
 		}
 
-		// Get opening balances for selected accounts
-		const openingBalances = await db
+		// Calculate opening balances for selected accounts by summing up all transactions before start date
+		const openingBalancesQuery = await db
 			.select({
-				accountId: accountBalance.accountId,
-				openingBalance: accountBalance.openingBalance
+				accountId: journalEntryLine.accountId,
+				openingBalance: sql<number>`COALESCE(SUM(COALESCE(${journalEntryLine.debitAmount}, 0) - COALESCE(${journalEntryLine.creditAmount}, 0)), 0)`.as('opening_balance')
 			})
-			.from(accountBalance)
+			.from(journalEntryLine)
+			.leftJoin(journalEntry, eq(journalEntryLine.journalEntryId, journalEntry.id))
 			.where(
 				and(
-					eq(accountBalance.fiscalPeriodId, period.id),
+					lt(journalEntry.date, startDate),
+					eq(journalEntry.status, 'POSTED'),
 					selectedAccounts.length > 0 
-						? inArray(accountBalance.accountId, selectedAccounts)
+						? inArray(journalEntryLine.accountId, selectedAccounts)
 						: undefined
 				)
-			);
+			)
+			.groupBy(journalEntryLine.accountId);
+
+		const openingBalances = Object.fromEntries(
+			openingBalancesQuery.map(({ accountId, openingBalance }) => [accountId, Number(openingBalance)])
+		);
 
 		// Get journal entries with details
 		const entries = await db
@@ -125,7 +132,7 @@ export const load: PageServerLoad = async (event) => {
 
 		// Transform and calculate running balances
 		const detailData = entries.map((entry) => {
-			const openingBalance = openingBalances.find(bal => bal.accountId === entry.accountId)?.openingBalance || 0;
+			const openingBalance = openingBalances[entry.accountId] || 0;
 			
 			return {
 				accountId: entry.accountId,
@@ -136,10 +143,10 @@ export const load: PageServerLoad = async (event) => {
 				reffNumber: entry.reffNumber || '',
 				note: entry.note || '',
 				detailNote: entry.detailNote || '',
-				openingBalance: Number(openingBalance),
+				openingBalance,
 				debit: Number(entry.debitAmount) || 0,
 				credit: Number(entry.creditAmount) || 0,
-				balance: Number(openingBalance) + (Number(entry.debitAmount) || 0) - (Number(entry.creditAmount) || 0)
+				balance: openingBalance + (Number(entry.debitAmount) || 0) - (Number(entry.creditAmount) || 0)
 			};
 		});
 

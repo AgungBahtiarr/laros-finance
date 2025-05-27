@@ -1,8 +1,8 @@
 import type { PageServerLoad } from './$types';
-import { and, eq, gte, lte, inArray, sql } from 'drizzle-orm';
-import { chartOfAccount, accountBalance, fiscalPeriod } from '$lib/server/db/schema';
+import { and, eq, gte, lte, inArray, sql, lt } from 'drizzle-orm';
+import { chartOfAccount, fiscalPeriod, journalEntry, journalEntryLine } from '$lib/server/db/schema';
 
-const PAGE_SIZE = 25; // Reduced page size to lower memory usage
+const PAGE_SIZE = 25;
 
 export const load: PageServerLoad = async (event) => {
 	try {
@@ -25,7 +25,7 @@ export const load: PageServerLoad = async (event) => {
 			throw new Error('No fiscal period found for the specified date range');
 		}
 
-		// Get active accounts for the filter - limit to essential fields
+		// Get active accounts for the filter
 		const accounts = await db
 			.select({
 				id: chartOfAccount.id,
@@ -38,27 +38,26 @@ export const load: PageServerLoad = async (event) => {
 
 		// Build account filter
 		const accountFilter = selectedAccounts.length > 0 
-			? inArray(accountBalance.accountId, selectedAccounts)
+			? inArray(journalEntryLine.accountId, selectedAccounts)
 			: undefined;
 
-		// Calculate offset for pagination
-		const offset = (page - 1) * PAGE_SIZE;
-
-		// Get total count first to avoid unnecessary data fetch if no results
+		// Get total count of unique accounts with transactions
 		const totalCountResult = await db
 			.select({
-				count: sql<number>`count(*)`.as('count')
+				count: sql<number>`COUNT(DISTINCT ${journalEntryLine.accountId})`.as('count')
 			})
-			.from(accountBalance)
+			.from(journalEntryLine)
+			.leftJoin(journalEntry, eq(journalEntryLine.journalEntryId, journalEntry.id))
 			.where(
 				and(
-					eq(accountBalance.fiscalPeriodId, period.id),
+					lte(journalEntry.date, endDate),
+					eq(journalEntry.status, 'POSTED'),
 					accountFilter || undefined
 				)
 			);
 
 		const totalCount = Number(totalCountResult[0]?.count || 0);
-		
+
 		if (totalCount === 0) {
 			return {
 				accounts,
@@ -80,46 +79,99 @@ export const load: PageServerLoad = async (event) => {
 			};
 		}
 
-		// Get paginated account balances
-		const balances = await db
+		// Calculate offset for pagination
+		const offset = (page - 1) * PAGE_SIZE;
+
+		// Get unique accounts with transactions for the current page
+		const accountsWithTransactions = await db
 			.select({
-				accountId: accountBalance.accountId,
-				account: {
-					id: chartOfAccount.id,
-					code: chartOfAccount.code,
-					name: chartOfAccount.name
-				},
-				openingBalance: accountBalance.openingBalance,
-				debitMovement: accountBalance.debitMovement,
-				creditMovement: accountBalance.creditMovement,
-				closingBalance: accountBalance.closingBalance
+				accountId: journalEntryLine.accountId
 			})
-			.from(accountBalance)
-			.leftJoin(chartOfAccount, eq(accountBalance.accountId, chartOfAccount.id))
+			.from(journalEntryLine)
+			.leftJoin(journalEntry, eq(journalEntryLine.journalEntryId, journalEntry.id))
 			.where(
 				and(
-					eq(accountBalance.fiscalPeriodId, period.id),
+					lte(journalEntry.date, endDate),
+					eq(journalEntry.status, 'POSTED'),
 					accountFilter || undefined
 				)
 			)
-			.orderBy(chartOfAccount.code)
+			.groupBy(journalEntryLine.accountId)
+			.orderBy(journalEntryLine.accountId)
 			.limit(PAGE_SIZE)
 			.offset(offset);
 
-		// Transform the data
-		const summaryData = balances.map((balance) => ({
-			accountId: balance.accountId,
-			accountCode: balance.account.code,
-			accountName: balance.account.name,
-			beginningBalance: Number(balance.openingBalance) || 0,
-			changeDebit: Number(balance.debitMovement) || 0,
-			changeCredit: Number(balance.creditMovement) || 0,
-			netChange: (Number(balance.debitMovement) || 0) - (Number(balance.creditMovement) || 0),
-			endingBalance: Number(balance.closingBalance) || 0
-		}));
+		// Get account details and balances
+		const balances = await Promise.all(
+			accountsWithTransactions.map(async ({ accountId }) => {
+				// Get account details
+				const accountDetails = await db
+					.select({
+						id: chartOfAccount.id,
+						code: chartOfAccount.code,
+						name: chartOfAccount.name
+					})
+					.from(chartOfAccount)
+					.where(eq(chartOfAccount.id, accountId))
+					.limit(1);
 
-		// Calculate totals for the current page
-		const totals = summaryData.reduce(
+				if (!accountDetails[0]) {
+					throw new Error(`Account not found: ${accountId}`);
+				}
+
+				// Get beginning balance
+				const beginningBalanceResult = await db
+					.select({
+						balance: sql<string>`COALESCE(SUM(COALESCE(${journalEntryLine.debitAmount}, 0) - COALESCE(${journalEntryLine.creditAmount}, 0)), 0)`.as('balance')
+					})
+					.from(journalEntryLine)
+					.leftJoin(journalEntry, eq(journalEntryLine.journalEntryId, journalEntry.id))
+					.where(
+						and(
+							eq(journalEntryLine.accountId, accountId),
+							lt(journalEntry.date, startDate),
+							eq(journalEntry.status, 'POSTED')
+						)
+					);
+
+				// Get period movements
+				const movementsResult = await db
+					.select({
+						debit: sql<string>`COALESCE(SUM(COALESCE(${journalEntryLine.debitAmount}, 0)), 0)`.as('debit'),
+						credit: sql<string>`COALESCE(SUM(COALESCE(${journalEntryLine.creditAmount}, 0)), 0)`.as('credit')
+					})
+					.from(journalEntryLine)
+					.leftJoin(journalEntry, eq(journalEntryLine.journalEntryId, journalEntry.id))
+					.where(
+						and(
+							eq(journalEntryLine.accountId, accountId),
+							gte(journalEntry.date, startDate),
+							lte(journalEntry.date, endDate),
+							eq(journalEntry.status, 'POSTED')
+						)
+					);
+
+				const beginningBalance = Number(beginningBalanceResult[0]?.balance || 0);
+				const changeDebit = Number(movementsResult[0]?.debit || 0);
+				const changeCredit = Number(movementsResult[0]?.credit || 0);
+				const netChange = changeDebit - changeCredit;
+				const endingBalance = beginningBalance + netChange;
+
+				return {
+					accountId,
+					accountCode: accountDetails[0].code,
+					accountName: accountDetails[0].name,
+					beginningBalance,
+					changeDebit,
+					changeCredit,
+					netChange,
+					endingBalance
+				};
+			})
+		);
+
+		// Calculate totals
+		const totals = balances.reduce(
 			(acc, row) => ({
 				beginningBalance: acc.beginningBalance + row.beginningBalance,
 				changeDebit: acc.changeDebit + row.changeDebit,
@@ -138,7 +190,7 @@ export const load: PageServerLoad = async (event) => {
 
 		return {
 			accounts,
-			summaryData,
+			summaryData: balances,
 			totals,
 			selectedAccounts,
 			pagination: {
