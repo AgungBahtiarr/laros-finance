@@ -6,26 +6,29 @@
 	import { formatCurrency, calculatePercentage, calculateChange } from '$lib/utils.client';
 	import type { PageData } from './$types';
 
-	let { data } = $props();
-
-	let dateRange = $state({
-		start: new Date().toISOString().split('T')[0],
-		end: new Date().toISOString().split('T')[0]
-	});
+	let { data } = $props<{ data: PageData }>();
+	console.log(data);
 
 	let compareWithPrevious = $state(false);
 	let showPercentages = $state(false);
 
-	// Initialize values from URL params on client-side only
-	if (browser) {
-		const searchParams = new URLSearchParams(window.location.search);
-		dateRange = {
-			start: searchParams.get('startDate') || dateRange.start,
-			end: searchParams.get('endDate') || dateRange.end
-		};
-		compareWithPrevious = searchParams.get('compareWithPrevious') === 'true';
-		showPercentages = searchParams.get('showPercentages') === 'true';
-	}
+	// Initialize dateRange
+	const defaultDate = new Date().toISOString().split('T')[0];
+	let dateRange = $state({
+		start: defaultDate,
+		end: defaultDate
+	});
+
+	// Initialize state from URL params on client-side only
+	$effect(() => {
+		if (browser) {
+			const searchParams = new URLSearchParams(window.location.search);
+			dateRange.start = searchParams.get('startDate') || defaultDate;
+			dateRange.end = searchParams.get('endDate') || defaultDate;
+			compareWithPrevious = searchParams.get('compareWithPrevious') === 'true';
+			showPercentages = searchParams.get('showPercentages') === 'true';
+		}
+	});
 
 	$effect(() => {
 		if (browser) {
@@ -38,13 +41,13 @@
 		}
 	});
 
-	const totalAssets = data.assetTotals.balance;
-	const totalLiabilitiesAndEquity = data.liabilityTotals.balance + data.equityTotals.balance;
+	let totalAktiva = $derived(data.totalAktiva?.balance || 0);
+	let totalPasiva = $derived(data.totalPasiva?.balance || 0);
 </script>
 
 <div class="flex flex-col gap-6">
 	<div class="flex items-center justify-between">
-		<h1 class="text-2xl font-bold">Balance Sheet</h1>
+		<h1 class="text-2xl font-bold">Neraca (Balance Sheet)</h1>
 		<button class="btn btn-primary" onclick={() => window.print()}>
 			<svg
 				xmlns="http://www.w3.org/2000/svg"
@@ -66,7 +69,7 @@
 
 	<div class="print:hidden">
 		<ReportFilters
-			{dateRange}
+			bind:dateRange
 			showCompareOption={true}
 			showPercentagesOption={true}
 			bind:compareWithPrevious
@@ -75,12 +78,12 @@
 	</div>
 
 	<div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
-		<!-- Assets -->
+		<!-- Aktiva -->
 		<div class="overflow-x-auto">
 			<table class="table-zebra table w-full">
 				<thead>
 					<tr>
-						<th>Assets</th>
+						<th>Aktiva (Assets)</th>
 						<th class="text-right">Amount</th>
 						{#if showPercentages}
 							<th class="text-right">% of Total</th>
@@ -96,29 +99,48 @@
 				</thead>
 
 				<tbody>
-					{#each data.assets as asset}
-						<tr>
-							<td class="pl-{asset.level * 4}">{asset.name}</td>
-							<td class="text-right">{formatCurrency(asset.balance)}</td>
-							{#if showPercentages}
-								<td class="text-right">{calculatePercentage(asset.balance, totalAssets)}</td>
-							{/if}
-							{#if compareWithPrevious && data.previousPeriod}
-								{#if true}
-									{@const prevAsset = data.previousPeriod.assets.find((a) => a.id === asset.id)}
-									{@const prevTotalAssets = data.previousPeriod.assets.reduce(
-										(sum, a) => sum + a.balance,
-										0
+					<!-- Aktiva Lancar -->
+					<tr class="bg-base-200 font-bold">
+						<td
+							colspan={2 +
+								(showPercentages ? 1 : 0) +
+								(compareWithPrevious ? (showPercentages ? 3 : 2) : 0)}
+						>
+							Aktiva Lancar (Current Assets)
+						</td>
+					</tr>
+
+					{#if data.aktivaLancar && data.aktivaLancar.length > 0}
+						{#each data.aktivaLancar as asset}
+							<tr>
+								<td class="pl-{asset.level * 4}">{asset.name}</td>
+								<td class="text-right">{formatCurrency(asset.balance || 0)}</td>
+								{#if showPercentages}
+									<td class="text-right">{calculatePercentage(asset.balance || 0, totalAktiva)}</td>
+								{/if}
+								{#if compareWithPrevious && data.previousPeriod}
+									{@const prevAsset = data.previousPeriod.aktivaLancar?.find(
+										(a) => a.id === asset.id
 									)}
-									<td class="text-right">{prevAsset ? formatCurrency(prevAsset.balance) : '-'}</td>
+									<td class="text-right">
+										{prevAsset ? formatCurrency(prevAsset.balance || 0) : '-'}
+									</td>
 									{#if showPercentages}
 										<td class="text-right">
-											{prevAsset ? calculatePercentage(prevAsset.balance, prevTotalAssets) : '-'}
+											{prevAsset
+												? calculatePercentage(
+														prevAsset.balance || 0,
+														data.previousPeriod.aktivaLancar.reduce(
+															(sum, a) => sum + (a.balance || 0),
+															0
+														)
+													)
+												: '-'}
 										</td>
 									{/if}
 									<td class="text-right">
 										{#if prevAsset}
-											{@const change = calculateChange(asset.balance, prevAsset.balance)}
+											{@const change = calculateChange(asset.balance || 0, prevAsset.balance || 0)}
 											<span
 												class={change.value > 0
 													? 'text-success'
@@ -133,48 +155,200 @@
 										{/if}
 									</td>
 								{/if}
-							{/if}
+							</tr>
+						{/each}
+					{:else}
+						<tr>
+							<td
+								colspan={2 +
+									(showPercentages ? 1 : 0) +
+									(compareWithPrevious ? (showPercentages ? 3 : 2) : 0)}
+								class="text-center text-gray-500"
+							>
+								No current assets found for the selected period
+							</td>
 						</tr>
-					{/each}
+					{/if}
 
-					<!-- Total Assets -->
+					<!-- Aktiva Tetap -->
+					<tr class="bg-base-200 font-bold">
+						<td
+							colspan={2 +
+								(showPercentages ? 1 : 0) +
+								(compareWithPrevious ? (showPercentages ? 3 : 2) : 0)}
+						>
+							Aktiva Tetap (Fixed Assets)
+						</td>
+					</tr>
+
+					{#if data.aktivaTetap && data.aktivaTetap.length > 0}
+						{#each data.aktivaTetap as asset}
+							<tr>
+								<td class="pl-{asset.level * 4}">{asset.name}</td>
+								<td class="text-right">{formatCurrency(asset.balance || 0)}</td>
+								{#if showPercentages}
+									<td class="text-right">{calculatePercentage(asset.balance || 0, totalAktiva)}</td>
+								{/if}
+								{#if compareWithPrevious && data.previousPeriod}
+									{@const prevAsset = data.previousPeriod.aktivaTetap?.find(
+										(a) => a.id === asset.id
+									)}
+									<td class="text-right">
+										{prevAsset ? formatCurrency(prevAsset.balance || 0) : '-'}
+									</td>
+									{#if showPercentages}
+										<td class="text-right">
+											{prevAsset
+												? calculatePercentage(
+														prevAsset.balance || 0,
+														data.previousPeriod.aktivaTetap.reduce(
+															(sum, a) => sum + (a.balance || 0),
+															0
+														)
+													)
+												: '-'}
+										</td>
+									{/if}
+									<td class="text-right">
+										{#if prevAsset}
+											{@const change = calculateChange(asset.balance || 0, prevAsset.balance || 0)}
+											<span
+												class={change.value > 0
+													? 'text-success'
+													: change.value < 0
+														? 'text-error'
+														: ''}
+											>
+												{change.display}
+											</span>
+										{:else}
+											-
+										{/if}
+									</td>
+								{/if}
+							</tr>
+						{/each}
+					{:else}
+						<tr>
+							<td
+								colspan={2 +
+									(showPercentages ? 1 : 0) +
+									(compareWithPrevious ? (showPercentages ? 3 : 2) : 0)}
+								class="text-center text-gray-500"
+							>
+								No fixed assets found for the selected period
+							</td>
+						</tr>
+					{/if}
+
+					<!-- Aktiva Lainnya -->
+					<tr class="bg-base-200 font-bold">
+						<td
+							colspan={2 +
+								(showPercentages ? 1 : 0) +
+								(compareWithPrevious ? (showPercentages ? 3 : 2) : 0)}
+						>
+							Aktiva Lainnya (Other Assets)
+						</td>
+					</tr>
+
+					{#if data.aktivaLainnya && data.aktivaLainnya.length > 0}
+						{#each data.aktivaLainnya as asset}
+							<tr>
+								<td class="pl-{asset.level * 4}">{asset.name}</td>
+								<td class="text-right">{formatCurrency(asset.balance || 0)}</td>
+								{#if showPercentages}
+									<td class="text-right">{calculatePercentage(asset.balance || 0, totalAktiva)}</td>
+								{/if}
+								{#if compareWithPrevious && data.previousPeriod}
+									{@const prevAsset = data.previousPeriod.aktivaLainnya?.find(
+										(a) => a.id === asset.id
+									)}
+									<td class="text-right">
+										{prevAsset ? formatCurrency(prevAsset.balance || 0) : '-'}
+									</td>
+									{#if showPercentages}
+										<td class="text-right">
+											{prevAsset
+												? calculatePercentage(
+														prevAsset.balance || 0,
+														data.previousPeriod.aktivaLainnya.reduce(
+															(sum, a) => sum + (a.balance || 0),
+															0
+														)
+													)
+												: '-'}
+										</td>
+									{/if}
+									<td class="text-right">
+										{#if prevAsset}
+											{@const change = calculateChange(asset.balance || 0, prevAsset.balance || 0)}
+											<span
+												class={change.value > 0
+													? 'text-success'
+													: change.value < 0
+														? 'text-error'
+														: ''}
+											>
+												{change.display}
+											</span>
+										{:else}
+											-
+										{/if}
+									</td>
+								{/if}
+							</tr>
+						{/each}
+					{:else}
+						<tr>
+							<td
+								colspan={2 +
+									(showPercentages ? 1 : 0) +
+									(compareWithPrevious ? (showPercentages ? 3 : 2) : 0)}
+								class="text-center text-gray-500"
+							>
+								No other assets found for the selected period
+							</td>
+						</tr>
+					{/if}
+
+					<!-- Total Aktiva -->
 					<tr class="font-bold">
-						<td>Total Assets</td>
-						<td class="text-right">{formatCurrency(totalAssets)}</td>
+						<td>Total Aktiva</td>
+						<td class="text-right">{formatCurrency(totalAktiva)}</td>
 						{#if showPercentages}
 							<td class="text-right">100%</td>
 						{/if}
 						{#if compareWithPrevious && data.previousPeriod}
-							{#if true}
-								{@const prevTotalAssets = data.previousPeriod.assets.reduce(
-									(sum, a) => sum + a.balance,
-									0
-								)}
-								{@const change = calculateChange(totalAssets, prevTotalAssets)}
-								<td class="text-right">{formatCurrency(prevTotalAssets)}</td>
-								{#if showPercentages}
-									<td class="text-right">100%</td>
-								{/if}
-								<td class="text-right">
-									<span
-										class={change.value > 0 ? 'text-success' : change.value < 0 ? 'text-error' : ''}
-									>
-										{change.display}
-									</span>
-								</td>
+							{@const prevTotalAktiva = [
+								...data.previousPeriod.aktivaLancar,
+								...data.previousPeriod.aktivaTetap,
+								...data.previousPeriod.aktivaLainnya
+							].reduce((sum, a) => sum + (a.balance || 0), 0)}
+							{@const change = calculateChange(totalAktiva, prevTotalAktiva)}
+							<td class="text-right">{formatCurrency(prevTotalAktiva)}</td>
+							{#if showPercentages}
+								<td class="text-right">100%</td>
 							{/if}
+							<td class="text-right">
+								<span
+									class={change.value > 0 ? 'text-success' : change.value < 0 ? 'text-error' : ''}
+								>
+									{change.display}
+								</span>
+							</td>
 						{/if}
 					</tr>
 				</tbody>
 			</table>
 		</div>
 
-		<!-- Liabilities and Equity -->
+		<!-- Pasiva -->
 		<div class="overflow-x-auto">
 			<table class="table-zebra table w-full">
 				<thead>
 					<tr>
-						<th>Liabilities & Equity</th>
+						<th>Pasiva (Liabilities & Equity)</th>
 						<th class="text-right">Amount</th>
 						{#if showPercentages}
 							<th class="text-right">% of Total</th>
@@ -190,132 +364,53 @@
 				</thead>
 
 				<tbody>
-					<!-- Liabilities -->
+					<!-- Hutang Lancar -->
 					<tr class="bg-base-200 font-bold">
 						<td
 							colspan={2 +
 								(showPercentages ? 1 : 0) +
 								(compareWithPrevious ? (showPercentages ? 3 : 2) : 0)}
 						>
-							Liabilities
+							Hutang Lancar (Current Liabilities)
 						</td>
 					</tr>
 
-					{#each data.liabilities as liability}
-						<tr>
-							<td class="pl-{liability.level * 4}">{liability.name}</td>
-							<td class="text-right">{formatCurrency(liability.balance)}</td>
-							{#if showPercentages}
-								<td class="text-right"
-									>{calculatePercentage(liability.balance, totalLiabilitiesAndEquity)}</td
-								>
-							{/if}
-							{#if compareWithPrevious && data.previousPeriod}
-								{#if true}
-									{@const prevLiability = data.previousPeriod.liabilities.find(
+					{#if data.hutangLancar && data.hutangLancar.length > 0}
+						{#each data.hutangLancar as liability}
+							<tr>
+								<td class="pl-{liability.level * 4}">{liability.name}</td>
+								<td class="text-right">{formatCurrency(liability.balance || 0)}</td>
+								{#if showPercentages}
+									<td class="text-right">
+										{calculatePercentage(liability.balance || 0, totalPasiva)}
+									</td>
+								{/if}
+								{#if compareWithPrevious && data.previousPeriod}
+									{@const prevLiability = data.previousPeriod.hutangLancar?.find(
 										(l) => l.id === liability.id
 									)}
-									{@const prevTotal =
-										data.previousPeriod.liabilities.reduce((sum, l) => sum + l.balance, 0) +
-										data.previousPeriod.equity.reduce((sum, e) => sum + e.balance, 0)}
-									<td class="text-right"
-										>{prevLiability ? formatCurrency(prevLiability.balance) : '-'}</td
-									>
+									<td class="text-right">
+										{prevLiability ? formatCurrency(prevLiability.balance || 0) : '-'}
+									</td>
 									{#if showPercentages}
 										<td class="text-right">
-											{prevLiability ? calculatePercentage(prevLiability.balance, prevTotal) : '-'}
+											{prevLiability
+												? calculatePercentage(
+														prevLiability.balance || 0,
+														data.previousPeriod.hutangLancar.reduce(
+															(sum, l) => sum + (l.balance || 0),
+															0
+														)
+													)
+												: '-'}
 										</td>
 									{/if}
 									<td class="text-right">
 										{#if prevLiability}
-											{@const change = calculateChange(liability.balance, prevLiability.balance)}
-											<span
-												class={change.value > 0
-													? 'text-error'
-													: change.value < 0
-														? 'text-success'
-														: ''}
-											>
-												{change.display}
-											</span>
-										{:else}
-											-
-										{/if}
-									</td>
-								{/if}
-							{/if}
-						</tr>
-					{/each}
-
-					<!-- Total Liabilities -->
-					<tr class="font-bold">
-						<td>Total Liabilities</td>
-						<td class="text-right">{formatCurrency(data.liabilityTotals.balance)}</td>
-						{#if showPercentages}
-							<td class="text-right"
-								>{calculatePercentage(data.liabilityTotals.balance, totalLiabilitiesAndEquity)}</td
-							>
-						{/if}
-						{#if compareWithPrevious && data.previousPeriod}
-							{#if true}
-								{@const prevTotal = data.previousPeriod.liabilities.reduce(
-									(sum, l) => sum + l.balance,
-									0
-								)}
-								{@const prevTotalWithEquity =
-									prevTotal + data.previousPeriod.equity.reduce((sum, e) => sum + e.balance, 0)}
-								{@const change = calculateChange(data.liabilityTotals.balance, prevTotal)}
-								<td class="text-right">{formatCurrency(prevTotal)}</td>
-								{#if showPercentages}
-									<td class="text-right">{calculatePercentage(prevTotal, prevTotalWithEquity)}</td>
-								{/if}
-								<td class="text-right">
-									<span
-										class={change.value > 0 ? 'text-error' : change.value < 0 ? 'text-success' : ''}
-									>
-										{change.display}
-									</span>
-								</td>
-							{/if}
-						{/if}
-					</tr>
-
-					<!-- Equity -->
-					<tr class="bg-base-200 font-bold">
-						<td
-							colspan={2 +
-								(showPercentages ? 1 : 0) +
-								(compareWithPrevious ? (showPercentages ? 3 : 2) : 0)}
-						>
-							Equity
-						</td>
-					</tr>
-
-					{#each data.equity as equity}
-						<tr>
-							<td class="pl-{equity.level * 4}">{equity.name}</td>
-							<td class="text-right">{formatCurrency(equity.balance)}</td>
-							{#if showPercentages}
-								<td class="text-right"
-									>{calculatePercentage(equity.balance, totalLiabilitiesAndEquity)}</td
-								>
-							{/if}
-							{#if compareWithPrevious && data.previousPeriod}
-								{#if true}
-									{@const prevEquity = data.previousPeriod.equity.find((e) => e.id === equity.id)}
-									{@const prevTotal =
-										data.previousPeriod.liabilities.reduce((sum, l) => sum + l.balance, 0) +
-										data.previousPeriod.equity.reduce((sum, e) => sum + e.balance, 0)}
-									<td class="text-right">{prevEquity ? formatCurrency(prevEquity.balance) : '-'}</td
-									>
-									{#if showPercentages}
-										<td class="text-right">
-											{prevEquity ? calculatePercentage(prevEquity.balance, prevTotal) : '-'}
-										</td>
-									{/if}
-									<td class="text-right">
-										{#if prevEquity}
-											{@const change = calculateChange(equity.balance, prevEquity.balance)}
+											{@const change = calculateChange(
+												liability.balance || 0,
+												prevLiability.balance || 0
+											)}
 											<span
 												class={change.value > 0
 													? 'text-success'
@@ -330,71 +425,193 @@
 										{/if}
 									</td>
 								{/if}
-							{/if}
-						</tr>
-					{/each}
-
-					<!-- Total Equity -->
-					<tr class="font-bold">
-						<td>Total Equity</td>
-						<td class="text-right">{formatCurrency(data.equityTotals.balance)}</td>
-						{#if showPercentages}
-							<td class="text-right"
-								>{calculatePercentage(data.equityTotals.balance, totalLiabilitiesAndEquity)}</td
+							</tr>
+						{/each}
+					{:else}
+						<tr>
+							<td
+								colspan={2 +
+									(showPercentages ? 1 : 0) +
+									(compareWithPrevious ? (showPercentages ? 3 : 2) : 0)}
+								class="text-center text-gray-500"
 							>
-						{/if}
-						{#if compareWithPrevious && data.previousPeriod}
-							{#if true}
-								{@const prevTotal = data.previousPeriod.equity.reduce(
-									(sum, e) => sum + e.balance,
-									0
-								)}
-								{@const prevTotalWithLiabilities =
-									prevTotal +
-									data.previousPeriod.liabilities.reduce((sum, l) => sum + l.balance, 0)}
-								{@const change = calculateChange(data.equityTotals.balance, prevTotal)}
-								<td class="text-right">{formatCurrency(prevTotal)}</td>
-								{#if showPercentages}
-									<td class="text-right"
-										>{calculatePercentage(prevTotal, prevTotalWithLiabilities)}</td
-									>
-								{/if}
-								<td class="text-right">
-									<span
-										class={change.value > 0 ? 'text-success' : change.value < 0 ? 'text-error' : ''}
-									>
-										{change.display}
-									</span>
-								</td>
-							{/if}
-						{/if}
+								No current liabilities found for the selected period
+							</td>
+						</tr>
+					{/if}
+
+					<!-- Hutang Jangka Panjang -->
+					<tr class="bg-base-200 font-bold">
+						<td
+							colspan={2 +
+								(showPercentages ? 1 : 0) +
+								(compareWithPrevious ? (showPercentages ? 3 : 2) : 0)}
+						>
+							Hutang Jangka Panjang (Long-term Liabilities)
+						</td>
 					</tr>
 
-					<!-- Total Liabilities and Equity -->
-					<tr class="text-lg font-bold">
-						<td>Total Liabilities & Equity</td>
-						<td class="text-right">{formatCurrency(totalLiabilitiesAndEquity)}</td>
+					{#if data.hutangJangkaPanjang && data.hutangJangkaPanjang.length > 0}
+						{#each data.hutangJangkaPanjang as liability}
+							<tr>
+								<td class="pl-{liability.level * 4}">{liability.name}</td>
+								<td class="text-right">{formatCurrency(liability.balance || 0)}</td>
+								{#if showPercentages}
+									<td class="text-right">
+										{calculatePercentage(liability.balance || 0, totalPasiva)}
+									</td>
+								{/if}
+								{#if compareWithPrevious && data.previousPeriod}
+									{@const prevLiability = data.previousPeriod.hutangJangkaPanjang?.find(
+										(l) => l.id === liability.id
+									)}
+									<td class="text-right">
+										{prevLiability ? formatCurrency(prevLiability.balance || 0) : '-'}
+									</td>
+									{#if showPercentages}
+										<td class="text-right">
+											{prevLiability
+												? calculatePercentage(
+														prevLiability.balance || 0,
+														data.previousPeriod.hutangJangkaPanjang.reduce(
+															(sum, l) => sum + (l.balance || 0),
+															0
+														)
+													)
+												: '-'}
+										</td>
+									{/if}
+									<td class="text-right">
+										{#if prevLiability}
+											{@const change = calculateChange(
+												liability.balance || 0,
+												prevLiability.balance || 0
+											)}
+											<span
+												class={change.value > 0
+													? 'text-success'
+													: change.value < 0
+														? 'text-error'
+														: ''}
+											>
+												{change.display}
+											</span>
+										{:else}
+											-
+										{/if}
+									</td>
+								{/if}
+							</tr>
+						{/each}
+					{:else}
+						<tr>
+							<td
+								colspan={2 +
+									(showPercentages ? 1 : 0) +
+									(compareWithPrevious ? (showPercentages ? 3 : 2) : 0)}
+								class="text-center text-gray-500"
+							>
+								No long-term liabilities found for the selected period
+							</td>
+						</tr>
+					{/if}
+
+					<!-- Modal -->
+					<tr class="bg-base-200 font-bold">
+						<td
+							colspan={2 +
+								(showPercentages ? 1 : 0) +
+								(compareWithPrevious ? (showPercentages ? 3 : 2) : 0)}
+						>
+							Modal (Equity)
+						</td>
+					</tr>
+
+					{#if data.modal && data.modal.length > 0}
+						{#each data.modal as equity}
+							<tr>
+								<td class="pl-{equity.level * 4}">{equity.name}</td>
+								<td class="text-right">{formatCurrency(equity.balance || 0)}</td>
+								{#if showPercentages}
+									<td class="text-right">
+										{calculatePercentage(equity.balance || 0, totalPasiva)}
+									</td>
+								{/if}
+								{#if compareWithPrevious && data.previousPeriod}
+									{@const prevEquity = data.previousPeriod.modal?.find((e) => e.id === equity.id)}
+									<td class="text-right">
+										{prevEquity ? formatCurrency(prevEquity.balance || 0) : '-'}
+									</td>
+									{#if showPercentages}
+										<td class="text-right">
+											{prevEquity
+												? calculatePercentage(
+														prevEquity.balance || 0,
+														data.previousPeriod.modal.reduce((sum, e) => sum + (e.balance || 0), 0)
+													)
+												: '-'}
+										</td>
+									{/if}
+									<td class="text-right">
+										{#if prevEquity}
+											{@const change = calculateChange(
+												equity.balance || 0,
+												prevEquity.balance || 0
+											)}
+											<span
+												class={change.value > 0
+													? 'text-success'
+													: change.value < 0
+														? 'text-error'
+														: ''}
+											>
+												{change.display}
+											</span>
+										{:else}
+											-
+										{/if}
+									</td>
+								{/if}
+							</tr>
+						{/each}
+					{:else}
+						<tr>
+							<td
+								colspan={2 +
+									(showPercentages ? 1 : 0) +
+									(compareWithPrevious ? (showPercentages ? 3 : 2) : 0)}
+								class="text-center text-gray-500"
+							>
+								No equity accounts found for the selected period
+							</td>
+						</tr>
+					{/if}
+
+					<!-- Total Pasiva -->
+					<tr class="font-bold">
+						<td>Total Pasiva</td>
+						<td class="text-right">{formatCurrency(totalPasiva)}</td>
 						{#if showPercentages}
 							<td class="text-right">100%</td>
 						{/if}
 						{#if compareWithPrevious && data.previousPeriod}
-							{#if true}
-								{@const prevTotal =
-									data.previousPeriod.liabilities.reduce((sum, l) => sum + l.balance, 0) +
-									data.previousPeriod.equity.reduce((sum, e) => sum + e.balance, 0)}
-								{@const change = calculateChange(totalLiabilitiesAndEquity, prevTotal)}
-								<td class="text-right">{formatCurrency(prevTotal)}</td>
-								{#if showPercentages}
-									<td class="text-right">100%</td>
-								{/if}
-								<td class="text-right">
-									<span
-										class={change.value > 0 ? 'text-error' : change.value < 0 ? 'text-success' : ''}
-									>
-										{change.display}
-									</span>
-								</td>
+							{@const prevTotalPasiva = [
+								...data.previousPeriod.hutangLancar,
+								...data.previousPeriod.hutangJangkaPanjang,
+								...data.previousPeriod.modal
+							].reduce((sum, p) => sum + (p.balance || 0), 0)}
+							{@const change = calculateChange(totalPasiva, prevTotalPasiva)}
+							<td class="text-right">{formatCurrency(prevTotalPasiva)}</td>
+							{#if showPercentages}
+								<td class="text-right">100%</td>
 							{/if}
+							<td class="text-right">
+								<span
+									class={change.value > 0 ? 'text-success' : change.value < 0 ? 'text-error' : ''}
+								>
+									{change.display}
+								</span>
+							</td>
 						{/if}
 					</tr>
 				</tbody>

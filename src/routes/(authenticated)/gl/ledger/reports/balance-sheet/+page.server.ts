@@ -1,29 +1,35 @@
 import type { PageServerLoad } from './$types';
-import { getAccountBalances, type AccountBalance } from '../../../../../../lib/utils.server';
+import { getBalanceSheetAccounts } from '../utils.server';
+import type { AccountBalance } from '$lib/types';
 
 interface BalanceSheetData {
-	assets: AccountBalance[];
-	liabilities: AccountBalance[];
-	equity: AccountBalance[];
-	assetTotals: {
+	// Aktiva (Assets)
+	aktivaLancar: AccountBalance[]; // Current Assets
+	aktivaTetap: AccountBalance[]; // Fixed Assets
+	aktivaLainnya: AccountBalance[]; // Other Assets
+	totalAktiva: {
 		debit: number;
 		credit: number;
 		balance: number;
 	};
-	liabilityTotals: {
+
+	// Pasiva (Liabilities + Equity)
+	hutangLancar: AccountBalance[]; // Current Liabilities
+	hutangJangkaPanjang: AccountBalance[]; // Long-term Liabilities
+	modal: AccountBalance[]; // Equity
+	totalPasiva: {
 		debit: number;
 		credit: number;
 		balance: number;
 	};
-	equityTotals: {
-		debit: number;
-		credit: number;
-		balance: number;
-	};
+
 	previousPeriod?: {
-		assets: AccountBalance[];
-		liabilities: AccountBalance[];
-		equity: AccountBalance[];
+		aktivaLancar: AccountBalance[];
+		aktivaTetap: AccountBalance[];
+		aktivaLainnya: AccountBalance[];
+		hutangLancar: AccountBalance[];
+		hutangJangkaPanjang: AccountBalance[];
+		modal: AccountBalance[];
 	};
 }
 
@@ -40,50 +46,90 @@ export const load: PageServerLoad = async (event) => {
 	};
 
 	// Get current period data
-	const accounts = await getAccountBalances(event, filters);
-	const assets = accounts.filter((acc) => acc.type === 'ASSET');
-	const liabilities = accounts.filter((acc) => acc.type === 'LIABILITY');
-	const equity = accounts.filter((acc) => acc.type === 'EQUITY');
+	const { assets, liabilities, equity } = await getBalanceSheetAccounts(event, filters);
 
-	const assetTotals = assets.reduce(
-		(totals, acc) => ({
-			debit: totals.debit + acc.debit,
-			credit: totals.credit + acc.credit,
-			balance: totals.balance + acc.balance
-		}),
-		{ debit: 0, credit: 0, balance: 0 }
+	// Kategorisasi Aktiva
+	const aktivaLancar = assets.filter(
+		(acc) =>
+			acc.groupName === 'Aktiva Lancar' ||
+			acc.name.toLowerCase().includes('kas') ||
+			acc.name.toLowerCase().includes('bank') ||
+			acc.name.toLowerCase().includes('piutang') ||
+			acc.name.toLowerCase().includes('persediaan')
 	);
 
-	const liabilityTotals = liabilities.reduce(
-		(totals, acc) => ({
-			debit: totals.debit + acc.debit,
-			credit: totals.credit + acc.credit,
-			balance: totals.balance + acc.balance
-		}),
-		{ debit: 0, credit: 0, balance: 0 }
+	const aktivaTetap = assets.filter(
+		(acc) =>
+			acc.groupName === 'Aktiva Tetap' ||
+			acc.name.toLowerCase().includes('tanah') ||
+			acc.name.toLowerCase().includes('bangunan') ||
+			acc.name.toLowerCase().includes('kendaraan') ||
+			acc.name.toLowerCase().includes('peralatan')
 	);
 
-	const equityTotals = equity.reduce(
-		(totals, acc) => ({
-			debit: totals.debit + acc.debit,
-			credit: totals.credit + acc.credit,
-			balance: totals.balance + acc.balance
-		}),
-		{ debit: 0, credit: 0, balance: 0 }
+	const aktivaLainnya = assets.filter(
+		(acc) =>
+			acc.groupName === 'Aktiva Lain-Lain' ||
+			(!aktivaLancar.find((a) => a.id === acc.id) && !aktivaTetap.find((a) => a.id === acc.id))
 	);
+
+	// Kategorisasi Pasiva
+	const hutangLancar = liabilities.filter(
+		(acc) =>
+			acc.groupName === 'Hutang Lancar' ||
+			acc.name.toLowerCase().includes('hutang dagang') ||
+			acc.name.toLowerCase().includes('hutang usaha') ||
+			acc.name.toLowerCase().includes('hutang pajak')
+	);
+
+	const hutangJangkaPanjang = liabilities.filter(
+		(acc) => acc.groupName === 'Hutang Jangka Panjang' || !hutangLancar.find((h) => h.id === acc.id)
+	);
+
+	// Calculate totals
+	const totalAktiva = {
+		debit: [...aktivaLancar, ...aktivaTetap, ...aktivaLainnya].reduce(
+			(sum, acc) => sum + acc.debit,
+			0
+		),
+		credit: [...aktivaLancar, ...aktivaTetap, ...aktivaLainnya].reduce(
+			(sum, acc) => sum + acc.credit,
+			0
+		),
+		balance: [...aktivaLancar, ...aktivaTetap, ...aktivaLainnya].reduce(
+			(sum, acc) => sum + acc.balance,
+			0
+		)
+	};
+
+	const totalPasiva = {
+		debit: [...hutangLancar, ...hutangJangkaPanjang, ...equity].reduce(
+			(sum, acc) => sum + acc.debit,
+			0
+		),
+		credit: [...hutangLancar, ...hutangJangkaPanjang, ...equity].reduce(
+			(sum, acc) => sum + acc.credit,
+			0
+		),
+		balance: [...hutangLancar, ...hutangJangkaPanjang, ...equity].reduce(
+			(sum, acc) => sum + acc.balance,
+			0
+		)
+	};
 
 	const data: BalanceSheetData = {
-		assets,
-		liabilities,
-		equity,
-		assetTotals,
-		liabilityTotals,
-		equityTotals
+		aktivaLancar,
+		aktivaTetap,
+		aktivaLainnya,
+		totalAktiva,
+		hutangLancar,
+		hutangJangkaPanjang,
+		modal: equity,
+		totalPasiva
 	};
 
 	// Get previous period data if requested
 	if (compareWithPrevious) {
-		// Calculate previous period date range
 		const startDateObj = new Date(startDate);
 		const endDateObj = new Date(endDate);
 		const duration = endDateObj.getTime() - startDateObj.getTime();
@@ -96,11 +142,54 @@ export const load: PageServerLoad = async (event) => {
 			showPercentages
 		};
 
-		const prevAccounts = await getAccountBalances(event, prevFilters);
+		const prevData = await getBalanceSheetAccounts(event, prevFilters);
+
+		// Kategorisasi data periode sebelumnya
+		const prevAktivaLancar = prevData.assets.filter(
+			(acc) =>
+				acc.groupName === 'Aktiva Lancar' ||
+				acc.name.toLowerCase().includes('kas') ||
+				acc.name.toLowerCase().includes('bank') ||
+				acc.name.toLowerCase().includes('piutang') ||
+				acc.name.toLowerCase().includes('persediaan')
+		);
+
+		const prevAktivaTetap = prevData.assets.filter(
+			(acc) =>
+				acc.groupName === 'Aktiva Tetap' ||
+				acc.name.toLowerCase().includes('tanah') ||
+				acc.name.toLowerCase().includes('bangunan') ||
+				acc.name.toLowerCase().includes('kendaraan') ||
+				acc.name.toLowerCase().includes('peralatan')
+		);
+
+		const prevAktivaLainnya = prevData.assets.filter(
+			(acc) =>
+				acc.groupName === 'Aktiva Lain-Lain' ||
+				(!prevAktivaLancar.find((a) => a.id === acc.id) &&
+					!prevAktivaTetap.find((a) => a.id === acc.id))
+		);
+
+		const prevHutangLancar = prevData.liabilities.filter(
+			(acc) =>
+				acc.groupName === 'Hutang Lancar' ||
+				acc.name.toLowerCase().includes('hutang dagang') ||
+				acc.name.toLowerCase().includes('hutang usaha') ||
+				acc.name.toLowerCase().includes('hutang pajak')
+		);
+
+		const prevHutangJangkaPanjang = prevData.liabilities.filter(
+			(acc) =>
+				acc.groupName === 'Hutang Jangka Panjang' || !prevHutangLancar.find((h) => h.id === acc.id)
+		);
+
 		data.previousPeriod = {
-			assets: prevAccounts.filter((acc) => acc.type === 'ASSET'),
-			liabilities: prevAccounts.filter((acc) => acc.type === 'LIABILITY'),
-			equity: prevAccounts.filter((acc) => acc.type === 'EQUITY')
+			aktivaLancar: prevAktivaLancar,
+			aktivaTetap: prevAktivaTetap,
+			aktivaLainnya: prevAktivaLainnya,
+			hutangLancar: prevHutangLancar,
+			hutangJangkaPanjang: prevHutangJangkaPanjang,
+			modal: prevData.equity
 		};
 	}
 
