@@ -294,42 +294,6 @@ export const journalEntryLineRelations = relations(journalEntryLine, ({ one }) =
 	})
 }));
 
-// Account Balances
-export const accountBalance = pgTable(
-	'account_balance',
-	{
-		id: serial('id').primaryKey(),
-		accountId: integer('account_id')
-			.notNull()
-			.references(() => chartOfAccount.id),
-		fiscalPeriodId: integer('fiscal_period_id')
-			.notNull()
-			.references(() => fiscalPeriod.id),
-		openingBalance: decimal('opening_balance', { precision: 15, scale: 2 }).notNull().default('0'),
-		debitMovement: decimal('debit_movement', { precision: 15, scale: 2 }).notNull().default('0'),
-		creditMovement: decimal('credit_movement', { precision: 15, scale: 2 }).notNull().default('0'),
-		closingBalance: decimal('closing_balance', { precision: 15, scale: 2 }).notNull().default('0'),
-		createdAt: timestamp('created_at').notNull().defaultNow(),
-		updatedAt: timestamp('updated_at').notNull().defaultNow()
-	},
-	(table) => {
-		return {
-			accountPeriodIdx: uniqueIndex('account_period_idx').on(table.accountId, table.fiscalPeriodId)
-		};
-	}
-);
-
-export const accountBalanceRelations = relations(accountBalance, ({ one }) => ({
-	account: one(chartOfAccount, {
-		fields: [accountBalance.accountId],
-		references: [chartOfAccount.id]
-	}),
-	fiscalPeriod: one(fiscalPeriod, {
-		fields: [accountBalance.fiscalPeriodId],
-		references: [fiscalPeriod.id]
-	})
-}));
-
 // Financial Report Templates
 export const reportTemplate = pgTable('report_template', {
 	id: serial('id').primaryKey(),

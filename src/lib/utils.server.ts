@@ -11,17 +11,6 @@ export interface ReportFilters {
 	showPercentages?: boolean;
 }
 
-export interface AccountBalance {
-	id: string;
-	code: string;
-	name: string;
-	type: string;
-	debit: number;
-	credit: number;
-	balance: number;
-	level: number;
-}
-
 export interface JournalEntry {
 	id: string;
 	date: string;
@@ -33,14 +22,6 @@ export interface JournalEntry {
 	accountName: string;
 }
 
-export async function getAccountBalances(
-	event: RequestEvent,
-	filters: ReportFilters
-): Promise<AccountBalance[]> {
-	// TODO: Implement actual database query
-	return [];
-}
-
 export async function getJournalEntries(
 	event: RequestEvent,
 	filters: ReportFilters
@@ -49,7 +30,7 @@ export async function getJournalEntries(
 	return [];
 }
 
-export function calculateAccountTotals(accounts: AccountBalance[]) {
+export function calculateAccountTotals(accounts) {
 	return accounts.reduce(
 		(totals, account) => {
 			totals.debit += account.debit;

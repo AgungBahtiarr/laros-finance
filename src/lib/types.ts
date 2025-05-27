@@ -13,6 +13,8 @@ export interface AccountBalance {
 	credit: number;
 	balance: number;
 	groupCode?: string;
+	groupName?: string;
+	parentId?: number;
 }
 
 export interface ReportFilters {

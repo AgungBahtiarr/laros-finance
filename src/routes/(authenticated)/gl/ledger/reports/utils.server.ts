@@ -1,10 +1,11 @@
-import { and, eq, gte, lte, sql } from 'drizzle-orm';
+import { and, eq, gte, lte, sql, sum, desc, asc } from 'drizzle-orm';
 import type { RequestEvent } from '@sveltejs/kit';
 import {
-	accountBalance,
 	chartOfAccount,
 	accountGroup,
 	accountType,
+	journalEntry,
+	journalEntryLine,
 	fiscalPeriod
 } from '$lib/server/db/schema';
 
@@ -18,6 +19,8 @@ export interface AccountBalance {
 	credit: number;
 	balance: number;
 	groupCode?: string;
+	groupName?: string;
+	parentId?: number;
 }
 
 export interface DateRange {
@@ -40,73 +43,84 @@ export async function getAccountBalances(
 	const { db } = event.locals;
 	const { dateRange } = filters;
 
-
-
-	// Get the fiscal period for the date range
-	const period = await db.query.fiscalPeriod.findFirst({
-		where: and(
-			lte(fiscalPeriod.startDate, dateRange.start),
-			gte(fiscalPeriod.endDate, dateRange.end)
-		)
-	});
-
-	if (!period) {
-		throw new Error('No fiscal period found for the specified date range');
-	}
-
-	// Query to get account balances with account details
-	const balances = await db
+	// Get all active accounts with their details
+	const accounts = await db
 		.select({
 			id: chartOfAccount.id,
 			code: chartOfAccount.code,
 			name: chartOfAccount.name,
-			type: accountType.code,
 			level: chartOfAccount.level,
-			debitMovement: accountBalance.debitMovement,
-			creditMovement: accountBalance.creditMovement,
-			openingBalance: accountBalance.openingBalance,
-			groupCode: accountGroup.code
+			parentId: chartOfAccount.parentId,
+			groupCode: accountGroup.code,
+			groupName: accountGroup.name,
+			accountType: accountType.code,
+			balanceType: accountType.balanceType
 		})
 		.from(chartOfAccount)
-		.leftJoin(accountGroup, eq(chartOfAccount.accountGroupId, accountGroup.id))
-		.leftJoin(accountType, eq(accountGroup.accountTypeId, accountType.id))
-		.leftJoin(
-			accountBalance,
+		.innerJoin(accountGroup, eq(chartOfAccount.accountGroupId, accountGroup.id))
+		.innerJoin(accountType, eq(accountGroup.accountTypeId, accountType.id))
+		.where(eq(chartOfAccount.isActive, true))
+		.orderBy(asc(chartOfAccount.code));
+
+	// Get account balances from journal entries within the date range
+	const balances = await db
+		.select({
+			accountId: journalEntryLine.accountId,
+			totalDebit: sum(journalEntryLine.debitAmount),
+			totalCredit: sum(journalEntryLine.creditAmount)
+		})
+		.from(journalEntryLine)
+		.innerJoin(journalEntry, eq(journalEntryLine.journalEntryId, journalEntry.id))
+		.where(
 			and(
-				eq(accountBalance.accountId, chartOfAccount.id),
-				eq(accountBalance.fiscalPeriodId, period.id)
+				gte(journalEntry.date, dateRange.start),
+				lte(journalEntry.date, dateRange.end),
+				eq(journalEntry.status, 'POSTED')
 			)
 		)
-		.where(eq(chartOfAccount.isActive, true));
+		.groupBy(journalEntryLine.accountId);
 
+	// Create a map for easy lookup
+	const balanceMap = new Map();
+	balances.forEach((balance) => {
+		balanceMap.set(balance.accountId, {
+			debit: Number(balance.totalDebit || 0),
+			credit: Number(balance.totalCredit || 0)
+		});
+	});
 
+	// Transform accounts with balances
+	const result = accounts.map((account) => {
+		const accountBalance = balanceMap.get(account.id) || { debit: 0, credit: 0 };
 
-	// Transform the results
-	const transformedBalances = balances.map((row) => {
-		const openingBalance = Number(row.openingBalance || 0);
-		const debitMovement = Number(row.debitMovement || 0);
-		const creditMovement = Number(row.creditMovement || 0);
-
-		// Calculate final balance based on account type
-		const isDebitNormal = row.type === 'ASSET' || row.type === 'EXPENSE';
-		const balance = isDebitNormal
-			? openingBalance + debitMovement - creditMovement
-			: openingBalance - debitMovement + creditMovement;
+		// Calculate net balance based on account type
+		// Revenue and Liability accounts have credit normal balance
+		// Asset and Expense accounts have debit normal balance
+		let balance = 0;
+		if (account.balanceType === 'CREDIT') {
+			// Credit normal accounts (Revenue, Liability, Equity)
+			balance = accountBalance.credit - accountBalance.debit;
+		} else {
+			// Debit normal accounts (Asset, Expense)
+			balance = accountBalance.debit - accountBalance.credit;
+		}
 
 		return {
-			id: row.id,
-			code: row.code,
-			name: row.name,
-			type: row.type || 'UNKNOWN',
-			level: row.level,
-			debit: debitMovement,
-			credit: creditMovement,
+			id: account.id,
+			code: account.code,
+			name: account.name,
+			type: account.accountType,
+			level: account.level,
+			debit: accountBalance.debit,
+			credit: accountBalance.credit,
 			balance,
-			groupCode: row.groupCode || undefined
+			groupCode: account.groupCode,
+			groupName: account.groupName,
+			parentId: account.parentId
 		};
 	});
 
-	return transformedBalances;
+	return result;
 }
 
 export async function getRevenueExpenseAccounts(
@@ -116,35 +130,45 @@ export async function getRevenueExpenseAccounts(
 	revenues: AccountBalance[];
 	expenses: AccountBalance[];
 }> {
-	const { db } = event.locals;
-	const { dateRange } = filters;
-
-	// Get all account balances
 	const balances = await getAccountBalances(event, filters);
 
-
-
-	// Split into revenues and expenses based on account group codes and names
-	const revenues = balances.filter((account) => 
-		account.groupCode === 'REV' ||
-		account.code.startsWith('4') || 
+	// Filter revenue accounts based on existing account groups from seed data
+	const revenues = balances.filter((account) =>
+		// Based on your seed data account groups
+		account.groupName === 'Pendapatan' ||
+		account.groupName === '(Pendapatan) Biaya Lain-Lain' ||
+		// Fallback filters for account codes and names
+		account.code.startsWith('4') ||
 		account.name.toLowerCase().includes('pendapatan') ||
 		account.name.toLowerCase().includes('penjualan') ||
-		account.name.toLowerCase().includes('revenue')
-	);
-	
-	const expenses = balances.filter((account) => 
-		account.groupCode === 'EXP' ||
-		account.groupCode === 'COGS' ||
+		account.name.toLowerCase().includes('jasa') ||
+		account.name.toLowerCase().includes('revenue') ||
+		account.name.toLowerCase().includes('income')
+	).sort((a, b) => a.code.localeCompare(b.code));
+
+	// Filter expense accounts based on existing account groups from seed data
+	const expenses = balances.filter((account) =>
+		// Based on your seed data account groups
+		account.groupName === 'Harga Pokok (COGS/HPP)' ||
+		account.groupName === 'Biaya Operasional' ||
+		account.groupName === 'Biaya Operasional Lainnya' ||
+		account.groupName === 'Biaya Administrasi & Umum' ||
+		account.groupName === 'Biaya Yang Masih Harus Dibayar' ||
+		// Include negative entries from (Pendapatan) Biaya Lain-Lain for expenses
+		(account.groupName === '(Pendapatan) Biaya Lain-Lain' && account.balance < 0) ||
+		// Fallback filters for account codes and names
 		account.code.startsWith('5') ||
 		account.code.startsWith('6') ||
+		account.code.startsWith('7') ||
 		account.name.toLowerCase().includes('beban') ||
 		account.name.toLowerCase().includes('biaya') ||
 		account.name.toLowerCase().includes('expense') ||
-		account.name.toLowerCase().includes('harga pokok')
-	);
-
-
+		account.name.toLowerCase().includes('harga pokok') ||
+		account.name.toLowerCase().includes('operasional') ||
+		account.name.toLowerCase().includes('administrasi') ||
+		account.name.toLowerCase().includes('umum') ||
+		account.name.toLowerCase().includes('cost')
+	).sort((a, b) => a.code.localeCompare(b.code));
 
 	return {
 		revenues,
@@ -160,16 +184,31 @@ export async function getBalanceSheetAccounts(
 	liabilities: AccountBalance[];
 	equity: AccountBalance[];
 }> {
-	const { db } = event.locals;
-	const { dateRange } = filters;
-
-	// Get all account balances
 	const balances = await getAccountBalances(event, filters);
 
-	// Split into balance sheet categories
-	const assets = balances.filter((account) => account.type === 'ASSET');
-	const liabilities = balances.filter((account) => account.type === 'LIABILITY');
-	const equity = balances.filter((account) => account.type === 'EQUITY');
+	// Split into balance sheet categories based on your existing groups
+	const assets = balances.filter((account) => 
+		account.groupName === 'Aktiva Lancar' ||
+		account.groupName === 'Aktiva Tetap' ||
+		account.groupName === 'Akumulasi Penyusutan' ||
+		account.groupName === 'Aktiva Lain-Lain' ||
+		account.type === 'ASSET'
+	).sort((a, b) => a.code.localeCompare(b.code));
+	
+	const liabilities = balances.filter((account) => 
+		account.groupName === 'Hutang Lancar' ||
+		account.groupName === 'Hutang Jangka Panjang' ||
+		account.groupName === 'Biaya Yang Masih Harus Dibayar' ||
+		account.groupName === 'Pajak Yang Masih Harus Dibayar' ||
+		account.groupName === 'Pendapatan dibayar dimuka' ||
+		account.type === 'LIABILITY'
+	).sort((a, b) => a.code.localeCompare(b.code));
+	
+	const equity = balances.filter((account) => 
+		account.groupName === 'Modal' ||
+		account.groupName === 'Laba (Rugi) Tahun Berjalan' ||
+		account.type === 'EQUITY'
+	).sort((a, b) => a.code.localeCompare(b.code));
 
 	return {
 		assets,
@@ -182,9 +221,57 @@ export async function getTrialBalanceAccounts(
 	event: RequestEvent,
 	filters: ReportFilters
 ): Promise<AccountBalance[]> {
-	// Get all account balances
+	const balances = await getAccountBalances(event, filters);
+	
+	// Return all accounts sorted by code
+	return balances.sort((a, b) => a.code.localeCompare(b.code));
+}
+
+export async function getCashFlowAccounts(
+	event: RequestEvent,
+	filters: ReportFilters
+): Promise<{
+	operatingActivities: AccountBalance[];
+	investingActivities: AccountBalance[];
+	financingActivities: AccountBalance[];
+}> {
 	const balances = await getAccountBalances(event, filters);
 
-	// Sort by account code
-	return balances.sort((a, b) => a.code.localeCompare(b.code));
+	// Operating activities - revenue and expense accounts
+	const operatingActivities = balances.filter((account) => 
+		account.groupName === 'Pendapatan' ||
+		account.groupName === 'Harga Pokok (COGS/HPP)' ||
+		account.groupName === 'Biaya Operasional' ||
+		account.groupName === 'Biaya Operasional Lainnya' ||
+		account.groupName === 'Biaya Administrasi & Umum' ||
+		account.name.toLowerCase().includes('operasional')
+	);
+
+	// Investing activities - fixed assets and investments
+	const investingActivities = balances.filter((account) => 
+		account.groupName === 'Aktiva Tetap' ||
+		account.groupName === 'Akumulasi Penyusutan' ||
+		account.groupName === 'Aktiva Lain-Lain' ||
+		account.name.toLowerCase().includes('investasi') ||
+		account.name.toLowerCase().includes('aset tetap') ||
+		account.name.toLowerCase().includes('fixed asset')
+	);
+
+	// Financing activities - equity and long-term debt
+	const financingActivities = balances.filter((account) => 
+		account.groupName === 'Modal' ||
+		account.groupName === 'Hutang Jangka Panjang' ||
+		account.groupName === 'Laba (Rugi) Tahun Berjalan' ||
+		(account.type === 'LIABILITY' && (
+			account.name.toLowerCase().includes('hutang jangka panjang') ||
+			account.name.toLowerCase().includes('long term') ||
+			account.name.toLowerCase().includes('kredit')
+		))
+	);
+
+	return {
+		operatingActivities,
+		investingActivities,
+		financingActivities
+	};
 }
