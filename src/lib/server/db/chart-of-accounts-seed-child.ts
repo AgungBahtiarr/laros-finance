@@ -250,7 +250,6 @@ async function seedChildAccounts() {
 		}
 	];
 
-	//const accountBatch = [];
 	// Process child accounts
 	for (const account of childAccounts) {
 		const parentId = parentMap.get(account.parent);
@@ -279,7 +278,7 @@ async function seedChildAccounts() {
 				isLocked: false,
 				createdAt: new Date(),
 				updatedAt: new Date()
-			});
+			})
 			.onConflictDoNothing({ target: schema.chartOfAccount.code });
 	}
 
