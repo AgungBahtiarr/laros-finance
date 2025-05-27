@@ -250,6 +250,7 @@ async function seedChildAccounts() {
 		}
 	];
 
+	//const accountBatch = [];
 	// Process child accounts
 	for (const account of childAccounts) {
 		const parentId = parentMap.get(account.parent);
@@ -278,7 +279,7 @@ async function seedChildAccounts() {
 				isLocked: false,
 				createdAt: new Date(),
 				updatedAt: new Date()
-			})
+			});
 			.onConflictDoNothing({ target: schema.chartOfAccount.code });
 	}
 
@@ -299,7 +300,7 @@ export async function main() {
 }
 
 // Check if file is being run directly in ES modules
-const isMainModule = import.meta.url.endsWith('chart-of-accounts-seed-part2.ts');
+const isMainModule = import.meta.url.endsWith('chart-of-accounts-seed-child.ts');
 if (isMainModule) {
 	main()
 		.then(() => process.exit(0))
