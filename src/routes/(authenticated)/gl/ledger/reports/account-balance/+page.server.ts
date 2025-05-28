@@ -1,5 +1,5 @@
 import type { PageServerLoad } from './$types';
-import { getAccountBalances } from '../utils.server';
+import { getAccountBalances } from '$lib/utils/utils.server';
 
 export const load: PageServerLoad = async (event) => {
 	const searchParams = event.url.searchParams;
@@ -64,4 +64,4 @@ export const load: PageServerLoad = async (event) => {
 		totals,
 		previousPeriod
 	};
-}; 
+};

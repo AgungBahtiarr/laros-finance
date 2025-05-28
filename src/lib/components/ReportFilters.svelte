@@ -1,6 +1,5 @@
-<!-- src/routes/(authenticated)/gl/ledger/reports/ReportFilters.svelte -->
 <script lang="ts">
-	import type { DateRange } from '$lib/types';
+	import type { DateRange } from '$lib/';
 
 	interface Props {
 		dateRange: DateRange;
@@ -71,7 +70,12 @@
 				<label class="label" for="accounts-select">
 					<span class="label-text">Accounts</span>
 				</label>
-				<select id="accounts-select" class="select select-bordered" multiple bind:value={selectedAccounts}>
+				<select
+					id="accounts-select"
+					class="select select-bordered"
+					multiple
+					bind:value={selectedAccounts}
+				>
 					<!-- TODO: Add account options -->
 				</select>
 			</div>

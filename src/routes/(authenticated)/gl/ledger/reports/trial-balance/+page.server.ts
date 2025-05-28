@@ -1,5 +1,5 @@
 import type { PageServerLoad } from './$types';
-import { getTrialBalanceAccounts } from '../utils.server';
+import { getTrialBalanceAccounts } from '$lib/utils/utils.server';
 
 export const load: PageServerLoad = async (event) => {
 	const searchParams = event.url.searchParams;

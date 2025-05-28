@@ -2,7 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { browser } from '$app/environment';
 	import ReportFilters from '$lib/components/ReportFilters.svelte';
-	import { formatCurrency, formatDate } from '$lib/utils.client';
+	import { formatCurrency, formatDate } from '$lib/utils/utils.client';
 	import type { PageData } from './$types';
 
 	let { data } = $props();
@@ -146,4 +146,4 @@
 			padding: 0.5rem;
 		}
 	}
-</style> 
+</style>

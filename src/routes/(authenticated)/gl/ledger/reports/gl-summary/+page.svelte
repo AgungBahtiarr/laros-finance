@@ -2,8 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { browser } from '$app/environment';
 	import ReportFilters from '$lib/components/ReportFilters.svelte';
-	import { formatCurrency } from '$lib/utils.client';
-	import type { PageData } from './$types';
+	import { formatCurrency } from '$lib/utils/utils.client';
 	import { onMount } from 'svelte';
 
 	let { data } = $props();
@@ -20,7 +19,7 @@
 
 	let selectedAccounts = $state(data.selectedAccounts);
 	let selectedAccountDetails = $derived(
-		data.accounts.filter(account => selectedAccounts.includes(account.id))
+		data.accounts.filter((account) => selectedAccounts.includes(account.id))
 	);
 
 	let currentPage = $state(data.pagination.currentPage);
@@ -28,15 +27,16 @@
 
 	let filteredAccounts = $derived(
 		searchQuery
-			? data.accounts.filter(
-				account => {
-					const search = searchQuery.toLowerCase();
-					return (
-						account.code.toLowerCase().includes(search) ||
-						account.name.toLowerCase().includes(search)
-					) && !selectedAccounts.includes(account.id);
-				}
-			).slice(0, 10) // Limit search results to improve performance
+			? data.accounts
+					.filter((account) => {
+						const search = searchQuery.toLowerCase();
+						return (
+							(account.code.toLowerCase().includes(search) ||
+								account.name.toLowerCase().includes(search)) &&
+							!selectedAccounts.includes(account.id)
+						);
+					})
+					.slice(0, 10) // Limit search results to improve performance
 			: []
 	);
 
@@ -117,7 +117,7 @@
 	}
 
 	function removeAccount(accountId: number) {
-		selectedAccounts = selectedAccounts.filter(id => id !== accountId);
+		selectedAccounts = selectedAccounts.filter((id) => id !== accountId);
 		currentPage = 1; // Reset to first page when filter changes
 	}
 
@@ -156,16 +156,13 @@
 	</div>
 
 	<div class="print:hidden space-y-4">
-		<ReportFilters 
-			dateRange={dateRange}
-			on:change={handleDateRangeChange}
-		/>
-		
+		<ReportFilters {dateRange} on:change={handleDateRangeChange} />
+
 		<div class="form-control w-full">
 			<label class="label" for="account-search">
 				<span class="label-text">Search Accounts</span>
 			</label>
-			
+
 			<div class="relative" bind:this={searchContainer}>
 				<input
 					type="text"
@@ -173,11 +170,13 @@
 					class="input input-bordered w-full"
 					placeholder="Search by account code or name..."
 					bind:value={searchQuery}
-					onfocus={() => showDropdown = true}
+					onfocus={() => (showDropdown = true)}
 				/>
-				
+
 				{#if showDropdown && filteredAccounts.length > 0}
-					<div class="absolute z-50 mt-1 w-full bg-base-100 rounded-lg border shadow-lg max-h-60 overflow-y-auto">
+					<div
+						class="absolute z-50 mt-1 w-full bg-base-100 rounded-lg border shadow-lg max-h-60 overflow-y-auto"
+					>
 						{#each filteredAccounts as account}
 							<button
 								class="w-full px-4 py-2 text-left hover:bg-base-200 flex items-center space-x-2"
@@ -196,10 +195,7 @@
 					{#each selectedAccountDetails as account}
 						<div class="badge badge-lg gap-2">
 							<span class="font-mono">{account.code} - {account.name}</span>
-							<button
-								class="btn btn-ghost btn-xs px-1"
-								onclick={() => removeAccount(account.id)}
-							>
+							<button class="btn btn-ghost btn-xs px-1" onclick={() => removeAccount(account.id)}>
 								✕
 							</button>
 						</div>
@@ -236,7 +232,9 @@
 							<td class="text-right">{formatCurrency(row.changeDebit)}</td>
 							<td class="text-right">{formatCurrency(row.changeCredit)}</td>
 							<td class="text-right">
-								<span class={row.netChange > 0 ? 'text-success' : row.netChange < 0 ? 'text-error' : ''}>
+								<span
+									class={row.netChange > 0 ? 'text-success' : row.netChange < 0 ? 'text-error' : ''}
+								>
 									{formatCurrency(row.netChange)}
 								</span>
 							</td>
@@ -255,8 +253,8 @@
 								class={data.totals.netChange > 0
 									? 'text-success'
 									: data.totals.netChange < 0
-									? 'text-error'
-									: ''}
+										? 'text-error'
+										: ''}
 							>
 								{formatCurrency(data.totals.netChange)}
 							</span>
@@ -268,11 +266,7 @@
 
 			{#if data.pagination.totalPages > 1}
 				<div class="flex justify-center items-center gap-2 mt-4 print:hidden">
-					<button
-						class="btn btn-sm"
-						disabled={currentPage === 1}
-						onclick={() => changePage(1)}
-					>
+					<button class="btn btn-sm" disabled={currentPage === 1} onclick={() => changePage(1)}>
 						«
 					</button>
 					<button
@@ -282,12 +276,12 @@
 					>
 						‹
 					</button>
-					
+
 					<span class="mx-2">
 						Page {currentPage} of {totalPages}
 						({data.pagination.totalItems} items)
 					</span>
-					
+
 					<button
 						class="btn btn-sm"
 						disabled={currentPage === totalPages}

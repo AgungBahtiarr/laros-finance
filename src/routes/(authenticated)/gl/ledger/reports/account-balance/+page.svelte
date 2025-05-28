@@ -2,8 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { browser } from '$app/environment';
 	import ReportFilters from '$lib/components/ReportFilters.svelte';
-	import { formatCurrency, calculatePercentage, calculateChange } from '$lib/utils.client';
-	import type { PageData } from './$types';
+	import { formatCurrency, calculatePercentage, calculateChange } from '$lib/utils/utils.client';
 
 	let { data } = $props();
 
@@ -133,10 +132,7 @@
 						</td>
 						{#if showPercentages}
 							<td class="text-right">
-								{calculatePercentage(
-									Math.abs(account.balance),
-									Math.abs(data.totals.balance)
-								)}
+								{calculatePercentage(Math.abs(account.balance), Math.abs(data.totals.balance))}
 							</td>
 						{/if}
 						{#if compareWithPrevious && data.previousPeriod}
@@ -200,7 +196,9 @@
 								<td class="text-right">100%</td>
 							{/if}
 							<td class="text-right">
-								<span class={change.value > 0 ? 'text-success' : change.value < 0 ? 'text-error' : ''}>
+								<span
+									class={change.value > 0 ? 'text-success' : change.value < 0 ? 'text-error' : ''}
+								>
 									{change.display}
 								</span>
 							</td>
@@ -223,4 +221,4 @@
 			padding: 0.5rem;
 		}
 	}
-</style> 
+</style>

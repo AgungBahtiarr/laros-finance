@@ -1,6 +1,6 @@
 import type { PageServerLoad } from './$types';
-import { getBalanceSheetAccounts } from '../utils.server';
-import type { AccountBalance } from '$lib/types';
+import { getBalanceSheetAccounts } from '$lib/utils/utils.server';
+import type { AccountBalance } from '$lib/utils/types';
 
 interface BalanceSheetData {
 	// Aktiva (Assets)

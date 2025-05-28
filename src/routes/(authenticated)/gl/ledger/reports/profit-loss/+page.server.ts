@@ -1,5 +1,5 @@
 import type { PageServerLoad } from './$types';
-import { getRevenueExpenseAccounts } from '../utils.server';
+import { getRevenueExpenseAccounts } from '$lib/utils/utils.server';
 
 export const load: PageServerLoad = async (event) => {
 	const searchParams = event.url.searchParams;

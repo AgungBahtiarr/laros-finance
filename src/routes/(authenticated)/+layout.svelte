@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { authClient } from '$lib/auth-client';
+	import { authClient } from '$lib/utils/auth-client';
 	import Navbar from '$lib/components/Navbar.svelte';
 	import Sidebar from '$lib/components/Sidebar.svelte';
 	import SignOut from '$lib/components/SignOut.svelte';

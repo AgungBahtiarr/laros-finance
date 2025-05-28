@@ -4,7 +4,7 @@ import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import type * as schema from '$lib/server/db/schema';
 
 // Import session type from your auth library
-import type { Session } from '$lib/auth';
+import type { Session } from '$lib/utils/auth';
 
 declare global {
 	namespace App {

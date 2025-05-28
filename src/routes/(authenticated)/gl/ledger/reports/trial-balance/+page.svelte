@@ -2,8 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { browser } from '$app/environment';
 	import ReportFilters from '$lib/components/ReportFilters.svelte';
-	import { formatCurrency, calculatePercentage, calculateChange } from '$lib/utils.client';
-	import type { PageData } from './$types';
+	import { formatCurrency, calculatePercentage, calculateChange } from '$lib/utils/utils.client';
 
 	let { data } = $props();
 
@@ -15,7 +14,6 @@
 	let compareWithPrevious = $state(false);
 	let showPercentages = $state(false);
 
-	// Initialize values from URL params on client-side only
 	if (browser) {
 		const searchParams = new URLSearchParams(window.location.search);
 		dateRange = {

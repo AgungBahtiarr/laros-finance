@@ -1,4 +1,4 @@
-import { auth } from '$lib/auth';
+import { auth } from '$lib/utils/auth';
 import { type Handle } from '@sveltejs/kit';
 import { svelteKitHandler } from 'better-auth/svelte-kit';
 import { db } from '$lib/server/db';

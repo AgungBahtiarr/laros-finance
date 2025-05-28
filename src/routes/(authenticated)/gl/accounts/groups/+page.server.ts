@@ -1,8 +1,8 @@
 import { db } from '$lib/server/db';
-import { accountGroup, accountType } from '$lib/server/db/schema';
+import { accountGroup } from '$lib/server/db/schema';
 import type { Actions, PageServerLoad } from './$types';
 import { fail } from '@sveltejs/kit';
-import { eq, and, isNull } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 
 export const load: PageServerLoad = async () => {
 	try {

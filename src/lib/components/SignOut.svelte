@@ -1,7 +1,7 @@
 <script>
 	import { goto } from '$app/navigation';
-	import { authClient } from '$lib/auth-client';
-    
+	import { authClient } from '$lib/utils/auth-client';
+
 	const logout = () => {
 		authClient.signOut();
 		console.log('berhasil keluar');

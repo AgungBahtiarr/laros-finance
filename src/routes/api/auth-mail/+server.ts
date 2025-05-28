@@ -1,4 +1,4 @@
-import { verifyMailCredentials } from '$lib/auth';
+import { verifyMailCredentials } from '$lib/utils/auth';
 import { json, error } from '@sveltejs/kit';
 
 export async function POST({ request }) {

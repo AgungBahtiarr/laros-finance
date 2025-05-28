@@ -3,7 +3,7 @@
 	import { goto } from '$app/navigation';
 	import { browser } from '$app/environment';
 	import ReportFilters from '$lib/components/ReportFilters.svelte';
-	import { formatCurrency, calculatePercentage, calculateChange } from '$lib/utils.client';
+	import { formatCurrency, calculatePercentage, calculateChange } from '$lib/utils/utils.client';
 	import type { PageData } from './$types';
 
 	let { data } = $props<{ data: PageData }>();
