@@ -7,7 +7,7 @@
 
 	let { data } = $props();
 	let searchTerm = $state('');
-	let showInactive = $state(true);
+	let showInactive = $state(false);
 	let expandedAccounts = $state(new Set<number>());
 
 	// Form for creating/editing account

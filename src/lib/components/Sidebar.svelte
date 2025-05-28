@@ -59,7 +59,7 @@
 				},
 				{
 					name: 'Report Analysis',
-					href: '/gl/ledger/reports'
+					href: '/gl/ledger/reports/profit-loss'
 				}
 			]
 		}

@@ -1,4 +1,3 @@
-<!-- src/routes/(authenticated)/gl/ledger/reports/+layout.svelte -->
 <script lang="ts">
 	let { children } = $props();
 </script>
