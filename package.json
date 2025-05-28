@@ -20,7 +20,7 @@
 		"db:seed": "npx tsx src/lib/server/db/seed.ts",
 		"db:seed:gl": "npx tsx src/lib/server/db/gl-seed.ts",
 		"db:seed:coa": "npx tsx src/lib/server/db/chart-of-accounts-seed.ts && npx tsx src/lib/server/db/chart-of-accounts-seed-child.ts",
-		"db:seed:all": "npm run db:seed && npm run db:seed:coa && npm run db:seed:gl"
+		"db:seed:all": "bun run db:seed && bun run db:seed:coa && bun run db:seed:gl"
 	},
 	"devDependencies": {
 		"@sveltejs/adapter-node": "^5.2.12",
