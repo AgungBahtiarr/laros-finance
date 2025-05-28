@@ -44,12 +44,14 @@
 	},
 	"dependencies": {
 		"@lucide/svelte": "^0.503.0",
+		"@types/imapflow": "^1.0.22",
 		"better-auth": "^1.2.8",
 		"better-sqlite3": "^11.10.0",
 		"daisyui": "^5.0.37",
 		"dotenv": "^16.5.0",
 		"drizzle-orm": "^0.43.1",
 		"drizzle-seed": "^0.3.1",
+		"imapflow": "^1.0.187",
 		"pg": "^8.16.0"
 	},
 	"trustedDependencies": [
