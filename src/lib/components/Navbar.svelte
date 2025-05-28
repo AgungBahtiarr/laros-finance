@@ -35,7 +35,8 @@
 			<label for="user-menu" tabindex="-1" class="btn btn-ghost btn-circle avatar">
 				<div class="w-10 rounded-full ring-1 ring-gray-200">
 					<img
-						src={user?.image || 'https://ui-avatars.com/api/?name=' + user?.name}
+						src={user?.image ||
+							'https://ui-avatars.com/api/?background=random&color=random&name=' + user?.name}
 						alt={user?.name}
 					/>
 				</div>
@@ -45,7 +46,6 @@
 				tabindex="-1"
 				class="menu dropdown-content mt-3 w-52 rounded-lg border bg-white p-2 shadow-lg"
 			>
-				
 				<li class="text-gray-700">{@render children()}</li>
 			</ul>
 		</div>
