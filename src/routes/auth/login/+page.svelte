@@ -3,32 +3,93 @@
 	import { authClient } from '$lib/auth-client';
 	import { onMount } from 'svelte';
 
-	onMount(async () => {
-		const session = await authClient.getSession();
-		if (session.data) {
-			goto('/dashboard');
-		}
-	});
-
-	let username = $state('');
+	let email = $state('');
 	let password = $state('');
 	let error = $state('');
 	let isLoading = $state(false);
 
+	onMount(async () => {
+		try {
+			const session = await authClient.getSession();
+			if (session.data) {
+				goto('/dashboard');
+			}
+		} catch (err) {
+			console.error('Error checking session:', err);
+		}
+	});
+
+	function extractUsername(email) {
+		return email.split('@')[0] || email;
+	}
+
+	async function checkMailAPI(email, password) {
+		try {
+			const formData = new FormData();
+			formData.append('email', email);
+			formData.append('password', password);
+
+			const response = await fetch(`${import.meta.env.BASE_URL}/api/auth-mail`, {
+				method: 'POST',
+				body: formData
+			});
+
+			return response.status === 200;
+		} catch (err) {
+			return false;
+		}
+	}
+
+	async function attemptSignUp(email, password, username) {
+		try {
+			const user = await authClient.signUp.email({
+				name: username,
+				email: email,
+				username: username,
+				displayUsername: username,
+				password: password
+			});
+
+			return { success: !user.error, error: user.error };
+		} catch (err) {
+			return { success: false, error: err };
+		}
+	}
+
+	async function attemptSignIn(email, password) {
+		try {
+			const result = await authClient.signIn.email({ email, password });
+			return { success: true, result };
+		} catch (err) {
+			return { success: false, error: err };
+		}
+	}
+
 	async function handleLogin(event) {
 		event.preventDefault();
+
 		isLoading = true;
 		error = '';
 
 		try {
-			const result = await authClient.signIn.username({ username, password });
-			if (!result.error) {
+			const username = extractUsername(email);
+
+			const [isMailValid, signUpResult] = await Promise.all([
+				checkMailAPI(email, password),
+				attemptSignUp(email, password, username)
+			]);
+
+			console.log('Sign up result:', signUpResult);
+
+			const signInResult = await attemptSignIn(email, password);
+
+			if (signInResult.success) {
 				goto('/dashboard');
 			} else {
-				error = result.error.message || 'Login gagal. Periksa username atau password.';
+				error = signInResult.error?.message || 'Login gagal. Periksa email atau password.';
 			}
 		} catch (err) {
-			error = err.message || 'Terjadi kesalahan saat login.';
+			error = 'Terjadi kesalahan. Silakan coba lagi.';
 		} finally {
 			isLoading = false;
 		}
@@ -73,17 +134,17 @@
 
 				<form onsubmit={handleLogin} class="space-y-4">
 					<div class="form-control">
-						<label class="label" for="username">
-							<span class="label-text font-medium">Username</span>
+						<label class="label" for="email">
+							<span class="label-text font-medium">email</span>
 						</label>
 						<div class="relative">
 							<input
 								type="text"
-								id="username"
-								name="username"
-								placeholder="Masukkan username"
+								id="email"
+								name="email"
+								placeholder="Masukkan email"
 								class="input input-bordered w-full"
-								bind:value={username}
+								bind:value={email}
 								required
 							/>
 						</div>
