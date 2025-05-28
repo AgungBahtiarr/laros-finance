@@ -1,6 +1,19 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import { Home, FileText, Box, ChevronDown, Package, CreditCard, Landmark } from '@lucide/svelte';
+	import {
+		Home,
+		FileText,
+		Box,
+		ChevronDown,
+		Package,
+		CreditCard,
+		Landmark,
+		Tag,
+		Users,
+		BarChart3,
+		Calendar,
+		BookOpen
+	} from '@lucide/svelte';
 
 	const navigation = [
 		{
@@ -32,15 +45,18 @@
 			submenu: [
 				{
 					name: 'Account Types',
-					href: '/gl/accounts/types'
+					href: '/gl/accounts/types',
+					icon: Tag
 				},
 				{
 					name: 'Account Groups',
-					href: '/gl/accounts/groups'
+					href: '/gl/accounts/groups',
+					icon: Users
 				},
 				{
 					name: 'Account List',
-					href: '/gl/accounts/list'
+					href: '/gl/accounts/list',
+					icon: FileText
 				}
 			]
 		},
@@ -51,15 +67,18 @@
 			submenu: [
 				{
 					name: 'Periods',
-					href: '/gl/ledger/periods'
+					href: '/gl/ledger/periods',
+					icon: Calendar
 				},
 				{
 					name: 'Journals',
-					href: '/gl/ledger/journals'
+					href: '/gl/ledger/journals',
+					icon: BookOpen
 				},
 				{
 					name: 'Report Analysis',
-					href: '/gl/ledger/reports/profit-loss'
+					href: '/gl/ledger/reports/profit-loss',
+					icon: BarChart3
 				}
 			]
 		}
@@ -93,7 +112,7 @@
 		<nav class="space-y-1">
 			{#each navigation as item}
 				{#if item.submenu}
-					<details class="collapse">
+					<details class="collapse" open>
 						<summary
 							class={`flex items-center justify-between rounded-lg px-3 py-2 text-gray-600 transition-all hover:bg-gray-50 ${
 								isActive(item) ? 'bg-primary/10 text-primary font-medium' : 'hover:text-gray-900'
@@ -110,7 +129,7 @@
 						</summary>
 						{#each item.submenu as menu}
 							{#if menu.subsubmenu}
-								<details class="collapse pl-4">
+								<details class="collapse pl-4" open>
 									<summary
 										class={`flex items-center justify-between rounded-lg px-3 py-2 text-gray-600 transition-all hover:bg-gray-50 ${
 											page.url.pathname.startsWith(menu.href)
