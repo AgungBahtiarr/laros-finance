@@ -1,7 +1,6 @@
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import * as schema from './schema';
-import { authClient } from '$lib/auth-client-seed';
 import 'dotenv/config';
 
 const pool = new Pool({
@@ -57,15 +56,6 @@ async function main() {
 		])
 		.onConflictDoNothing();
 	console.log(metodePenyusutanKomersial);
-
-	const user = await authClient.signUp.email({
-		name: 'Admin',
-		email: 'admin@laros.ae',
-		username: 'admin',
-		displayUsername: 'admin',
-		password: 'Larosndo12..'
-	});
-	console.log(user);
 }
 
 main();
