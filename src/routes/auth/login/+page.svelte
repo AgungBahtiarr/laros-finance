@@ -2,6 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { authClient } from '$lib/auth-client';
 	import { onMount } from 'svelte';
+	import { PUBLIC_BASE_URL } from '$env/static/public';
 
 	let email = $state('');
 	let password = $state('');
@@ -29,7 +30,7 @@
 			formData.append('email', email);
 			formData.append('password', password);
 
-			const response = await fetch(`${import.meta.env.BASE_URL}/api/auth-mail`, {
+			const response = await fetch(`${PUBLIC_BASE_URL}/api/auth-mail`, {
 				method: 'POST',
 				body: formData
 			});
@@ -74,16 +75,18 @@
 		try {
 			const username = extractUsername(email);
 
-			const [isMailValid, signUpResult] = await Promise.all([
-				checkMailAPI(email, password),
-				attemptSignUp(email, password, username)
-			]);
+			const [isMailValid] = await Promise.all([checkMailAPI(email, password)]);
 
-			console.log('Sign up result:', signUpResult);
+			if (isMailValid) {
+				let signUpResult = await attemptSignUp(email, password, username);
+			} else {
+				error = 'Terjadi kesalahan. Silakan coba lagi.';
+				isLoading = false;
+			}
 
 			const signInResult = await attemptSignIn(email, password);
 
-			if (signInResult.success) {
+			if ((isMailValid && signInResult.success) || (!isMailValid && signInResult.success)) {
 				goto('/dashboard');
 			} else {
 				error = signInResult.error?.message || 'Login gagal. Periksa email atau password.';
