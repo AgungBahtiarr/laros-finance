@@ -35,7 +35,7 @@ const ACCOUNT_BALANCE_CODES = [
 	// Hutang
 	/^201\d+/, // Hutang Usaha
 	/^202\d+/, // Hutang Lainnya
-	/^210\d+/, // Hutang Bank
+    /^210(?![2-5])\d+/,
 	/^211\d+/, // Hutang Gaji
 	/^212\d+/, // Hutang BPJS
 

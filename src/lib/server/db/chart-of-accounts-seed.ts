@@ -360,13 +360,6 @@ async function seedChartOfAccounts() {
 			isActive: true
 		},
 		{
-			code: '2207',
-			name: 'Hutang PPh Pasal 29',
-			groupName: 'Pajak Yang Masih Harus Dibayar',
-			level: 1,
-			isActive: true
-		},
-		{
 			code: '3001',
 			name: 'Modal Saham Disetor',
 			groupName: 'Modal',
