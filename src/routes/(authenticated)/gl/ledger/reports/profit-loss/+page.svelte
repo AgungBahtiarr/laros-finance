@@ -3,8 +3,10 @@
 	import { browser } from '$app/environment';
 	import ReportFilters from '$lib/components/ReportFilters.svelte';
 	import { formatCurrency, calculatePercentage, calculateChange } from '$lib/utils/utils.client';
+	import { exportToPdf, exportToExcel } from '$lib/utils/export';
+	import type { PageData } from './$types';
 
-	let { data } = $props();
+	let { data } = $props<{ data: PageData }>();
 	console.log(data);
 
 	let compareWithPrevious = $state(false);
@@ -43,23 +45,79 @@
 <div class="flex flex-col gap-6">
 	<div class="flex items-center justify-between">
 		<h1 class="text-2xl font-bold">Profit & Loss Statement</h1>
-		<button class="btn btn-primary" onclick={() => window.print()}>
-			<svg
-				xmlns="http://www.w3.org/2000/svg"
-				class="mr-2 h-5 w-5"
-				viewBox="0 0 24 24"
-				fill="none"
-				stroke="currentColor"
+		<div class="flex gap-2">
+			<button class="btn btn-primary" onclick={() => window.print()}>
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					class="mr-2 h-5 w-5"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+				>
+					<path
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						stroke-width="2"
+						d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"
+					/>
+				</svg>
+				Print
+			</button>
+			<button
+				class="btn btn-primary"
+				onclick={() => {
+					const btn = event?.target as HTMLButtonElement;
+					const originalText = btn.innerHTML;
+					btn.innerHTML = '<span class="loading loading-spinner"></span> Exporting...';
+					exportToPdf(data, dateRange, showPercentages, compareWithPrevious)
+						.catch((error) => console.error('Error exporting to PDF:', error))
+						.finally(() => (btn.innerHTML = originalText));
+				}}
 			>
-				<path
-					stroke-linecap="round"
-					stroke-linejoin="round"
-					stroke-width="2"
-					d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"
-				/>
-			</svg>
-			Print
-		</button>
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					class="mr-2 h-5 w-5"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+				>
+					<path
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						stroke-width="2"
+						d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
+					/>
+				</svg>
+				PDF
+			</button>
+			<button
+				class="btn btn-primary"
+				onclick={() => {
+					const btn = event?.target as HTMLButtonElement;
+					const originalText = btn.innerHTML;
+					btn.innerHTML = '<span class="loading loading-spinner"></span> Exporting...';
+					exportToExcel(data, dateRange, showPercentages, compareWithPrevious)
+						.catch((error) => console.error('Error exporting to Excel:', error))
+						.finally(() => (btn.innerHTML = originalText));
+				}}
+			>
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					class="mr-2 h-5 w-5"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+				>
+					<path
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						stroke-width="2"
+						d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
+					/>
+				</svg>
+				Excel
+			</button>
+		</div>
 	</div>
 
 	<div class="print:hidden">
