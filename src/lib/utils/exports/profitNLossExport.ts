@@ -1,7 +1,7 @@
 import type { TDocumentDefinitions } from 'pdfmake/interfaces';
 import type * as pdfMakeType from 'pdfmake/build/pdfmake';
 import type { WorkBook } from 'xlsx';
-import { formatCurrency } from './utils.client';
+import { formatCurrency } from '../utils.client';
 import { browser } from '$app/environment';
 
 // Dynamically import pdfmake and fonts only in browser

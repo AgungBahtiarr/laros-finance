@@ -3,11 +3,10 @@
 	import { browser } from '$app/environment';
 	import ReportFilters from '$lib/components/ReportFilters.svelte';
 	import { formatCurrency, calculatePercentage, calculateChange } from '$lib/utils/utils.client';
-	import { exportToPdf, exportToExcel } from '$lib/utils/export';
+	import { exportToPdf, exportToExcel } from '$lib/utils/exports/profitNLossExport';
 	import type { PageData } from './$types';
 
 	let { data } = $props<{ data: PageData }>();
-	console.log(data);
 
 	let compareWithPrevious = $state(false);
 	let showPercentages = $state(false);
