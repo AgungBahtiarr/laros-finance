@@ -237,7 +237,7 @@
 	</div>
 
 	<div class="print:hidden space-y-4">
-		<ReportFilters {dateRange} on:change={handleDateRangeChange} />
+		<ReportFilters {dateRange} onchange={handleDateRangeChange} />
 
 		<div class="form-control w-full">
 			<label class="label" for="account-search">
