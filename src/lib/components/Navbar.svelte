@@ -26,7 +26,11 @@
 	<div class="flex flex-1 items-center gap-4">
 		<h1 class="text-primary text-lg font-semibold">
 			{page.url.pathname.split('/')[1].charAt(0).toUpperCase() +
-				page.url.pathname.split('/')[1].slice(1)}
+				page.url.pathname.split('/')[1].slice(1) ==
+			'Gl'
+				? 'General Ledger'
+				: page.url.pathname.split('/')[1].charAt(0).toUpperCase() +
+					page.url.pathname.split('/')[1].slice(1)}
 		</h1>
 	</div>
 
