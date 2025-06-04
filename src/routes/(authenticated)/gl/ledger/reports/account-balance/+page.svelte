@@ -123,7 +123,7 @@
 	<div class="flex items-center justify-between">
 		<h1 class="text-2xl font-bold">Account Balance</h1>
 		<div class="flex gap-2">
-			<button class="btn btn-primary" on:click={handleExcelExport}>
+			<button class="btn btn-primary" onclick={handleExcelExport}>
 				<svg
 					xmlns="http://www.w3.org/2000/svg"
 					class="mr-2 h-5 w-5"
@@ -140,7 +140,7 @@
 				</svg>
 				Export to Excel
 			</button>
-			<button class="btn btn-primary" on:click={handlePdfExport}>
+			<button class="btn btn-primary" onclick={handlePdfExport}>
 				<svg
 					xmlns="http://www.w3.org/2000/svg"
 					class="mr-2 h-5 w-5"
@@ -157,7 +157,7 @@
 				</svg>
 				Export to PDF
 			</button>
-			<button class="btn btn-primary" on:click={() => window.print()}>
+			<button class="btn btn-primary" onclick={() => window.print()}>
 				<svg
 					xmlns="http://www.w3.org/2000/svg"
 					class="mr-2 h-5 w-5"
