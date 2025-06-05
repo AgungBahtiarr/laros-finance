@@ -14,7 +14,7 @@
 		RotateCcw,
 		Trash2,
 		AlertTriangle,
-		ChevronUp,
+		ChevronRight,
 		ChevronDown,
 		Eye
 	} from '@lucide/svelte';
@@ -121,6 +121,7 @@
 		} else {
 			expandedEntries.add(entryId);
 		}
+		expandedEntries = new Set(expandedEntries);
 	}
 
 	// Open create form
@@ -340,13 +341,13 @@
 						<tr class="hover">
 							<td>
 								<button
-									class="flex items-center gap-1 font-mono"
+									class="btn btn-ghost btn-xs mr-2"
 									onclick={() => toggleExpand(entry.id)}
 								>
 									{#if expandedEntries.has(entry.id)}
-										<ChevronUp class="h-4 w-4" />
-									{:else}
 										<ChevronDown class="h-4 w-4" />
+									{:else}
+										<ChevronRight class="h-4 w-4" />
 									{/if}
 									{entry.number}
 								</button>
