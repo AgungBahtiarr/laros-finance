@@ -3,7 +3,7 @@ import type { PageServerLoad } from './$types';
 import type { Actions } from './$types';
 import { error, fail } from '@sveltejs/kit';
 import { journalEntry, journalEntryLine, chartOfAccount, fiscalPeriod, user } from '$lib/server/db/schema';
-import { eq, and, desc, asc, gte, lte, like, sql } from 'drizzle-orm';
+import { eq, and, desc, asc, gte, lte, sql } from 'drizzle-orm';
 
 export const load: PageServerLoad = async ({ url, locals }) => {
 	try {
@@ -176,18 +176,19 @@ export const actions: Actions = {
 				});
 			}
 
-			// Start a transaction
-			// Create journal entry
+			// Create journal entry with POSTED status directly
 			const result = await db.insert(journalEntry).values({
 				number,
 				date: new Date(date),
 				description,
 				reference,
 				fiscalPeriodId,
-				status: 'DRAFT',
+				status: 'POSTED', // Auto post the journal entry
 				totalDebit,
 				totalCredit,
-				createdBy: locals.user.id
+				createdBy: locals.user.id,
+				postedAt: new Date(), // Set posted date
+				postedBy: locals.user.id // Set posted by
 			}).returning({ id: journalEntry.id });
 
 			if (!result || result.length === 0) {
@@ -218,114 +219,7 @@ export const actions: Actions = {
 		}
 	},
 
-	post: async ({ request, locals }) => {
-		if (!locals.user) {
-			return fail(401, { error: 'You must be logged in to post journal entries' });
-		}
 
-		const formData = await request.formData();
-		const journalEntryId = parseInt(formData.get('id') as string);
-
-		try {
-			// Update journal entry status to POSTED
-			await db.update(journalEntry)
-				.set({
-					status: 'POSTED',
-					postedAt: new Date(),
-					postedBy: locals.user.id,
-					updatedAt: new Date()
-				})
-				.where(eq(journalEntry.id, journalEntryId));
-
-			// TODO: Update account balances
-
-			return { success: true };
-		} catch (err) {
-			console.error('Error posting journal entry:', err);
-			return fail(500, { error: 'Failed to post journal entry' });
-		}
-	},
-
-	reverse: async ({ request, locals }) => {
-		if (!locals.user) {
-			return fail(401, { error: 'You must be logged in to reverse journal entries' });
-		}
-
-		const formData = await request.formData();
-		const journalEntryId = parseInt(formData.get('id') as string);
-
-		try {
-			// Get the journal entry to reverse
-			const entryToReverse = await db.query.journalEntry.findFirst({
-				where: eq(journalEntry.id, journalEntryId),
-				with: {
-					lines: true,
-					fiscalPeriod: true
-				}
-			});
-
-			if (!entryToReverse) {
-				return fail(404, { error: 'Journal entry not found' });
-			}
-
-			if (entryToReverse.status !== 'POSTED') {
-				return fail(400, { error: 'Only posted journal entries can be reversed' });
-			}
-
-			// Create a new reversing entry
-			const reversalNumber = `R-${entryToReverse.number}`;
-			const reversalDate = new Date();
-
-			// Update the original entry status
-			await db.update(journalEntry)
-				.set({
-					status: 'REVERSED',
-					updatedAt: new Date()
-				})
-				.where(eq(journalEntry.id, journalEntryId));
-
-			// Create reversal entry
-			const result = await db.insert(journalEntry).values({
-				number: reversalNumber,
-				date: reversalDate,
-				description: `Rever
-sal of ${entryToReverse.number}: ${entryToReverse.description}`,
-				reference: entryToReverse.reference,
-				fiscalPeriodId: entryToReverse.fiscalPeriodId,
-				status: 'POSTED',
-				totalDebit: entryToReverse.totalCredit,
-				totalCredit: entryToReverse.totalDebit,
-				postedAt: new Date(),
-				postedBy: locals.user.id,
-				createdBy: locals.user.id
-			}).returning({ id: journalEntry.id });
-			
-			if (!result || result.length === 0) {
-				throw new Error('Failed to create reversal entry');
-			}
-			
-			const reversalEntryId = result[0].id;
-			
-			// Create reversal lines (with debits/credits swapped)
-			for (const line of entryToReverse.lines) {
-				await db.insert(journalEntryLine).values({
-					journalEntryId: reversalEntryId,
-					accountId: line.accountId,
-					description: `Reversal: ${line.description || ''}`,
-					debitAmount: line.creditAmount,
-					creditAmount: line.debitAmount,
-					lineNumber: line.lineNumber
-				});
-			}
-			
-			// TODO: Update account balances
-			
-			return { success: true, reversalEntryId };
-		} catch (err) {
-			console.error('Error reversing journal entry:', err);
-			return fail(500, { error: 'Failed to reverse journal entry' });
-		}
-	},
 	
 	delete: async ({ request }) => {
 		const formData = await request.formData();
@@ -341,10 +235,6 @@ sal of ${entryToReverse.number}: ${entryToReverse.description}`,
 				return fail(404, { error: 'Journal entry not found' });
 			}
 			
-			if (entryToDelete.status !== 'DRAFT') {
-				return fail(400, { error: 'Only draft journal entries can be deleted' });
-			}
-			
 			// Delete journal lines first
 			await db.delete(journalEntryLine)
 				.where(eq(journalEntryLine.journalEntryId, journalEntryId));
@@ -357,6 +247,111 @@ sal of ${entryToReverse.number}: ${entryToReverse.description}`,
 		} catch (err) {
 			console.error('Error deleting journal entry:', err);
 			return fail(500, { error: 'Failed to delete journal entry' });
+		}
+	},
+
+	// Add update action for editing journal entries
+	update: async ({ request, locals }) => {
+		if (!locals.user) {
+			return fail(401, { error: 'You must be logged in to update journal entries' });
+		}
+
+		const formData = await request.formData();
+		const journalEntryId = parseInt(formData.get('id') as string);
+		const description = formData.get('description') as string;
+		const reference = formData.get('reference') as string;
+		const date = formData.get('date') as string;
+
+		// Parse journal lines
+		const lineCount = parseInt(formData.get('lineCount') as string);
+		const journalLines = [];
+
+		let totalDebit = 0;
+		let totalCredit = 0;
+
+		for (let i = 0; i < lineCount; i++) {
+			const accountId = parseInt(formData.get(`lines[${i}].accountId`) as string);
+			const lineDescription = formData.get(`lines[${i}].description`) as string;
+			const debitAmount = parseFloat(formData.get(`lines[${i}].debitAmount`) as string || '0');
+			const creditAmount = parseFloat(formData.get(`lines[${i}].creditAmount`) as string || '0');
+
+			if (accountId && (debitAmount > 0 || creditAmount > 0)) {
+				journalLines.push({
+					accountId,
+					description: lineDescription,
+					debitAmount,
+					creditAmount,
+					lineNumber: i + 1
+				});
+
+				totalDebit += debitAmount;
+				totalCredit += creditAmount;
+			}
+		}
+
+		// Validate the entry
+		if (journalLines.length < 2) {
+			return fail(400, {
+				error: 'Journal entry must have at least two lines',
+				values: Object.fromEntries(formData)
+			});
+		}
+
+		// Check if total debits equal total credits
+		if (Math.abs(totalDebit - totalCredit) > 0.01) {
+			return fail(400, {
+				error: 'Total debits must equal total credits',
+				values: Object.fromEntries(formData),
+				totalDebit,
+				totalCredit
+			});
+		}
+
+		try {
+			// Get the journal entry
+			const existingEntry = await db.query.journalEntry.findFirst({
+				where: eq(journalEntry.id, journalEntryId)
+			});
+			
+			if (!existingEntry) {
+				return fail(404, { error: 'Journal entry not found' });
+			}
+
+			// Update journal entry
+			await db.update(journalEntry)
+				.set({
+					date: new Date(date),
+					description,
+					reference,
+					totalDebit,
+					totalCredit,
+					updatedAt: new Date()
+				})
+				.where(eq(journalEntry.id, journalEntryId));
+
+			// Delete existing lines
+			await db.delete(journalEntryLine)
+				.where(eq(journalEntryLine.journalEntryId, journalEntryId));
+
+			// Create new journal lines
+			for (const line of journalLines) {
+				await db.insert(journalEntryLine).values({
+					journalEntryId,
+					accountId: line.accountId,
+					description: line.description,
+					debitAmount: line.debitAmount,
+					creditAmount: line.creditAmount,
+					lineNumber: line.lineNumber
+				});
+			}
+
+			return { success: true, journalEntryId };
+		} catch (err) {
+			console.error('Error updating journal entry:', err);
+			return fail(500, {
+				error: 'Failed to update journal entry',
+				values: Object.fromEntries(formData)
+			});
 		}
 	}
 };

@@ -16,13 +16,16 @@
 		AlertTriangle,
 		ChevronRight,
 		ChevronDown,
-		Eye
+		Eye,
+		Save
 	} from '@lucide/svelte';
 
 	let { data } = $props();
 	let showFilters = $state(false);
 	let showCreateForm = $state(false);
+	let showEditForm = $state(false);
 	let expandedEntries = $state(new Set<number>());
+	let editingEntry = $state(null);
 
 	// Form state
 	let formData = $state({
@@ -74,12 +77,8 @@
 	// Get color for status badge
 	function getStatusColor(status) {
 		switch (status) {
-			case 'DRAFT':
-				return 'badge-warning';
 			case 'POSTED':
 				return 'badge-success';
-			case 'REVERSED':
-				return 'badge-error';
 			default:
 				return 'badge-ghost';
 		}
@@ -143,6 +142,35 @@
 	// Close create form
 	function closeCreateForm() {
 		showCreateForm = false;
+	}
+
+	// Open edit form
+	function openEditForm(entry) {
+		editingEntry = entry.id;
+		
+		// Prepare form data with existing entry values
+		formData = {
+			id: entry.id,
+			number: entry.number,
+			date: new Date(entry.date).toISOString().split('T')[0],
+			description: entry.description,
+			reference: entry.reference || '',
+			fiscalPeriodId: entry.fiscalPeriodId.toString(),
+			lines: entry.lines.map(line => ({
+				accountId: line.accountId.toString(),
+				description: line.description || '',
+				debitAmount: line.debitAmount > 0 ? line.debitAmount.toString() : '',
+				creditAmount: line.creditAmount > 0 ? line.creditAmount.toString() : ''
+			}))
+		};
+		
+		showEditForm = true;
+	}
+
+	// Close edit form
+	function closeEditForm() {
+		showEditForm = false;
+		editingEntry = null;
 	}
 
 	// Apply filters
@@ -265,9 +293,7 @@
 						</label>
 						<select id="status" class="select select-bordered w-full" bind:value={status}>
 							<option value="">All Statuses</option>
-							<option value="DRAFT">Draft</option>
 							<option value="POSTED">Posted</option>
-							<option value="REVERSED">Reversed</option>
 						</select>
 					</div>
 
@@ -368,58 +394,28 @@
 							</td>
 							<td>
 								<div class="flex justify-center gap-1">
-									{#if entry.status === 'DRAFT'}
-										<form method="POST" action="?/post" use:enhance={handleAction}>
-											<input type="hidden" name="id" value={entry.id} />
-											<button
-												type="submit"
-												class="btn btn-ghost btn-sm text-success"
-												title="Post Journal Entry"
-												onclick={(e) => {
-													if (!confirm('Are you sure you want to post this journal entry?')) {
-														e.preventDefault();
-													}
-												}}
-											>
-												<CheckCircle class="h-4 w-4" />
-											</button>
-										</form>
-										<form method="POST" action="?/delete" use:enhance={handleAction}>
-											<input type="hidden" name="id" value={entry.id} />
-											<button
-												type="submit"
-												class="btn btn-ghost btn-sm text-error"
-												title="Delete Journal Entry"
-												onclick={(e) => {
-													if (!confirm('Are you sure you want to delete this journal entry?')) {
-														e.preventDefault();
-													}
-												}}
-											>
-												<Trash2 class="h-4 w-4" />
-											</button>
-										</form>
-									{:else if entry.status === 'POSTED'}
-										<form method="POST" action="?/reverse" use:enhance={handleAction}>
-											<input type="hidden" name="id" value={entry.id} />
-											<button
-												type="submit"
-												class="btn btn-ghost btn-sm"
-												title="Reverse Journal Entry"
-												onclick={(e) => {
-													if (!confirm('Are you sure you want to reverse this journal entry?')) {
-														e.preventDefault();
-													}
-												}}
-											>
-												<RotateCcw class="h-4 w-4" />
-											</button>
-										</form>
-									{:else}
-										<button class="btn btn-ghost btn-sm" disabled>
-											<XCircle class="h-4 w-4" />
+									<button
+										class="btn btn-ghost btn-sm"
+										title="Edit Journal Entry"
+										onclick={() => openEditForm(entry)}
+									>
+										<Edit class="h-4 w-4" />
+									</button>
+									<form method="POST" action="?/delete" use:enhance={handleAction}>
+										<input type="hidden" name="id" value={entry.id} />
+										<button
+											type="submit"
+											class="btn btn-ghost btn-sm text-error"
+											title="Delete Journal Entry"
+											onclick={(e) => {
+												if (!confirm('Are you sure you want to delete this journal entry?')) {
+													e.preventDefault();
+												}
+											}}
+										>
+											<Trash2 class="h-4 w-4" />
 										</button>
-									{/if}
+									</form>
 								</div>
 							</td>
 						</tr>
@@ -725,5 +721,206 @@
 			</form>
 		</div>
 		<div class="modal-backdrop" onclick={closeCreateForm}></div>
+	</div>
+{/if}
+
+<!-- Edit Journal Entry Modal -->
+{#if showEditForm}
+	<div class="modal modal-open">
+		<div class="modal-box w-11/12 max-w-5xl">
+			<h3 class="text-lg font-bold">Edit Journal Entry</h3>
+
+			<form method="POST" action="?/update" use:enhance={handleSubmit} class="mt-4">
+				<input type="hidden" name="id" value={formData.id} />
+				
+				<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+					<div class="form-control w-full">
+						<label class="label" for="number">
+							<span class="label-text">Entry Number</span>
+						</label>
+						<input
+							type="text"
+							id="number"
+							name="number"
+							class="input input-bordered w-full"
+							value={formData.number}
+							required
+							readonly
+						/>
+					</div>
+
+					<div class="form-control w-full">
+						<label class="label" for="date">
+							<span class="label-text">Date</span>
+						</label>
+						<input
+							type="date"
+							id="date"
+							name="date"
+							class="input input-bordered w-full"
+							bind:value={formData.date}
+							required
+						/>
+					</div>
+
+					<div class="form-control w-full">
+						<label class="label" for="description">
+							<span class="label-text">Description</span>
+						</label>
+						<input
+							type="text"
+							id="description"
+							name="description"
+							class="input input-bordered w-full"
+							placeholder="Journal entry description"
+							bind:value={formData.description}
+							required
+						/>
+					</div>
+
+					<div class="form-control w-full">
+						<label class="label" for="reference">
+							<span class="label-text">Reference (Optional)</span>
+						</label>
+						<input
+							type="text"
+							id="reference"
+							name="reference"
+							class="input input-bordered w-full"
+							placeholder="Invoice number, etc."
+							bind:value={formData.reference}
+						/>
+					</div>
+				</div>
+
+				<!-- Journal Lines -->
+				<div class="mt-6">
+					<div class="mb-2 flex items-center justify-between">
+						<h4 class="font-medium">Journal Lines</h4>
+						<button type="button" class="btn btn-outline btn-sm" onclick={addJournalLine}>
+							Add Line
+						</button>
+					</div>
+
+					<div class="overflow-x-auto">
+						<table class="table">
+							<thead>
+								<tr>
+									<th class="w-10">#</th>
+									<th>Account</th>
+									<th>Description</th>
+									<th class="w-32">Debit</th>
+									<th class="w-32">Credit</th>
+									<th class="w-10"></th>
+								</tr>
+							</thead>
+							<tbody>
+								{#each formData.lines as line, index}
+									<tr>
+										<td>{index + 1}</td>
+										<td>
+											<select
+												class="select select-bordered w-full"
+												bind:value={line.accountId}
+												onchange={() => handleAccountSelect(index, line.accountId)}
+												required
+											>
+												<option value="">Select Account</option>
+												{#each data.accounts as account}
+													<option value={account.id}>
+														{account.code} - {account.name}
+													</option>
+												{/each}
+											</select>
+										</td>
+										<td>
+											<input
+												type="text"
+												class="input input-bordered w-full"
+												placeholder="Line description"
+												bind:value={line.description}
+											/>
+										</td>
+										<td>
+											<input
+												type="number"
+												class="input input-bordered w-full text-right"
+												placeholder="0.00"
+												step="0.01"
+												min="0"
+												bind:value={line.debitAmount}
+												oninput={() => handleAmountInput(index, 'debitAmount', line.debitAmount)}
+											/>
+										</td>
+										<td>
+											<input
+												type="number"
+												class="input input-bordered w-full text-right"
+												placeholder="0.00"
+												step="0.01"
+												min="0"
+												bind:value={line.creditAmount}
+												oninput={() => handleAmountInput(index, 'creditAmount', line.creditAmount)}
+											/>
+										</td>
+										<td>
+											{#if formData.lines.length > 2}
+												<button
+													type="button"
+													class="btn btn-ghost btn-sm text-error"
+													onclick={() => removeJournalLine(index)}
+												>
+													<Trash2 class="h-4 w-4" />
+												</button>
+											{/if}
+										</td>
+									</tr>
+								{/each}
+
+								<!-- Totals Row -->
+								<tr class="bg-base-200">
+									<td colspan="3" class="text-right font-medium">Totals</td>
+									<td class="text-right font-medium">{formatCurrency(totalDebit)}</td>
+									<td class="text-right font-medium">{formatCurrency(totalCredit)}</td>
+									<td></td>
+								</tr>
+							</tbody>
+						</table>
+					</div>
+
+					<!-- Balance Warning -->
+					{#if !isBalanced}
+						<div class="alert alert-error mt-4">
+							<AlertTriangle class="h-5 w-5" />
+							<span
+								>Debits and credits must be equal. Current difference: {formatCurrency(
+									Math.abs(parseFloat(totalDebit) - parseFloat(totalCredit))
+								)}</span
+							>
+						</div>
+					{/if}
+
+					<input type="hidden" name="lineCount" value={formData.lines.length} />
+					{#each formData.lines as line, i}
+						<input type="hidden" name={`lines[${i}].accountId`} value={line.accountId} />
+						<input type="hidden" name={`lines[${i}].description`} value={line.description} />
+						<input type="hidden" name={`lines[${i}].debitAmount`} value={line.debitAmount || 0} />
+						<input type="hidden" name={`lines[${i}].creditAmount`} value={line.creditAmount || 0} />
+					{/each}
+				</div>
+
+				<div class="modal-action mt-6">
+					<button
+						type="submit"
+						class="btn btn-primary"
+						disabled={!isBalanced || formData.lines.length < 2}
+					>
+						<Save class="h-4 w-4 mr-1" /> Save Changes
+					</button>
+					<button type="button" class="btn" onclick={closeEditForm}>Cancel</button>
+				</div>
+			</form>
+		</div>
+		<div class="modal-backdrop" onclick={closeEditForm}></div>
 	</div>
 {/if}
