@@ -147,23 +147,23 @@
 	// Open edit form
 	function openEditForm(entry) {
 		editingEntry = entry.id;
-		
+
 		// Prepare form data with existing entry values
 		formData = {
 			id: entry.id,
 			number: entry.number,
 			date: new Date(entry.date).toISOString().split('T')[0],
-			description: entry.description,
+			description: entry.description || '',
 			reference: entry.reference || '',
 			fiscalPeriodId: entry.fiscalPeriodId.toString(),
 			lines: entry.lines.map(line => ({
-				accountId: line.accountId.toString(),
+				accountId: line.accountId,
 				description: line.description || '',
-				debitAmount: line.debitAmount > 0 ? line.debitAmount.toString() : '',
-				creditAmount: line.creditAmount > 0 ? line.creditAmount.toString() : ''
+				debitAmount: parseFloat(line.debitAmount || 0) > 0 ? parseFloat(line.debitAmount).toString() : '',
+				creditAmount: parseFloat(line.creditAmount || 0) > 0 ? parseFloat(line.creditAmount).toString() : ''
 			}))
 		};
-		
+
 		showEditForm = true;
 	}
 
@@ -201,8 +201,16 @@
 	function handleSubmit() {
 		return async ({ result }) => {
 			if (result.type === 'success') {
-				closeCreateForm();
+				if (showCreateForm) {
+					closeCreateForm();
+				} else if (showEditForm) {
+					closeEditForm();
+				}
 				goto(page.url.pathname, { invalidateAll: true });
+			} else if (result.type === 'failure') {
+				console.error('Form submission failed:', result.data);
+				const errorMessage = result.data?.error || 'Unknown error';
+				alert('Failed to save: ' + errorMessage);
 			}
 		};
 	}
@@ -366,10 +374,7 @@
 					{#each data.entries as entry}
 						<tr class="hover">
 							<td>
-								<button
-									class="btn btn-ghost btn-xs mr-2"
-									onclick={() => toggleExpand(entry.id)}
-								>
+								<button class="btn btn-ghost btn-xs mr-2" onclick={() => toggleExpand(entry.id)}>
 									{#if expandedEntries.has(entry.id)}
 										<ChevronDown class="h-4 w-4" />
 									{:else}
@@ -621,7 +626,6 @@
 											<select
 												class="select select-bordered w-full"
 												bind:value={line.accountId}
-												onchange={() => handleAccountSelect(index, line.accountId)}
 												required
 											>
 												<option value="">Select Account</option>
@@ -701,8 +705,8 @@
 
 					<input type="hidden" name="lineCount" value={formData.lines.length} />
 					{#each formData.lines as line, i}
-						<input type="hidden" name={`lines[${i}].accountId`} value={line.accountId} />
-						<input type="hidden" name={`lines[${i}].description`} value={line.description} />
+						<input type="hidden" name={`lines[${i}].accountId`} value={line.accountId || ''} />
+						<input type="hidden" name={`lines[${i}].description`} value={line.description || ''} />
 						<input type="hidden" name={`lines[${i}].debitAmount`} value={line.debitAmount || 0} />
 						<input type="hidden" name={`lines[${i}].creditAmount`} value={line.creditAmount || 0} />
 					{/each}
@@ -732,7 +736,7 @@
 
 			<form method="POST" action="?/update" use:enhance={handleSubmit} class="mt-4">
 				<input type="hidden" name="id" value={formData.id} />
-				
+
 				<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
 					<div class="form-control w-full">
 						<label class="label" for="number">
@@ -825,7 +829,6 @@
 												onchange={() => handleAccountSelect(index, line.accountId)}
 												required
 											>
-												<option value="">Select Account</option>
 												{#each data.accounts as account}
 													<option value={account.id}>
 														{account.code} - {account.name}
@@ -903,7 +906,7 @@
 					<input type="hidden" name="lineCount" value={formData.lines.length} />
 					{#each formData.lines as line, i}
 						<input type="hidden" name={`lines[${i}].accountId`} value={line.accountId} />
-						<input type="hidden" name={`lines[${i}].description`} value={line.description} />
+						<input type="hidden" name={`lines[${i}].description`} value={line.description || ''} />
 						<input type="hidden" name={`lines[${i}].debitAmount`} value={line.debitAmount || 0} />
 						<input type="hidden" name={`lines[${i}].creditAmount`} value={line.creditAmount || 0} />
 					{/each}
@@ -915,7 +918,7 @@
 						class="btn btn-primary"
 						disabled={!isBalanced || formData.lines.length < 2}
 					>
-						<Save class="h-4 w-4 mr-1" /> Save Changes
+						<Save class="mr-1 h-4 w-4" />Save Changes
 					</button>
 					<button type="button" class="btn" onclick={closeEditForm}>Cancel</button>
 				</div>

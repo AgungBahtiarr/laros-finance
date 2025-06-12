@@ -126,7 +126,11 @@ export const actions: Actions = {
 		let totalCredit = 0;
 
 		for (let i = 0; i < lineCount; i++) {
-			const accountId = parseInt(formData.get(`lines[${i}].accountId`) as string);
+			const accountIdValue = formData.get(`lines[${i}].accountId`);
+			// Skip empty account IDs
+			if (!accountIdValue) continue;
+			
+			const accountId = parseInt(accountIdValue as string);
 			const lineDescription = formData.get(`lines[${i}].description`) as string;
 			const debitAmount = parseFloat(formData.get(`lines[${i}].debitAmount`) as string || '0');
 			const creditAmount = parseFloat(formData.get(`lines[${i}].creditAmount`) as string || '0');
@@ -261,6 +265,7 @@ export const actions: Actions = {
 		const description = formData.get('description') as string;
 		const reference = formData.get('reference') as string;
 		const date = formData.get('date') as string;
+		const fiscalPeriodId = parseInt(formData.get('fiscalPeriodId') as string);
 
 		// Parse journal lines
 		const lineCount = parseInt(formData.get('lineCount') as string);
@@ -270,7 +275,11 @@ export const actions: Actions = {
 		let totalCredit = 0;
 
 		for (let i = 0; i < lineCount; i++) {
-			const accountId = parseInt(formData.get(`lines[${i}].accountId`) as string);
+			const accountIdValue = formData.get(`lines[${i}].accountId`);
+			// Skip empty account IDs
+			if (!accountIdValue) continue;
+			
+			const accountId = parseInt(accountIdValue as string);
 			const lineDescription = formData.get(`lines[${i}].description`) as string;
 			const debitAmount = parseFloat(formData.get(`lines[${i}].debitAmount`) as string || '0');
 			const creditAmount = parseFloat(formData.get(`lines[${i}].creditAmount`) as string || '0');
@@ -323,6 +332,7 @@ export const actions: Actions = {
 					date: new Date(date),
 					description,
 					reference,
+					fiscalPeriodId,
 					totalDebit,
 					totalCredit,
 					updatedAt: new Date()
