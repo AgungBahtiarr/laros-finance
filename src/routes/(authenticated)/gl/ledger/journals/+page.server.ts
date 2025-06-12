@@ -79,15 +79,31 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 			orderBy: [asc(fiscalPeriod.startDate)]
 		});
 
-		// Get next journal entry number
-		let nextJournalNumber = 'JE-00001';
+		const now = new Date();
+		const year = now.getFullYear().toString().slice(-2); // '25'
+		const month = (now.getMonth() + 1).toString().padStart(2, '0'); // '06'
+
+		// Prefix format: 'JE2506'
+		const prefix = `JE${year}${month}`;
+
+		// Cari entri terakhir HANYA untuk tahun dan bulan ini
 		const lastEntry = await db.query.journalEntry.findFirst({
+			where: sql`${journalEntry.number} LIKE ${prefix + '%'}`,
 			orderBy: [desc(journalEntry.number)]
 		});
 
+		let nextJournalNumber;
+
 		if (lastEntry) {
-			const lastNumber = parseInt(lastEntry.number.replace('JE-', ''));
-			nextJournalNumber = `JE-${(lastNumber + 1).toString().padStart(5, '0')}`;
+			// Jika ada, ambil 2 digit terakhir sebagai nomor urut
+			// Contoh: 'JE250601' -> substring(6) -> '01'
+			const lastSequence = parseInt(lastEntry.number.substring(6) || '0');
+			// Increment dan pastikan tetap 2 digit (misal: 1 -> '01', 10 -> '10')
+			const newSequence = (lastSequence + 1).toString().padStart(2, '0');
+			nextJournalNumber = prefix + newSequence; // Hasil: 'JE250602'
+		} else {
+			// Jika ini entri pertama di bulan ini, mulai dari '01'
+			nextJournalNumber = `${prefix}01`; // Hasil: 'JE250601'
 		}
 
 		return {
