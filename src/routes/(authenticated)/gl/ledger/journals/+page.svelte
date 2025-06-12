@@ -632,8 +632,7 @@
 										<td>
 											<select
 												class="select select-bordered w-full"
-												value={line.accountId}
-												onchange={(e) => handleAccountSelect(index, e)}
+												bind:value={line.accountId}
 												required
 											>
 												<option value="">Select Account</option>
