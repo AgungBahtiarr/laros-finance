@@ -2,7 +2,13 @@ import { db } from '$lib/server/db';
 import type { PageServerLoad } from './$types';
 import type { Actions } from './$types';
 import { error, fail } from '@sveltejs/kit';
-import { journalEntry, journalEntryLine, chartOfAccount, fiscalPeriod, user } from '$lib/server/db/schema';
+import {
+	journalEntry,
+	journalEntryLine,
+	chartOfAccount,
+	fiscalPeriod,
+	user
+} from '$lib/server/db/schema';
 import { eq, and, desc, asc, gte, lte, sql } from 'drizzle-orm';
 
 export const load: PageServerLoad = async ({ url, locals }) => {
@@ -129,11 +135,11 @@ export const actions: Actions = {
 			const accountIdValue = formData.get(`lines[${i}].accountId`);
 			// Skip empty account IDs
 			if (!accountIdValue) continue;
-			
+
 			const accountId = parseInt(accountIdValue as string);
 			const lineDescription = formData.get(`lines[${i}].description`) as string;
-			const debitAmount = parseFloat(formData.get(`lines[${i}].debitAmount`) as string || '0');
-			const creditAmount = parseFloat(formData.get(`lines[${i}].creditAmount`) as string || '0');
+			const debitAmount = parseFloat((formData.get(`lines[${i}].debitAmount`) as string) || '0');
+			const creditAmount = parseFloat((formData.get(`lines[${i}].creditAmount`) as string) || '0');
 
 			if (accountId && (debitAmount > 0 || creditAmount > 0)) {
 				journalLines.push({
@@ -181,19 +187,22 @@ export const actions: Actions = {
 			}
 
 			// Create journal entry with POSTED status directly
-			const result = await db.insert(journalEntry).values({
-				number,
-				date: new Date(date),
-				description,
-				reference,
-				fiscalPeriodId,
-				status: 'POSTED', // Auto post the journal entry
-				totalDebit,
-				totalCredit,
-				createdBy: locals.user.id,
-				postedAt: new Date(), // Set posted date
-				postedBy: locals.user.id // Set posted by
-			}).returning({ id: journalEntry.id });
+			const result = await db
+				.insert(journalEntry)
+				.values({
+					number,
+					date: new Date(date),
+					description,
+					reference,
+					fiscalPeriodId,
+					status: 'POSTED', // Auto post the journal entry
+					totalDebit,
+					totalCredit,
+					createdBy: locals.user.id,
+					postedAt: new Date(), // Set posted date
+					postedBy: locals.user.id // Set posted by
+				})
+				.returning({ id: journalEntry.id });
 
 			if (!result || result.length === 0) {
 				throw new Error('Failed to create journal entry');
@@ -223,30 +232,26 @@ export const actions: Actions = {
 		}
 	},
 
-
-	
 	delete: async ({ request }) => {
 		const formData = await request.formData();
 		const journalEntryId = parseInt(formData.get('id') as string);
-		
+
 		try {
 			// Get the journal entry
 			const entryToDelete = await db.query.journalEntry.findFirst({
 				where: eq(journalEntry.id, journalEntryId)
 			});
-			
+
 			if (!entryToDelete) {
 				return fail(404, { error: 'Journal entry not found' });
 			}
-			
+
 			// Delete journal lines first
-			await db.delete(journalEntryLine)
-				.where(eq(journalEntryLine.journalEntryId, journalEntryId));
-				
+			await db.delete(journalEntryLine).where(eq(journalEntryLine.journalEntryId, journalEntryId));
+
 			// Then delete the journal entry
-			await db.delete(journalEntry)
-				.where(eq(journalEntry.id, journalEntryId));
-			
+			await db.delete(journalEntry).where(eq(journalEntry.id, journalEntryId));
+
 			return { success: true };
 		} catch (err) {
 			console.error('Error deleting journal entry:', err);
@@ -254,7 +259,6 @@ export const actions: Actions = {
 		}
 	},
 
-	// Add update action for editing journal entries
 	update: async ({ request, locals }) => {
 		if (!locals.user) {
 			return fail(401, { error: 'You must be logged in to update journal entries' });
@@ -276,13 +280,12 @@ export const actions: Actions = {
 
 		for (let i = 0; i < lineCount; i++) {
 			const accountIdValue = formData.get(`lines[${i}].accountId`);
-			// Skip empty account IDs
 			if (!accountIdValue) continue;
-			
+
 			const accountId = parseInt(accountIdValue as string);
 			const lineDescription = formData.get(`lines[${i}].description`) as string;
-			const debitAmount = parseFloat(formData.get(`lines[${i}].debitAmount`) as string || '0');
-			const creditAmount = parseFloat(formData.get(`lines[${i}].creditAmount`) as string || '0');
+			const debitAmount = parseFloat((formData.get(`lines[${i}].debitAmount`) as string) || '0');
+			const creditAmount = parseFloat((formData.get(`lines[${i}].creditAmount`) as string) || '0');
 
 			if (accountId && (debitAmount > 0 || creditAmount > 0)) {
 				journalLines.push({
@@ -321,27 +324,27 @@ export const actions: Actions = {
 			const existingEntry = await db.query.journalEntry.findFirst({
 				where: eq(journalEntry.id, journalEntryId)
 			});
-			
+
 			if (!existingEntry) {
 				return fail(404, { error: 'Journal entry not found' });
 			}
 
-			// Update journal entry
-			await db.update(journalEntry)
+			// Update journal entry - PERBAIKAN: pastikan tipe data sesuai dengan schema
+			await db
+				.update(journalEntry)
 				.set({
-					date: new Date(date),
+					date: new Date(date), // Convert string to Date
 					description,
 					reference,
 					fiscalPeriodId,
-					totalDebit,
-					totalCredit,
+					totalDebit: totalDebit.toString(), // Convert to string if schema expects string
+					totalCredit: totalCredit.toString(), // Convert to string if schema expects string
 					updatedAt: new Date()
 				})
 				.where(eq(journalEntry.id, journalEntryId));
 
 			// Delete existing lines
-			await db.delete(journalEntryLine)
-				.where(eq(journalEntryLine.journalEntryId, journalEntryId));
+			await db.delete(journalEntryLine).where(eq(journalEntryLine.journalEntryId, journalEntryId));
 
 			// Create new journal lines
 			for (const line of journalLines) {

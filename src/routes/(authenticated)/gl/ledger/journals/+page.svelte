@@ -150,19 +150,26 @@
 
 		// Prepare form data with existing entry values
 		formData = {
-			id: entry.id,
+			id: entry.id.toString(),
 			number: entry.number,
 			date: new Date(entry.date).toISOString().split('T')[0],
 			description: entry.description || '',
 			reference: entry.reference || '',
-			fiscalPeriodId: entry.fiscalPeriodId.toString(),
-			lines: entry.lines.map(line => ({
-				accountId: line.accountId,
+			fiscalPeriodId: entry.fiscalPeriodId,
+			lines: entry.lines.map((line) => ({
+				accountId: line.accountId, // Ensure string conversion
 				description: line.description || '',
-				debitAmount: parseFloat(line.debitAmount || 0) > 0 ? parseFloat(line.debitAmount).toString() : '',
-				creditAmount: parseFloat(line.creditAmount || 0) > 0 ? parseFloat(line.creditAmount).toString() : ''
+				debitAmount:
+					parseFloat(line.debitAmount || 0) > 0 ? parseFloat(line.debitAmount).toString() : '',
+				creditAmount:
+					parseFloat(line.creditAmount || 0) > 0 ? parseFloat(line.creditAmount).toString() : ''
 			}))
 		};
+
+		// Ensure we have at least 2 lines
+		if (formData.lines.length < 2) {
+			formData.lines.push({ accountId: '', description: '', debitAmount: '', creditAmount: '' });
+		}
 
 		showEditForm = true;
 	}
@@ -625,7 +632,8 @@
 										<td>
 											<select
 												class="select select-bordered w-full"
-												bind:value={line.accountId}
+												value={line.accountId}
+												onchange={(e) => handleAccountSelect(index, e)}
 												required
 											>
 												<option value="">Select Account</option>
@@ -739,12 +747,12 @@
 
 				<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
 					<div class="form-control w-full">
-						<label class="label" for="number">
+						<label class="label" for="edit-number">
 							<span class="label-text">Entry Number</span>
 						</label>
 						<input
 							type="text"
-							id="number"
+							id="edit-number"
 							name="number"
 							class="input input-bordered w-full"
 							value={formData.number}
@@ -754,12 +762,12 @@
 					</div>
 
 					<div class="form-control w-full">
-						<label class="label" for="date">
+						<label class="label" for="edit-date">
 							<span class="label-text">Date</span>
 						</label>
 						<input
 							type="date"
-							id="date"
+							id="edit-date"
 							name="date"
 							class="input input-bordered w-full"
 							bind:value={formData.date}
@@ -768,12 +776,12 @@
 					</div>
 
 					<div class="form-control w-full">
-						<label class="label" for="description">
+						<label class="label" for="edit-description">
 							<span class="label-text">Description</span>
 						</label>
 						<input
 							type="text"
-							id="description"
+							id="edit-description"
 							name="description"
 							class="input input-bordered w-full"
 							placeholder="Journal entry description"
@@ -783,17 +791,35 @@
 					</div>
 
 					<div class="form-control w-full">
-						<label class="label" for="reference">
+						<label class="label" for="edit-reference">
 							<span class="label-text">Reference (Optional)</span>
 						</label>
 						<input
 							type="text"
-							id="reference"
+							id="edit-reference"
 							name="reference"
 							class="input input-bordered w-full"
 							placeholder="Invoice number, etc."
 							bind:value={formData.reference}
 						/>
+					</div>
+
+					<div class="form-control w-full">
+						<label class="label" for="edit-fiscalPeriodId">
+							<span class="label-text">Fiscal Period</span>
+						</label>
+						<select
+							id="edit-fiscalPeriodId"
+							name="fiscalPeriodId"
+							class="select select-bordered w-full"
+							bind:value={formData.fiscalPeriodId}
+							required
+						>
+							<option value="">Select Fiscal Period</option>
+							{#each data.fiscalPeriods.filter((p) => !p.isClosed) as period}
+								<option value={period.id}>{period.name}</option>
+							{/each}
+						</select>
 					</div>
 				</div>
 
@@ -829,6 +855,7 @@
 												onchange={() => handleAccountSelect(index, line.accountId)}
 												required
 											>
+												<option value="">Select Account</option>
 												{#each data.accounts as account}
 													<option value={account.id}>
 														{account.code} - {account.name}
@@ -895,17 +922,17 @@
 					{#if !isBalanced}
 						<div class="alert alert-error mt-4">
 							<AlertTriangle class="h-5 w-5" />
-							<span
-								>Debits and credits must be equal. Current difference: {formatCurrency(
+							<span>
+								Debits and credits must be equal. Current difference: {formatCurrency(
 									Math.abs(parseFloat(totalDebit) - parseFloat(totalCredit))
-								)}</span
-							>
+								)}
+							</span>
 						</div>
 					{/if}
 
 					<input type="hidden" name="lineCount" value={formData.lines.length} />
 					{#each formData.lines as line, i}
-						<input type="hidden" name={`lines[${i}].accountId`} value={line.accountId} />
+						<input type="hidden" name={`lines[${i}].accountId`} value={line.accountId || ''} />
 						<input type="hidden" name={`lines[${i}].description`} value={line.description || ''} />
 						<input type="hidden" name={`lines[${i}].debitAmount`} value={line.debitAmount || 0} />
 						<input type="hidden" name={`lines[${i}].creditAmount`} value={line.creditAmount || 0} />
@@ -918,7 +945,8 @@
 						class="btn btn-primary"
 						disabled={!isBalanced || formData.lines.length < 2}
 					>
-						<Save class="mr-1 h-4 w-4" />Save Changes
+						<Save class="mr-1 h-4 w-4" />
+						Save Changes
 					</button>
 					<button type="button" class="btn" onclick={closeEditForm}>Cancel</button>
 				</div>
