@@ -99,6 +99,7 @@ export const asset = pgTable('asset', {
 	penyusutanFiskalTahunIni: integer('penyusutan_fiskal_tahun_ini').notNull(),
 	keterangan: text('keterangan'),
 	lokasi: text('lokasi'),
+	imageUrl: varchar('image_url'),
 	kode: varchar('kode', { length: 100 }),
 	qty: integer('qty').notNull(),
 	createdAt: timestamp('created_at').notNull().defaultNow(),
