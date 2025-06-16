@@ -11,6 +11,30 @@ import {
 } from '$lib/server/db/schema';
 import { eq, and, desc, asc, gte, lte, sql } from 'drizzle-orm';
 
+// Helper function to generate next journal number based on date
+async function generateNextJournalNumber(inputDate: string) {
+	const date = new Date(inputDate);
+	const year = date.getFullYear().toString().slice(-2); // dari input date
+	const month = (date.getMonth() + 1).toString().padStart(2, '0'); // dari input date
+
+	const prefix = `JE${year}${month}`;
+
+	// Cari journal terakhir HANYA di bulan yang sama dengan input date
+	const lastEntry = await db.query.journalEntry.findFirst({
+		where: sql`${journalEntry.number} LIKE ${prefix + '%'}`,
+		orderBy: [desc(journalEntry.number)]
+	});
+
+	if (lastEntry) {
+		// Ada journal sebelumnya di bulan ini, lanjutkan urutannya
+		const lastSequence = parseInt(lastEntry.number.substring(6) || '0');
+		const newSequence = (lastSequence + 1).toString().padStart(2, '0');
+		return prefix + newSequence;
+	} else {
+		// Belum ada journal di bulan ini, mulai dari 01
+		return `${prefix}01`;
+	}
+}
 export const load: PageServerLoad = async ({ url, locals }) => {
 	try {
 		// Get filter parameters from URL
@@ -79,32 +103,9 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 			orderBy: [asc(fiscalPeriod.startDate)]
 		});
 
-		const now = new Date();
-		const year = now.getFullYear().toString().slice(-2); // '25'
-		const month = (now.getMonth() + 1).toString().padStart(2, '0'); // '06'
-
-		// Prefix format: 'JE2506'
-		const prefix = `JE${year}${month}`;
-
-		// Cari entri terakhir HANYA untuk tahun dan bulan ini
-		const lastEntry = await db.query.journalEntry.findFirst({
-			where: sql`${journalEntry.number} LIKE ${prefix + '%'}`,
-			orderBy: [desc(journalEntry.number)]
-		});
-
-		let nextJournalNumber;
-
-		if (lastEntry) {
-			// Jika ada, ambil 2 digit terakhir sebagai nomor urut
-			// Contoh: 'JE250601' -> substring(6) -> '01'
-			const lastSequence = parseInt(lastEntry.number.substring(6) || '0');
-			// Increment dan pastikan tetap 2 digit (misal: 1 -> '01', 10 -> '10')
-			const newSequence = (lastSequence + 1).toString().padStart(2, '0');
-			nextJournalNumber = prefix + newSequence; // Hasil: 'JE250602'
-		} else {
-			// Jika ini entri pertama di bulan ini, mulai dari '01'
-			nextJournalNumber = `${prefix}01`; // Hasil: 'JE250601'
-		}
+		// Generate default journal number for today
+		const today = new Date().toISOString().split('T')[0];
+		const nextJournalNumber = await generateNextJournalNumber(today);
 
 		return {
 			entries,
@@ -127,6 +128,24 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 };
 
 export const actions: Actions = {
+	// Action untuk generate journal number berdasarkan tanggal
+	generateJournalNumber: async ({ request }) => {
+		const formData = await request.formData();
+		const date = formData.get('date') as string;
+
+		if (!date) {
+			return fail(400, { error: 'Date is required' });
+		}
+
+		try {
+			const journalNumber = await generateNextJournalNumber(date);
+			return { success: true, journalNumber };
+		} catch (err) {
+			console.error('Error generating journal number:', err);
+			return fail(500, { error: 'Failed to generate journal number' });
+		}
+	},
+
 	create: async ({ request, locals }) => {
 		if (!locals.user) {
 			return fail(401, { error: 'You must be logged in to create journal entries' });
@@ -190,9 +209,15 @@ export const actions: Actions = {
 		}
 
 		try {
+			// Generate journal number based on the actual date entered
+			const generatedNumber = await generateNextJournalNumber(date);
+
+			// Use generated number instead of form input
+			const finalNumber = generatedNumber;
+
 			// Check if journal number already exists
 			const existingEntry = await db.query.journalEntry.findFirst({
-				where: eq(journalEntry.number, number)
+				where: eq(journalEntry.number, finalNumber)
 			});
 
 			if (existingEntry) {
@@ -206,7 +231,7 @@ export const actions: Actions = {
 			const result = await db
 				.insert(journalEntry)
 				.values({
-					number,
+					number: finalNumber,
 					date: new Date(date),
 					description,
 					reference,

@@ -17,7 +17,8 @@
 		ChevronRight,
 		ChevronDown,
 		Eye,
-		Save
+		Save,
+		RefreshCw
 	} from '@lucide/svelte';
 
 	let { data } = $props();
@@ -26,6 +27,7 @@
 	let showEditForm = $state(false);
 	let expandedEntries = $state(new Set<number>());
 	let editingEntry = $state(null);
+	let isGeneratingNumber = $state(false);
 
 	// Form state
 	let formData = $state({
@@ -57,6 +59,41 @@
 	);
 
 	let isBalanced = $derived(Math.abs(parseFloat(totalDebit) - parseFloat(totalCredit)) < 0.01);
+
+	// Function to generate journal number based on selected date
+	async function generateJournalNumber() {
+		if (!formData.date) return;
+
+		isGeneratingNumber = true;
+		try {
+			const formDataToSend = new FormData();
+			formDataToSend.append('date', formData.date);
+
+			const response = await fetch('?/generateJournalNumber', {
+				method: 'POST',
+				body: formDataToSend
+			});
+
+			const result = await response.json();
+
+			console.log(result.data[0]);
+			if (result.type === 'success') {
+				const dataArray = JSON.parse(result.data);
+				formData.number = dataArray[2];
+			}
+		} catch (error) {
+			console.error('Error generating journal number:', error);
+		} finally {
+			isGeneratingNumber = false;
+		}
+	}
+
+	// Watch for date changes and auto-generate journal number
+	$effect(() => {
+		if (formData.date && showCreateForm) {
+			generateJournalNumber();
+		}
+	});
 
 	// Format date for display
 	function formatDate(dateString) {
@@ -531,15 +568,30 @@
 						<label class="label" for="number">
 							<span class="label-text">Entry Number</span>
 						</label>
-						<input
-							type="text"
-							id="number"
-							name="number"
-							class="input input-bordered w-full"
-							bind:value={formData.number}
-							required
-							readonly
-						/>
+						<div class="flex gap-2">
+							<input
+								type="text"
+								id="number"
+								name="number"
+								class="input input-bordered w-full"
+								bind:value={formData.number}
+								required
+								readonly
+							/>
+							<button
+								type="button"
+								class="btn btn-outline btn-sm"
+								onclick={generateJournalNumber}
+								disabled={isGeneratingNumber || !formData.date}
+								title="Regenerate journal number based on selected date"
+							>
+								{#if isGeneratingNumber}
+									<RefreshCw class="h-4 w-4 animate-spin" />
+								{:else}
+									<RefreshCw class="h-4 w-4" />
+								{/if}
+							</button>
+						</div>
 					</div>
 
 					<div class="form-control w-full">
