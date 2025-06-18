@@ -137,8 +137,7 @@
 		// penyusutanFiskalTahunIni = Math.round(penyusutanTahunIniValue).toString();
 
 		penyusutanFiskalTahunIni = Math.round(
-			(penyusutanTahunIniValue / 12) *
-			(12 - bulanPerolehanNum + 1)
+			(penyusutanTahunIniValue / 12) * (12 - bulanPerolehanNum + 1)
 		).toString();
 
 		// Update input fields (dengan setTimeout agar diberikan waktu DOM update)
@@ -349,7 +348,13 @@
 		<!-- Form -->
 		<div class="p-4">
 			<div class="p-4">
-				<form bind:this={form} method="POST" action="?/create" use:enhance={handleSubmit}>
+				<form
+					bind:this={form}
+					method="POST"
+					action="?/create"
+					use:enhance={handleSubmit}
+					enctype="multipart/form-data"
+				>
 					<div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
 						<!-- Kolom Kiri -->
 						<div class="space-y-4">
@@ -618,6 +623,17 @@
 									type="hidden"
 									name="penyusutanFiskalTahunIni"
 									value={penyusutanFiskalTahunIni}
+								/>
+							</div>
+							<div class="form-control w-full">
+								<label class="label" for="image">
+									<span class="label-text">Gambar Asset</span>
+								</label>
+
+								<input
+									type="file"
+									name="image"
+									class="file-input input-bordered w-full bg-gray-50"
 								/>
 							</div>
 

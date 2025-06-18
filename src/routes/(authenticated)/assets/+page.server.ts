@@ -3,6 +3,19 @@ import { asset } from '$lib/server/db/schema';
 import type { Actions, PageServerLoad } from './$types';
 import { eq } from 'drizzle-orm';
 import { fail } from '@sveltejs/kit';
+import { S3Client } from '@aws-sdk/client-s3';
+import { Upload } from '@aws-sdk/lib-storage';
+import { env } from '$env/dynamic/private';
+
+const s3 = new S3Client({
+	region: env.AWS_REGION,
+	endpoint: env.AWS_ENDPOINT,
+	credentials: {
+		accessKeyId: env.AWS_ACCESS_KEY_ID,
+		secretAccessKey: env.AWS_SECRET_ACCESS_KEY
+	},
+	forcePathStyle: true
+});
 
 export const load: PageServerLoad = async () => {
 	const assets = await db.query.asset.findMany({
@@ -51,7 +64,30 @@ export const actions: Actions = {
 		const lokasi = formData.get('lokasi') as string;
 		const kode = formData.get('kode') as string;
 
+		const imageFile = formData.get('image') as File;
+
+		let imageUrl: string | null = null;
+
 		try {
+			if (imageFile && imageFile.size > 0) {
+				const fileName = `${Date.now()}-${imageFile.name.replace(/\s/g, '_')}`;
+				const uploadParams = {
+					Bucket: env.S3_BUCKET_NAME,
+					Key: fileName,
+					Body: imageFile.stream(),
+					ContentType: imageFile.type,
+					ACL: 'public-read'
+				};
+
+				const uploader = new Upload({
+					client: s3,
+					params: uploadParams
+				});
+
+				const result = await uploader.done();
+				imageUrl = (result as any).Location;
+			}
+
 			await db.insert(asset).values({
 				qty,
 				jenisHartaId,
@@ -67,7 +103,8 @@ export const actions: Actions = {
 				penyusutanFiskalTahunIni,
 				keterangan,
 				lokasi,
-				kode
+				kode,
+				imageUrl
 			});
 			return { success: true };
 		} catch (error) {
