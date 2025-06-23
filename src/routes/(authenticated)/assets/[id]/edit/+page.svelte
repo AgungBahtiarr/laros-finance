@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { goto } from '$app/navigation';
-	import { ArrowLeft, Save } from '@lucide/svelte';
+	import { ArrowLeft, Save, Image } from '@lucide/svelte';
 	import { onMount } from 'svelte';
 
 	let { data } = $props();
@@ -136,11 +136,9 @@
 		// Update state dengan pembulatan
 		nilaiSisaBuku = Math.round(nilaiSisaBukuValue).toString();
 
-        penyusutanFiskalTahunIni = Math.round(
-            (penyusutanTahunIniValue / 12) *
-                (12 - bulanPerolehanNum + 1)
-        ).toString();
-
+		penyusutanFiskalTahunIni = Math.round(
+			(penyusutanTahunIniValue / 12) * (12 - bulanPerolehanNum + 1)
+		).toString();
 
 		// Update input fields (dengan setTimeout agar diberikan waktu DOM update)
 		setTimeout(() => {
@@ -315,7 +313,12 @@
 
 	<div class="card bg-base-100 border">
 		<div class="card-body">
-			<form method="POST" action="?/update" use:enhance={handleSubmit}>
+			<form
+				method="POST"
+				action="?/update"
+				enctype="multipart/form-data"
+				use:enhance={handleSubmit}
+			>
 				<div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
 					<!-- Kolom Kiri -->
 					<div class="space-y-4">
@@ -474,7 +477,7 @@
 									class="input input-bordered w-full"
 									min="1"
 									max="12"
-                                    bind:value={bulanPerolehan}
+									bind:value={bulanPerolehan}
 									required
 									title="Bulan perolehan harus antara 1-12"
 								/>
@@ -490,7 +493,7 @@
 									class="input input-bordered w-full"
 									min="1900"
 									max={new Date().getFullYear()}
-                                    bind:value={tahunPerolehan}
+									bind:value={tahunPerolehan}
 									step="1"
 									required
 									title="Tahun perolehan harus antara 1900 hingga tahun sekarang"
@@ -595,6 +598,31 @@
 								type="hidden"
 								name="penyusutanFiskalTahunIni"
 								value={penyusutanFiskalTahunIni}
+							/>
+						</div>
+
+						<div class="form-control w-full">
+							<label class="label" for="image">
+								<span class="label-text">Gambar Aset</span>
+							</label>
+							{#if data.asset.imageUrl}
+								<div class="mb-3">
+									<img
+										src={data.asset.imageUrl}
+										alt={data.asset.namaHarta}
+										class="mb-2 h-48 w-auto rounded-md object-cover"
+									/>
+									<p class="text-xs text-gray-500">
+										Upload gambar baru untuk mengganti gambar saat ini
+									</p>
+								</div>
+							{/if}
+							<input
+								id="image"
+								type="file"
+								name="image"
+								class="file-input file-input-bordered w-full"
+								accept="image/*"
 							/>
 						</div>
 					</div>

@@ -84,8 +84,9 @@ export const actions: Actions = {
 					params: uploadParams
 				});
 
-				const result = await uploader.done();
-				imageUrl = (result as any).Location;
+				await uploader.done();
+				// Use AWS_URL instead of the result.Location
+				imageUrl = env.AWS_URL ? `${env.AWS_URL}${fileName}` : fileName;
 			}
 
 			await db.insert(asset).values({

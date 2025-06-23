@@ -1,5 +1,14 @@
 <script lang="ts">
-	import { ArrowLeft, MapPin, Pencil, Tag, Calendar, DollarSign, Info } from '@lucide/svelte';
+	import {
+		ArrowLeft,
+		MapPin,
+		Pencil,
+		Tag,
+		Calendar,
+		DollarSign,
+		Info,
+		Image
+	} from '@lucide/svelte';
 
 	let { data } = $props();
 
@@ -141,7 +150,7 @@
 			{/if}
 		</div>
 
-		<!-- Right Column - Location Map -->
+		<!-- Right Column - Location Map and Image -->
 		<div class="col-span-1 space-y-6">
 			<!-- Location Card -->
 			<div class="card bg-base-100 border">
@@ -168,6 +177,30 @@
 					{:else}
 						<div class="flex h-72 w-full items-center justify-center rounded-lg bg-gray-100">
 							<p class="text-center text-gray-500">Tidak ada data lokasi</p>
+						</div>
+					{/if}
+				</div>
+			</div>
+
+			<!-- Image Card -->
+			<div class="card bg-base-100 border">
+				<div class="card-body">
+					<h2 class="card-title text-lg">
+						<Image class="text-primary h-5 w-5" />
+						Gambar Aset
+					</h2>
+
+					{#if data.asset.imageUrl}
+						<div class="relative w-full overflow-hidden rounded-lg">
+							<img
+								src={data.asset.imageUrl}
+								alt={data.asset.namaHarta}
+								class="h-auto w-full object-cover"
+							/>
+						</div>
+					{:else}
+						<div class="flex h-48 w-full items-center justify-center rounded-lg bg-gray-100">
+							<p class="text-center text-gray-500">Tidak ada gambar aset</p>
 						</div>
 					{/if}
 				</div>
