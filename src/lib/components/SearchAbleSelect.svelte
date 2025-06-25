@@ -136,10 +136,15 @@
 						animate:flip={{ duration: 200, easing: sineOut }}
 						onmouseenter={() => (activeIndex = index)}
 					>
-						<a onclick={() => selectItem(item)} class:active={activeIndex === index}>
+						<button
+							type="button"
+							onclick={() => selectItem(item)}
+							class:active={activeIndex === index}
+							class="w-full text-left flex gap-2 items-center px-2 py-1"
+						>
 							<span class="font-mono text-xs">{item.code}</span>
 							<span>{item.name}</span>
-						</a>
+						</button>
 					</li>
 				{/each}
 			{/if}
