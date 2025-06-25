@@ -408,7 +408,7 @@
 						<th>Entry</th>
 						<th>Date</th>
 						<th>Description</th>
-						<th>Period</th>
+						<th>Reference</th>
 						<th>Amount</th>
 						<th>Status</th>
 						<th class="w-32 text-center">Actions</th>
@@ -430,11 +430,14 @@
 							<td>{formatDate(entry.date)}</td>
 							<td>
 								<div class="font-medium">{entry.description}</div>
+							</td>
+							<td>
 								{#if entry.reference}
-									<div class="text-xs text-gray-500">Ref: {entry.reference}</div>
+									<div class=" text-gray-500">Ref: {entry.reference}</div>
+								{:else}
+									<div class=" text-gray-500">No Ref</div>
 								{/if}
 							</td>
-							<td>{entry.fiscalPeriod.name}</td>
 							<td class="font-medium tabular-nums">{formatCurrency(entry.totalDebit)}</td>
 							<td>
 								<div class={`badge ${getStatusColor(entry.status)}`}>
