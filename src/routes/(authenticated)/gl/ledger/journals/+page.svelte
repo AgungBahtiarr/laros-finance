@@ -5,21 +5,17 @@
 	import {
 		ArrowLeft,
 		Plus,
-		FileText,
-		Search,
 		Filter,
 		Edit,
-		CheckCircle,
-		XCircle,
-		RotateCcw,
 		Trash2,
 		AlertTriangle,
 		ChevronRight,
 		ChevronDown,
-		Eye,
 		Save,
 		RefreshCw
 	} from '@lucide/svelte';
+
+	import SearchAbleSelect from '$lib/components/SearchAbleSelect.svelte';
 
 	let { data } = $props();
 	let showFilters = $state(false);
@@ -668,7 +664,7 @@
 						</button>
 					</div>
 
-					<div class="overflow-x-auto">
+					<div>
 						<table class="table">
 							<thead>
 								<tr>
@@ -684,8 +680,8 @@
 								{#each formData.lines as line, index}
 									<tr>
 										<td>{index + 1}</td>
-										<td>
-											<select
+										<td class="min-w-64">
+											<!-- <select
 												class="select select-bordered w-full"
 												bind:value={line.accountId}
 												required
@@ -696,7 +692,14 @@
 														{account.code} - {account.name}
 													</option>
 												{/each}
-											</select>
+											</select> -->
+
+											<SearchAbleSelect
+												items={data.accounts}
+												bind:value={line.accountId}
+												placeholder="Search account code or name..."
+												required={true}
+											/>
 										</td>
 										<td>
 											<input
@@ -886,7 +889,7 @@
 						</button>
 					</div>
 
-					<div class="overflow-x-auto">
+					<div>
 						<table class="table">
 							<thead>
 								<tr>
@@ -903,7 +906,7 @@
 									<tr>
 										<td>{index + 1}</td>
 										<td>
-											<select
+											<!-- <select
 												class="select select-bordered w-full"
 												bind:value={line.accountId}
 												onchange={() => handleAccountSelect(index, line.accountId)}
@@ -915,7 +918,14 @@
 														{account.code} - {account.name}
 													</option>
 												{/each}
-											</select>
+											</select> -->
+
+											<SearchAbleSelect
+												items={data.accounts}
+												bind:value={line.accountId}
+												placeholder="Search account code or name..."
+												required={true}
+											/>
 										</td>
 										<td>
 											<input
