@@ -3,9 +3,7 @@
 	import {
 		Home,
 		FileText,
-		Box,
 		ChevronDown,
-		Package,
 		CreditCard,
 		Landmark,
 		Tag,
@@ -20,23 +18,6 @@
 			name: 'Dashboard',
 			href: '/dashboard',
 			icon: Home
-		},
-		{
-			name: 'Aset',
-			href: '/assets',
-			icon: Box,
-			submenu: [
-				{
-					name: 'Assets',
-					href: '/assets',
-					icon: Package
-				},
-				{
-					name: 'Laporan Aset',
-					href: '/assets/report',
-					icon: FileText
-				}
-			]
 		},
 		{
 			name: 'Chart of Accounts',
