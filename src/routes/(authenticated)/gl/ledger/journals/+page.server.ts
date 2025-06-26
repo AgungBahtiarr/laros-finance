@@ -17,7 +17,7 @@ async function generateNextJournalNumber(inputDate: string) {
 	const year = date.getFullYear().toString().slice(-2); // dari input date
 	const month = (date.getMonth() + 1).toString().padStart(2, '0'); // dari input date
 
-	const prefix = `JE${year}${month}`;
+	const prefix = `JV${year}${month}`;
 
 	// Cari journal terakhir HANYA di bulan yang sama dengan input date
 	const lastEntry = await db.query.journalEntry.findFirst({
