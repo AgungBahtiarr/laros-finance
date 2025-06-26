@@ -54,7 +54,7 @@
 		formData.lines.reduce((sum, line) => sum + (parseFloat(line.creditAmount) || 0), 0).toFixed(2)
 	);
 
-	let isBalanced = $derived(Math.abs(parseFloat(totalDebit) - parseFloat(totalCredit)) < 0.01);
+	let isBalanced = $derived(Math.abs(parseFloat(totalDebit) - parseFloat(totalCredit)) < 1);
 
 	// Function to generate journal number based on selected date
 	async function generateJournalNumber() {
@@ -136,14 +136,50 @@
 	}
 
 	// Handle amount input (ensures only one of debit/credit has a value)
-	function handleAmountInput(index, field, value) {
-		if (field === 'debitAmount' && value !== '') {
-			formData.lines[index].creditAmount = '';
-		} else if (field === 'creditAmount' && value !== '') {
-			formData.lines[index].debitAmount = '';
+	function handleAmountInput(event: Event, index: number, field: 'debitAmount' | 'creditAmount') {
+		const inputElement = event.target as HTMLInputElement;
+		const sanitizedValue = inputElement.value.replace(/[^0-9]/g, '');
+
+		formData.lines[index][field] = sanitizedValue;
+
+		if (sanitizedValue !== '') {
+			if (field === 'debitAmount') {
+				formData.lines[index].creditAmount = '';
+			} else if (field === 'creditAmount') {
+				formData.lines[index].debitAmount = '';
+			}
+		}
+	}
+
+	function handleKeyDown(event: KeyboardEvent) {
+		if (
+			[
+				'Backspace',
+				'Delete',
+				'Tab',
+				'Escape',
+				'Enter',
+				'ArrowLeft',
+				'ArrowRight',
+				'ArrowUp',
+				'ArrowDown',
+				'Home',
+				'End'
+			].includes(event.key)
+		) {
+			return;
 		}
 
-		formData.lines[index][field] = value;
+		if (
+			(event.ctrlKey || event.metaKey) &&
+			['a', 'c', 'v', 'x'].includes(event.key.toLowerCase())
+		) {
+			return;
+		}
+
+		if (!/^[0-9]$/.test(event.key)) {
+			event.preventDefault();
+		}
 	}
 
 	// Toggle expand/collapse entry details
@@ -714,10 +750,11 @@
 												type="number"
 												class="input input-bordered w-full text-right"
 												placeholder="0.00"
-												step="0.01"
+												step="1"
 												min="0"
 												bind:value={line.debitAmount}
-												oninput={() => handleAmountInput(index, 'debitAmount', line.debitAmount)}
+												oninput={(event) => handleAmountInput(event, index, 'debitAmount')}
+												onkeydown={handleKeyDown}
 											/>
 										</td>
 										<td>
@@ -725,10 +762,11 @@
 												type="number"
 												class="input input-bordered w-full text-right"
 												placeholder="0.00"
-												step="0.01"
+												step="1"
 												min="0"
 												bind:value={line.creditAmount}
-												oninput={() => handleAmountInput(index, 'creditAmount', line.creditAmount)}
+												oninput={(event) => handleAmountInput(event, index, 'creditAmount')}
+												onkeydown={handleKeyDown}
 											/>
 										</td>
 										<td>
@@ -937,13 +975,13 @@
 										</td>
 										<td>
 											<input
-												type="number"
+												type="text"
+												inputmode="numeric"
 												class="input input-bordered w-full text-right"
-												placeholder="0.00"
-												step="0.01"
-												min="0"
+												placeholder="0"
 												bind:value={line.debitAmount}
-												oninput={() => handleAmountInput(index, 'debitAmount', line.debitAmount)}
+												oninput={(event) => handleAmountInput(event, index, 'debitAmount')}
+												onkeydown={handleKeyDown}
 											/>
 										</td>
 										<td>
@@ -951,10 +989,11 @@
 												type="number"
 												class="input input-bordered w-full text-right"
 												placeholder="0.00"
-												step="0.01"
+												step="1"
 												min="0"
 												bind:value={line.creditAmount}
-												oninput={() => handleAmountInput(index, 'creditAmount', line.creditAmount)}
+												oninput={(event) => handleAmountInput(event, index, 'creditAmount')}
+												onkeydown={handleKeyDown}
 											/>
 										</td>
 										<td>
