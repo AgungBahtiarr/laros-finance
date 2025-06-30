@@ -237,6 +237,7 @@ export const journalEntry = pgTable('journal_entry', {
 	totalCredit: decimal('total_credit', { precision: 15, scale: 2 }).notNull().default('0'),
 	status: varchar('status', { length: 20 }).notNull().default('DRAFT'), // DRAFT, POSTED, REVERSED
 	postedAt: timestamp('posted_at'),
+	isBhp: boolean('is_bhp').default(false),
 	postedBy: text('posted_by').references(() => user.id),
 	createdBy: text('created_by')
 		.notNull()
