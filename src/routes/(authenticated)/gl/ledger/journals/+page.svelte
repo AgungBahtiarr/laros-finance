@@ -16,8 +16,10 @@
 	} from '@lucide/svelte';
 
 	import SearchAbleSelect from '$lib/components/SearchAbleSelect.svelte';
+	import { onMount } from 'svelte';
 
 	let { data } = $props();
+	console.log(data);
 	let showFilters = $state(false);
 	let showCreateForm = $state(false);
 	let showEditForm = $state(false);
@@ -32,6 +34,8 @@
 		description: '',
 		reference: '',
 		fiscalPeriodId: data.currentFiscalPeriod?.id.toString() || '',
+		isbhp: false,
+		jumlahKomitmenBagiHasil: '',
 		lines: [
 			{ accountId: '', description: '', debitAmount: '', creditAmount: '' },
 			{ accountId: '', description: '', debitAmount: '', creditAmount: '' }
@@ -47,11 +51,19 @@
 
 	// Calculated values
 	let totalDebit = $derived(
-		formData.lines.reduce((sum, line) => sum + (parseFloat(line.debitAmount) || 0), 0).toFixed(2)
+		formData.isbhp
+			? (parseFloat(formData.jumlahKomitmenBagiHasil) || 0).toFixed(2)
+			: formData.lines
+					.reduce((sum, line) => sum + (parseFloat(line.debitAmount) || 0), 0)
+					.toFixed(2)
 	);
 
 	let totalCredit = $derived(
-		formData.lines.reduce((sum, line) => sum + (parseFloat(line.creditAmount) || 0), 0).toFixed(2)
+		formData.isbhp
+			? (parseFloat(formData.jumlahKomitmenBagiHasil) || 0).toFixed(2)
+			: formData.lines
+					.reduce((sum, line) => sum + (parseFloat(line.creditAmount) || 0), 0)
+					.toFixed(2)
 	);
 
 	let isBalanced = $derived(Math.abs(parseFloat(totalDebit) - parseFloat(totalCredit)) < 1);
@@ -88,6 +100,20 @@
 	$effect(() => {
 		if (formData.date && showCreateForm) {
 			generateJournalNumber();
+		}
+	});
+
+	// Watch for isbhp changes to reset form
+	$effect(() => {
+		if (formData.isbhp) {
+			// Reset journal lines when BHP is checked
+			formData.lines = [
+				{ accountId: '', description: '', debitAmount: '', creditAmount: '' },
+				{ accountId: '', description: '', debitAmount: '', creditAmount: '' }
+			];
+		} else {
+			// Reset BHP amount when unchecked
+			formData.jumlahKomitmenBagiHasil = '';
 		}
 	});
 
@@ -131,9 +157,9 @@
 	}
 
 	// Handle account selection
-	function handleAccountSelect(index, accountId) {
-		formData.lines[index].accountId = accountId;
-	}
+	// function handleAccountSelect(index, accountId) {
+	// 	formData.lines[index].accountId = accountId;
+	// }
 
 	// Handle amount input (ensures only one of debit/credit has a value)
 	function handleAmountInput(event: Event, index: number, field: 'debitAmount' | 'creditAmount') {
@@ -149,6 +175,13 @@
 				formData.lines[index].debitAmount = '';
 			}
 		}
+	}
+
+	// Handle BHP amount input
+	function handleBHPAmountInput(event: Event) {
+		const inputElement = event.target as HTMLInputElement;
+		const sanitizedValue = inputElement.value.replace(/[^0-9]/g, '');
+		formData.jumlahKomitmenBagiHasil = sanitizedValue;
 	}
 
 	function handleKeyDown(event: KeyboardEvent) {
@@ -200,6 +233,8 @@
 			description: '',
 			reference: '',
 			fiscalPeriodId: data.currentFiscalPeriod?.id.toString() || '',
+			isbhp: false,
+			jumlahKomitmenBagiHasil: '',
 			lines: [
 				{ accountId: '', description: '', debitAmount: '', creditAmount: '' },
 				{ accountId: '', description: '', debitAmount: '', creditAmount: '' }
@@ -225,6 +260,8 @@
 			description: entry.description || '',
 			reference: entry.reference || '',
 			fiscalPeriodId: entry.fiscalPeriodId,
+			isbhp: entry.isbhp || false,
+			jumlahKomitmenBagiHasil: entry.jumlahKomitmenBagiHasil || '',
 			lines: entry.lines.map((line) => ({
 				accountId: line.accountId, // Ensure string conversion
 				description: line.description || '',
@@ -306,11 +343,15 @@
 	}
 
 	// Get account code and name for display
-	function getAccountDisplay(accountId) {
-		const account = findAccount(accountId);
-		if (!account) return '';
-		return `${account.code} - ${account.name}`;
-	}
+	// function getAccountDisplay(accountId) {
+	// 	const account = findAccount(accountId);
+	// 	if (!account) return '';
+	// 	return `${account.code} - ${account.name}`;
+	// }
+
+	onMount(() => {
+		console.log(30000000 / 1.11);
+	});
 </script>
 
 <div class="space-y-6">
@@ -689,137 +730,176 @@
 							{/each}
 						</select>
 					</div>
+
+					<!-- BHP Checkbox -->
+					<div class="form-control w-full">
+						<label class="label cursor-pointer" for="isbhp">
+							<span class="label-text">Bagi Hasil Partner (BHP)</span>
+							<input
+								type="checkbox"
+								id="isbhp"
+								name="isbhp"
+								class="checkbox checkbox-primary"
+								bind:checked={formData.isbhp}
+							/>
+						</label>
+					</div>
 				</div>
 
-				<!-- Journal Lines -->
+				<!-- Journal Lines or BHP Amount -->
 				<div class="mt-6">
-					<div class="mb-2 flex items-center justify-between">
-						<h4 class="font-medium">Journal Lines</h4>
-						<button type="button" class="btn btn-outline btn-sm" onclick={addJournalLine}>
-							Add Line
-						</button>
-					</div>
-
-					<div>
-						<table class="table">
-							<thead>
-								<tr>
-									<th class="w-10">#</th>
-									<th>Account</th>
-									<th>Description</th>
-									<th class="w-32">Debit</th>
-									<th class="w-32">Credit</th>
-									<th class="w-10"></th>
-								</tr>
-							</thead>
-							<tbody>
-								{#each formData.lines as line, index}
-									<tr>
-										<td>{index + 1}</td>
-										<td class="min-w-64">
-											<!-- <select
-												class="select select-bordered w-full"
-												bind:value={line.accountId}
-												required
-											>
-												<option value="">Select Account</option>
-												{#each data.accounts as account}
-													<option value={account.id}>
-														{account.code} - {account.name}
-													</option>
-												{/each}
-											</select> -->
-
-											<SearchAbleSelect
-												items={data.accounts}
-												bind:value={line.accountId}
-												placeholder="Search account code or name..."
-												required={true}
-											/>
-										</td>
-										<td>
-											<input
-												type="text"
-												class="input input-bordered w-full"
-												placeholder="Line description"
-												bind:value={line.description}
-											/>
-										</td>
-										<td>
-											<input
-												type="number"
-												class="input input-bordered w-full text-right"
-												placeholder="0.00"
-												step="1"
-												min="0"
-												bind:value={line.debitAmount}
-												oninput={(event) => handleAmountInput(event, index, 'debitAmount')}
-												onkeydown={handleKeyDown}
-											/>
-										</td>
-										<td>
-											<input
-												type="number"
-												class="input input-bordered w-full text-right"
-												placeholder="0.00"
-												step="1"
-												min="0"
-												bind:value={line.creditAmount}
-												oninput={(event) => handleAmountInput(event, index, 'creditAmount')}
-												onkeydown={handleKeyDown}
-											/>
-										</td>
-										<td>
-											{#if formData.lines.length > 2}
-												<button
-													type="button"
-													class="btn btn-ghost btn-sm text-error"
-													onclick={() => removeJournalLine(index)}
-												>
-													<Trash2 class="h-4 w-4" />
-												</button>
-											{/if}
-										</td>
-									</tr>
-								{/each}
-
-								<!-- Totals Row -->
-								<tr class="bg-base-200">
-									<td colspan="3" class="text-right font-medium">Totals</td>
-									<td class="text-right font-medium">{formatCurrency(totalDebit)}</td>
-									<td class="text-right font-medium">{formatCurrency(totalCredit)}</td>
-									<td></td>
-								</tr>
-							</tbody>
-						</table>
-					</div>
-
-					<!-- Balance Warning -->
-					{#if !isBalanced}
-						<div class="alert alert-error mt-4">
-							<AlertTriangle class="h-5 w-5" />
-							<span
-								>Debits and credits must be equal. Current difference: {formatCurrency(
-									Math.abs(parseFloat(totalDebit) - parseFloat(totalCredit))
-								)}</span
-							>
+					{#if formData.isbhp}
+						<!-- BHP Mode: Single Amount Input -->
+						<div class="mb-2">
+							<h4 class="font-medium">Jumlah Komitmen Bagi Hasil</h4>
 						</div>
+
+						<div class="form-control w-full max-w-md">
+							<label class="label" for="jumlahKomitmenBagiHasil">
+								<span class="label-text">Jumlah (IDR)</span>
+							</label>
+							<input
+								type="text"
+								id="jumlahKomitmenBagiHasil"
+								name="jumlahKomitmenBagiHasil"
+								class="input input-bordered w-full text-right"
+								placeholder="0"
+								bind:value={formData.jumlahKomitmenBagiHasil}
+								oninput={handleBHPAmountInput}
+								onkeydown={handleKeyDown}
+								required
+							/>
+						</div>
+					{:else}
+						<!-- Normal Mode: Journal Lines -->
+						<div class="mb-2 flex items-center justify-between">
+							<h4 class="font-medium">Journal Lines</h4>
+							<button type="button" class="btn btn-outline btn-sm" onclick={addJournalLine}>
+								Add Line
+							</button>
+						</div>
+
+						<div>
+							<table class="table">
+								<thead>
+									<tr>
+										<th class="w-10">#</th>
+										<th>Account</th>
+										<th>Description</th>
+										<th class="w-32">Debit</th>
+										<th class="w-32">Credit</th>
+										<th class="w-10"></th>
+									</tr>
+								</thead>
+								<tbody>
+									{#each formData.lines as line, index}
+										<tr>
+											<td>{index + 1}</td>
+											<td class="min-w-64">
+												<SearchAbleSelect
+													items={data.accounts}
+													bind:value={line.accountId}
+													placeholder="Search account code or name..."
+													required={true}
+												/>
+											</td>
+											<td>
+												<input
+													type="text"
+													class="input input-bordered w-full"
+													placeholder="Line description"
+													bind:value={line.description}
+												/>
+											</td>
+											<td>
+												<input
+													type="number"
+													class="input input-bordered w-full text-right"
+													placeholder="0.00"
+													step="1"
+													min="0"
+													bind:value={line.debitAmount}
+													oninput={(event) => handleAmountInput(event, index, 'debitAmount')}
+													onkeydown={handleKeyDown}
+												/>
+											</td>
+											<td>
+												<input
+													type="number"
+													class="input input-bordered w-full text-right"
+													placeholder="0.00"
+													step="1"
+													min="0"
+													bind:value={line.creditAmount}
+													oninput={(event) => handleAmountInput(event, index, 'creditAmount')}
+													onkeydown={handleKeyDown}
+												/>
+											</td>
+											<td>
+												{#if formData.lines.length > 2}
+													<button
+														type="button"
+														class="btn btn-ghost btn-sm text-error"
+														onclick={() => removeJournalLine(index)}
+													>
+														<Trash2 class="h-4 w-4" />
+													</button>
+												{/if}
+											</td>
+										</tr>
+									{/each}
+
+									<!-- Totals Row -->
+									<tr class="bg-base-200">
+										<td colspan="3" class="text-right font-medium">Totals</td>
+										<td class="text-right font-medium">{formatCurrency(totalDebit)}</td>
+										<td class="text-right font-medium">{formatCurrency(totalCredit)}</td>
+										<td></td>
+									</tr>
+								</tbody>
+							</table>
+						</div>
+
+						<!-- Balance Warning -->
+						{#if !isBalanced}
+							<div class="alert alert-error mt-4">
+								<AlertTriangle class="h-5 w-5" />
+								<span
+									>Debits and credits must be equal. Current difference: {formatCurrency(
+										Math.abs(parseFloat(totalDebit) - parseFloat(totalCredit))
+									)}</span
+								>
+							</div>
+						{/if}
 					{/if}
 
-					<input type="hidden" name="lineCount" value={formData.lines.length} />
-					{#each formData.lines as line, i}
-						<input type="hidden" name={`lines[${i}].accountId`} value={line.accountId || ''} />
-						<input type="hidden" name={`lines[${i}].description`} value={line.description || ''} />
-						<input type="hidden" name={`lines[${i}].debitAmount`} value={line.debitAmount || 0} />
-						<input type="hidden" name={`lines[${i}].creditAmount`} value={line.creditAmount || 0} />
-					{/each}
+					<!-- Hidden inputs for journal lines -->
+					{#if !formData.isbhp}
+						<input type="hidden" name="lineCount" value={formData.lines.length} />
+						{#each formData.lines as line, i}
+							<input type="hidden" name={`lines[${i}].accountId`} value={line.accountId || ''} />
+							<input
+								type="hidden"
+								name={`lines[${i}].description`}
+								value={line.description || ''}
+							/>
+							<input type="hidden" name={`lines[${i}].debitAmount`} value={line.debitAmount || 0} />
+							<input
+								type="hidden"
+								name={`lines[${i}].creditAmount`}
+								value={line.creditAmount || 0}
+							/>
+						{/each}
+					{/if}
 				</div>
 
 				<div class="modal-action mt-6">
 					<button
 						type="submit"
 						class="btn btn-primary"
-						disabled={!isBalanced || formData.lines.length < 2}
+						disabled={formData.isbhp
+							? !formData.jumlahKomitmenBagiHasil
+							: !isBalanced || formData.lines.length < 2}
 					>
 						Create Journal Entry
 					</button>
@@ -916,137 +996,175 @@
 							{/each}
 						</select>
 					</div>
+
+					<!-- BHP Checkbox for Edit -->
+					<div class="form-control w-full">
+						<label class="label cursor-pointer" for="edit-isbhp">
+							<span class="label-text">Bagi Hasil Partner (BHP)</span>
+							<input
+								type="checkbox"
+								id="edit-isbhp"
+								name="isbhp"
+								class="checkbox checkbox-primary"
+								bind:checked={formData.isbhp}
+							/>
+						</label>
+					</div>
 				</div>
 
-				<!-- Journal Lines -->
+				<!-- Journal Lines or BHP Amount for Edit -->
 				<div class="mt-6">
-					<div class="mb-2 flex items-center justify-between">
-						<h4 class="font-medium">Journal Lines</h4>
-						<button type="button" class="btn btn-outline btn-sm" onclick={addJournalLine}>
-							Add Line
-						</button>
-					</div>
-
-					<div>
-						<table class="table">
-							<thead>
-								<tr>
-									<th class="w-10">#</th>
-									<th>Account</th>
-									<th>Description</th>
-									<th class="w-32">Debit</th>
-									<th class="w-32">Credit</th>
-									<th class="w-10"></th>
-								</tr>
-							</thead>
-							<tbody>
-								{#each formData.lines as line, index}
-									<tr>
-										<td>{index + 1}</td>
-										<td>
-											<!-- <select
-												class="select select-bordered w-full"
-												bind:value={line.accountId}
-												onchange={() => handleAccountSelect(index, line.accountId)}
-												required
-											>
-												<option value="">Select Account</option>
-												{#each data.accounts as account}
-													<option value={account.id}>
-														{account.code} - {account.name}
-													</option>
-												{/each}
-											</select> -->
-
-											<SearchAbleSelect
-												items={data.accounts}
-												bind:value={line.accountId}
-												placeholder="Search account code or name..."
-												required={true}
-											/>
-										</td>
-										<td>
-											<input
-												type="text"
-												class="input input-bordered w-full"
-												placeholder="Line description"
-												bind:value={line.description}
-											/>
-										</td>
-										<td>
-											<input
-												type="text"
-												inputmode="numeric"
-												class="input input-bordered w-full text-right"
-												placeholder="0"
-												bind:value={line.debitAmount}
-												oninput={(event) => handleAmountInput(event, index, 'debitAmount')}
-												onkeydown={handleKeyDown}
-											/>
-										</td>
-										<td>
-											<input
-												type="number"
-												class="input input-bordered w-full text-right"
-												placeholder="0.00"
-												step="1"
-												min="0"
-												bind:value={line.creditAmount}
-												oninput={(event) => handleAmountInput(event, index, 'creditAmount')}
-												onkeydown={handleKeyDown}
-											/>
-										</td>
-										<td>
-											{#if formData.lines.length > 2}
-												<button
-													type="button"
-													class="btn btn-ghost btn-sm text-error"
-													onclick={() => removeJournalLine(index)}
-												>
-													<Trash2 class="h-4 w-4" />
-												</button>
-											{/if}
-										</td>
-									</tr>
-								{/each}
-
-								<!-- Totals Row -->
-								<tr class="bg-base-200">
-									<td colspan="3" class="text-right font-medium">Totals</td>
-									<td class="text-right font-medium">{formatCurrency(totalDebit)}</td>
-									<td class="text-right font-medium">{formatCurrency(totalCredit)}</td>
-									<td></td>
-								</tr>
-							</tbody>
-						</table>
-					</div>
-
-					<!-- Balance Warning -->
-					{#if !isBalanced}
-						<div class="alert alert-error mt-4">
-							<AlertTriangle class="h-5 w-5" />
-							<span>
-								Debits and credits must be equal. Current difference: {formatCurrency(
-									Math.abs(parseFloat(totalDebit) - parseFloat(totalCredit))
-								)}
-							</span>
+					{#if formData.isbhp}
+						<!-- BHP Mode: Single Amount Input -->
+						<div class="mb-2">
+							<h4 class="font-medium">Jumlah Komitmen Bagi Hasil</h4>
 						</div>
+
+						<div class="form-control w-full max-w-md">
+							<label class="label" for="edit-jumlahKomitmenBagiHasil">
+								<span class="label-text">Jumlah (IDR)</span>
+							</label>
+							<input
+								type="text"
+								id="edit-jumlahKomitmenBagiHasil"
+								name="jumlahKomitmenBagiHasil"
+								class="input input-bordered w-full text-right"
+								placeholder="0"
+								bind:value={formData.jumlahKomitmenBagiHasil}
+								oninput={handleBHPAmountInput}
+								onkeydown={handleKeyDown}
+								required
+							/>
+						</div>
+					{:else}
+						<!-- Normal Mode: Journal Lines -->
+						<div class="mb-2 flex items-center justify-between">
+							<h4 class="font-medium">Journal Lines</h4>
+							<button type="button" class="btn btn-outline btn-sm" onclick={addJournalLine}>
+								Add Line
+							</button>
+						</div>
+
+						<div>
+							<table class="table">
+								<thead>
+									<tr>
+										<th class="w-10">#</th>
+										<th>Account</th>
+										<th>Description</th>
+										<th class="w-32">Debit</th>
+										<th class="w-32">Credit</th>
+										<th class="w-10"></th>
+									</tr>
+								</thead>
+								<tbody>
+									{#each formData.lines as line, index}
+										<tr>
+											<td>{index + 1}</td>
+											<td>
+												<SearchAbleSelect
+													items={data.accounts}
+													bind:value={line.accountId}
+													placeholder="Search account code or name..."
+													required={true}
+												/>
+											</td>
+											<td>
+												<input
+													type="text"
+													class="input input-bordered w-full"
+													placeholder="Line description"
+													bind:value={line.description}
+												/>
+											</td>
+											<td>
+												<input
+													type="text"
+													inputmode="numeric"
+													class="input input-bordered w-full text-right"
+													placeholder="0"
+													bind:value={line.debitAmount}
+													oninput={(event) => handleAmountInput(event, index, 'debitAmount')}
+													onkeydown={handleKeyDown}
+												/>
+											</td>
+											<td>
+												<input
+													type="number"
+													class="input input-bordered w-full text-right"
+													placeholder="0.00"
+													step="1"
+													min="0"
+													bind:value={line.creditAmount}
+													oninput={(event) => handleAmountInput(event, index, 'creditAmount')}
+													onkeydown={handleKeyDown}
+												/>
+											</td>
+											<td>
+												{#if formData.lines.length > 2}
+													<button
+														type="button"
+														class="btn btn-ghost btn-sm text-error"
+														onclick={() => removeJournalLine(index)}
+													>
+														<Trash2 class="h-4 w-4" />
+													</button>
+												{/if}
+											</td>
+										</tr>
+									{/each}
+
+									<!-- Totals Row -->
+									<tr class="bg-base-200">
+										<td colspan="3" class="text-right font-medium">Totals</td>
+										<td class="text-right font-medium">{formatCurrency(totalDebit)}</td>
+										<td class="text-right font-medium">{formatCurrency(totalCredit)}</td>
+										<td></td>
+									</tr>
+								</tbody>
+							</table>
+						</div>
+
+						<!-- Balance Warning -->
+						{#if !isBalanced}
+							<div class="alert alert-error mt-4">
+								<AlertTriangle class="h-5 w-5" />
+								<span>
+									Debits and credits must be equal. Current difference: {formatCurrency(
+										Math.abs(parseFloat(totalDebit) - parseFloat(totalCredit))
+									)}
+								</span>
+							</div>
+						{/if}
 					{/if}
 
-					<input type="hidden" name="lineCount" value={formData.lines.length} />
-					{#each formData.lines as line, i}
-						<input type="hidden" name={`lines[${i}].accountId`} value={line.accountId || ''} />
-						<input type="hidden" name={`lines[${i}].description`} value={line.description || ''} />
-						<input type="hidden" name={`lines[${i}].debitAmount`} value={line.debitAmount || 0} />
-						<input type="hidden" name={`lines[${i}].creditAmount`} value={line.creditAmount || 0} />
-					{/each}
+					<!-- Hidden inputs for journal lines -->
+					{#if !formData.isbhp}
+						<input type="hidden" name="lineCount" value={formData.lines.length} />
+						{#each formData.lines as line, i}
+							<input type="hidden" name={`lines[${i}].accountId`} value={line.accountId || ''} />
+							<input
+								type="hidden"
+								name={`lines[${i}].description`}
+								value={line.description || ''}
+							/>
+							<input type="hidden" name={`lines[${i}].debitAmount`} value={line.debitAmount || 0} />
+							<input
+								type="hidden"
+								name={`lines[${i}].creditAmount`}
+								value={line.creditAmount || 0}
+							/>
+						{/each}
+					{/if}
 				</div>
 
 				<div class="modal-action mt-6">
 					<button
 						type="submit"
 						class="btn btn-primary"
-						disabled={!isBalanced || formData.lines.length < 2}
+						disabled={formData.isbhp
+							? !formData.jumlahKomitmenBagiHasil
+							: !isBalanced || formData.lines.length < 2}
 					>
 						<Save class="mr-1 h-4 w-4" />
 						Save Changes
