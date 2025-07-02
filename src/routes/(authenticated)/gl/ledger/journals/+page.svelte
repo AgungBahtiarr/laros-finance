@@ -172,7 +172,11 @@
 	// Handle amount input (ensures only one of debit/credit has a value)
 	function handleAmountInput(event: Event, index: number, field: 'debitAmount' | 'creditAmount') {
 		const inputElement = event.target as HTMLInputElement;
-		const sanitizedValue = inputElement.value.replace(/[^0-9]/g, '');
+		let sanitizedValue = inputElement.value.replace(/[^0-9.]/g, '');
+		const parts = sanitizedValue.split('.');
+		if (parts.length > 2) {
+			sanitizedValue = parts[0] + '.' + parts.slice(1).join('');
+		}
 
 		formData.lines[index][field] = sanitizedValue;
 
@@ -188,11 +192,16 @@
 	// Handle BHP amount input
 	function handleBHPAmountInput(event: Event) {
 		const inputElement = event.target as HTMLInputElement;
-		const sanitizedValue = inputElement.value.replace(/[^0-9]/g, '');
+		let sanitizedValue = inputElement.value.replace(/[^0-9.]/g, '');
+		const parts = sanitizedValue.split('.');
+		if (parts.length > 2) {
+			sanitizedValue = parts[0] + '.' + parts.slice(1).join('');
+		}
 		formData.jumlahKomitmenBagiHasil = sanitizedValue;
 	}
 
 	function handleKeyDown(event: KeyboardEvent) {
+		const target = event.target as HTMLInputElement;
 		if (
 			[
 				'Backspace',
@@ -218,7 +227,12 @@
 			return;
 		}
 
-		if (!/^[0-9]$/.test(event.key)) {
+		if (event.key === '.' && target.value.includes('.')) {
+			event.preventDefault();
+			return;
+		}
+
+		if (!/^[0-9.]$/.test(event.key)) {
 			event.preventDefault();
 		}
 	}
@@ -828,11 +842,10 @@
 											</td>
 											<td>
 												<input
-													type="number"
+													type="text"
+													inputmode="decimal"
 													class="input input-bordered w-full text-right"
 													placeholder="0.00"
-													step="1"
-													min="0"
 													bind:value={line.debitAmount}
 													oninput={(event) => handleAmountInput(event, index, 'debitAmount')}
 													onkeydown={handleKeyDown}
@@ -840,11 +853,10 @@
 											</td>
 											<td>
 												<input
-													type="number"
+													type="text"
+													inputmode="decimal"
 													class="input input-bordered w-full text-right"
 													placeholder="0.00"
-													step="1"
-													min="0"
 													bind:value={line.creditAmount}
 													oninput={(event) => handleAmountInput(event, index, 'creditAmount')}
 													onkeydown={handleKeyDown}
@@ -1095,9 +1107,9 @@
 											<td>
 												<input
 													type="text"
-													inputmode="numeric"
+													inputmode="decimal"
 													class="input input-bordered w-full text-right"
-													placeholder="0"
+													placeholder="0.00"
 													bind:value={line.debitAmount}
 													oninput={(event) => handleAmountInput(event, index, 'debitAmount')}
 													onkeydown={handleKeyDown}
@@ -1105,11 +1117,10 @@
 											</td>
 											<td>
 												<input
-													type="number"
+													type="text"
+													inputmode="decimal"
 													class="input input-bordered w-full text-right"
 													placeholder="0.00"
-													step="1"
-													min="0"
 													bind:value={line.creditAmount}
 													oninput={(event) => handleAmountInput(event, index, 'creditAmount')}
 													onkeydown={handleKeyDown}
