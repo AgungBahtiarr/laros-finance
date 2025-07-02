@@ -57,24 +57,29 @@
 	let searchTerm = $state(data.filters.searchTerm);
 	let fiscalPeriodId = $state(data.filters.fiscalPeriodId);
 
+	function parseLocaleNumber(value) {
+		if (typeof value !== 'string') return value;
+		return parseFloat(value.replace(',', '.'));
+	}
+
 	// Calculated values
 	let totalDebit = $derived(
 		formData.isbhp
-			? (parseFloat(formData.jumlahKomitmenBagiHasil) || 0).toFixed(2)
+			? (parseLocaleNumber(formData.jumlahKomitmenBagiHasil) || 0).toFixed(2)
 			: formData.lines
-					.reduce((sum, line) => sum + (parseFloat(line.debitAmount) || 0), 0)
+					.reduce((sum, line) => sum + (parseLocaleNumber(line.debitAmount) || 0), 0)
 					.toFixed(2)
 	);
 
 	let totalCredit = $derived(
 		formData.isbhp
-			? (parseFloat(formData.jumlahKomitmenBagiHasil) || 0).toFixed(2)
+			? (parseLocaleNumber(formData.jumlahKomitmenBagiHasil) || 0).toFixed(2)
 			: formData.lines
-					.reduce((sum, line) => sum + (parseFloat(line.creditAmount) || 0), 0)
+					.reduce((sum, line) => sum + (parseLocaleNumber(line.creditAmount) || 0), 0)
 					.toFixed(2)
 	);
 
-	let isBalanced = $derived(Math.abs(parseFloat(totalDebit) - parseFloat(totalCredit)) < 1);
+	let isBalanced = $derived(Math.abs(parseFloat(totalDebit) - parseFloat(totalCredit)) < 0.01);
 
 	// Function to generate journal number based on selected date
 	async function generateJournalNumber() {
@@ -172,10 +177,10 @@
 	// Handle amount input (ensures only one of debit/credit has a value)
 	function handleAmountInput(event: Event, index: number, field: 'debitAmount' | 'creditAmount') {
 		const inputElement = event.target as HTMLInputElement;
-		let sanitizedValue = inputElement.value.replace(/[^0-9.]/g, '');
-		const parts = sanitizedValue.split('.');
+		let sanitizedValue = inputElement.value.replace(/[^0-9,]/g, '');
+		const parts = sanitizedValue.split(',');
 		if (parts.length > 2) {
-			sanitizedValue = parts[0] + '.' + parts.slice(1).join('');
+			sanitizedValue = parts[0] + ',' + parts.slice(1).join('');
 		}
 
 		formData.lines[index][field] = sanitizedValue;
@@ -192,10 +197,10 @@
 	// Handle BHP amount input
 	function handleBHPAmountInput(event: Event) {
 		const inputElement = event.target as HTMLInputElement;
-		let sanitizedValue = inputElement.value.replace(/[^0-9.]/g, '');
-		const parts = sanitizedValue.split('.');
+		let sanitizedValue = inputElement.value.replace(/[^0-9,]/g, '');
+		const parts = sanitizedValue.split(',');
 		if (parts.length > 2) {
-			sanitizedValue = parts[0] + '.' + parts.slice(1).join('');
+			sanitizedValue = parts[0] + ',' + parts.slice(1).join('');
 		}
 		formData.jumlahKomitmenBagiHasil = sanitizedValue;
 	}
@@ -227,12 +232,12 @@
 			return;
 		}
 
-		if (event.key === '.' && target.value.includes('.')) {
+		if (event.key === ',' && target.value.includes(',')) {
 			event.preventDefault();
 			return;
 		}
 
-		if (!/^[0-9.]$/.test(event.key)) {
+		if (!/^[0-9,]$/.test(event.key)) {
 			event.preventDefault();
 		}
 	}
@@ -283,14 +288,18 @@
 			reference: entry.reference || '',
 			fiscalPeriodId: entry.fiscalPeriodId,
 			isbhp: entry.isbhp || false,
-			jumlahKomitmenBagiHasil: entry.jumlahKomitmenBagiHasil || '',
+			jumlahKomitmenBagiHasil: entry.jumlahKomitmenBagiHasil?.toString().replace('.', ',') || '',
 			lines: entry.lines.map((line) => ({
 				accountId: line.accountId, // Ensure string conversion
 				description: line.description || '',
 				debitAmount:
-					parseFloat(line.debitAmount || 0) > 0 ? parseFloat(line.debitAmount).toString() : '',
+					parseFloat(line.debitAmount || 0) > 0
+						? parseFloat(line.debitAmount).toString().replace('.', ',')
+						: '',
 				creditAmount:
-					parseFloat(line.creditAmount || 0) > 0 ? parseFloat(line.creditAmount).toString() : ''
+					parseFloat(line.creditAmount || 0) > 0
+						? parseFloat(line.creditAmount).toString().replace('.', ',')
+						: ''
 			}))
 		};
 
@@ -333,7 +342,21 @@
 	}
 
 	// Handle form submission
-	function handleSubmit() {
+	function handleSubmit(submission) {
+		const { formData: data } = submission;
+
+		// Modify form data before submission, converting comma to dot for backend
+		for (const [key, value] of data.entries()) {
+			if (
+				typeof value === 'string' &&
+				(key.includes('debitAmount') ||
+					key.includes('creditAmount') ||
+					key.includes('jumlahKomitmenBagiHasil'))
+			) {
+				data.set(key, value.replace(',', '.'));
+			}
+		}
+
 		return async ({ result }) => {
 			if (result.type === 'success') {
 				if (showCreateForm) {
