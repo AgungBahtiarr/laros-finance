@@ -782,20 +782,6 @@
 							{/each}
 						</select>
 					</div>
-
-					<!-- BHP Checkbox -->
-					<div class="form-control w-full">
-						<label class="label cursor-pointer" for="isbhp">
-							<span class="label-text">Bagi Hasil Partner (BHP)</span>
-							<input
-								type="checkbox"
-								id="isbhp"
-								name="isbhp"
-								class="checkbox checkbox-primary"
-								bind:checked={formData.isbhp}
-							/>
-						</label>
-					</div>
 				</div>
 
 				<!-- Journal Lines or BHP Amount -->
