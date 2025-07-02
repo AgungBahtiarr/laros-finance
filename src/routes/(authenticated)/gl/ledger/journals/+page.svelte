@@ -18,7 +18,15 @@
 	import SearchAbleSelect from '$lib/components/SearchAbleSelect.svelte';
 	import { onMount } from 'svelte';
 
+	import Pagination from '$lib/components/Pagination.svelte';
+
 	let { data } = $props();
+
+	function handlePageChange(page: number) {
+		const searchParams = new URLSearchParams(window.location.search);
+		searchParams.set('page', page.toString());
+		goto(`?${searchParams.toString()}`);
+	}
 	console.log(data);
 	let showFilters = $state(false);
 	let showCreateForm = $state(false);
@@ -628,6 +636,13 @@
 					{/if}
 				</tbody>
 			</table>
+		</div>
+		<div class="card-actions justify-center p-4">
+			<Pagination
+				currentPage={data.pagination.currentPage}
+				totalPages={data.pagination.totalPages}
+				onPageChange={handlePageChange}
+			/>
 		</div>
 	</div>
 </div>

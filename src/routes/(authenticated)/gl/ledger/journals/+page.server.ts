@@ -9,7 +9,7 @@ import {
 	fiscalPeriod,
 	user
 } from '$lib/server/db/schema';
-import { eq, and, desc, asc, gte, lte, sql } from 'drizzle-orm';
+import { eq, and, desc, asc, gte, lte, sql, count } from 'drizzle-orm';
 
 // Helper function to generate next journal number based on date
 async function generateNextJournalNumber(inputDate: string) {
@@ -44,6 +44,9 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 		const status = url.searchParams.get('status') || '';
 		const searchTerm = url.searchParams.get('search') || '';
 		const fiscalPeriodId = url.searchParams.get('fiscalPeriodId') || '';
+		const page = parseInt(url.searchParams.get('page') || '1');
+		const limit = parseInt(url.searchParams.get('limit') || '10');
+		const offset = (page - 1) * limit;
 
 		// Build filter conditions
 		const conditions = [];
@@ -70,9 +73,18 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 			);
 		}
 
+		const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+		// Get total count of entries
+		const totalEntriesResult = await db
+			.select({ count: count() })
+			.from(journalEntry)
+			.where(whereClause);
+		const totalEntries = totalEntriesResult[0].count;
+
 		// Get journal entries with filters
 		const entries = await db.query.journalEntry.findMany({
-			where: conditions.length > 0 ? and(...conditions) : undefined,
+			where: whereClause,
 			with: {
 				fiscalPeriod: true,
 				createdByUser: true,
@@ -84,7 +96,9 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 					orderBy: [asc(journalEntryLine.lineNumber)]
 				}
 			},
-			orderBy: [desc(journalEntry.date), desc(journalEntry.number)]
+			orderBy: [desc(journalEntry.date), desc(journalEntry.number)],
+			limit,
+			offset
 		});
 
 		// Get accounts for dropdown
@@ -120,6 +134,10 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 				status,
 				searchTerm,
 				fiscalPeriodId
+			},
+			pagination: {
+				currentPage: page,
+				totalPages: Math.ceil(totalEntries / limit)
 			}
 		};
 	} catch (err) {
