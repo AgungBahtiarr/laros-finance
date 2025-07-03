@@ -92,7 +92,7 @@
 			clearTimeout(updateTimeout);
 			updateTimeout = setTimeout(async () => {
 				await goto(`?${params.toString()}`, { replaceState: true });
-			}, 300); // Debounce URL updates
+			}, 300);
 		} finally {
 			isLoading = false;
 		}
@@ -240,7 +240,7 @@
 		</div>
 	</div>
 
-	<div class="print:hidden space-y-4">
+	<div class="space-y-4 print:hidden">
 		<ReportFilters {dateRange} onchange={handleDateRangeChange} />
 
 		<div class="form-control w-full">
@@ -260,11 +260,11 @@
 
 				{#if showDropdown && filteredAccounts.length > 0}
 					<div
-						class="absolute z-50 mt-1 w-full bg-base-100 rounded-lg border shadow-lg max-h-60 overflow-y-auto"
+						class="bg-base-100 absolute z-50 mt-1 max-h-60 w-full overflow-y-auto rounded-lg border shadow-lg"
 					>
 						{#each filteredAccounts as account}
 							<button
-								class="w-full px-4 py-2 text-left hover:bg-base-200 flex items-center space-x-2"
+								class="hover:bg-base-200 flex w-full items-center space-x-2 px-4 py-2 text-left"
 								onclick={() => handleAccountSelection(account.id)}
 							>
 								<span class="font-mono">{account.code}</span>
@@ -291,7 +291,7 @@
 	</div>
 
 	{#if isLoading}
-		<div class="flex justify-center items-center py-8">
+		<div class="flex items-center justify-center py-8">
 			<span class="loading loading-spinner loading-lg"></span>
 		</div>
 	{:else}
@@ -350,7 +350,7 @@
 			</table>
 
 			{#if data.pagination.totalPages > 1}
-				<div class="flex justify-center items-center gap-2 mt-4 print:hidden">
+				<div class="mt-4 flex items-center justify-center gap-2 print:hidden">
 					<button class="btn btn-sm" disabled={currentPage === 1} onclick={() => changePage(1)}>
 						«
 					</button>
