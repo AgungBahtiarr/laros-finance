@@ -40,7 +40,7 @@
 		"tailwindcss": "^4.1.11",
 		"tsx": "^4.20.3",
 		"typescript": "^5.8.3",
-		"vite": "npm:rolldown-vite@latest"
+		"vite": "^7.0.0"
 	},
 	"dependencies": {
 		"@aws-sdk/client-s3": "^3.842.0",
