@@ -379,13 +379,13 @@
 	function handleAction() {
 		return async ({ result }) => {
 			if (result.type === 'success') {
-                showImportModal = false; // Close modal on success
+				showImportModal = false; // Close modal on success
 				goto(page.url.pathname, { invalidateAll: true });
 			} else if (result.type === 'failure') {
-                console.error('Action failed:', result.data);
-                const errorMessage = result.data?.error || 'An unknown error occurred.';
-                alert('Import Failed: ' + errorMessage);
-            }
+				console.error('Action failed:', result.data);
+				const errorMessage = result.data?.error || 'An unknown error occurred.';
+				alert('Import Failed: ' + errorMessage);
+			}
 		};
 	}
 
@@ -418,10 +418,10 @@
 			<p class="text-sm text-gray-500">Manage and record financial transactions</p>
 		</div>
 		<div class="flex gap-2">
-            <button class="btn btn-outline btn-sm gap-1" onclick={() => (showImportModal = true)}>
-                <Plus class="h-4 w-4" />
-                Import Excel
-            </button>
+			<button class="btn btn-outline btn-sm gap-1" onclick={() => (showImportModal = true)}>
+				<Plus class="h-4 w-4" />
+				Import Excel
+			</button>
 			<button class="btn btn-outline btn-sm gap-1" onclick={() => (showFilters = !showFilters)}>
 				<Filter class="h-4 w-4" />
 				{showFilters ? 'Hide Filters' : 'Show Filters'}
@@ -954,7 +954,8 @@
 				</div>
 			</form>
 		</div>
-		<div class="modal-backdrop" onclick={closeCreateForm}></div>
+		<button type="button" class="modal-backdrop" aria-label="button" onclick={closeCreateForm}
+		></button>
 	</div>
 {/if}
 
@@ -1219,29 +1220,45 @@
 				</div>
 			</form>
 		</div>
-		<div class="modal-backdrop" onclick={closeEditForm}></div>
+		<button type="button" aria-label="button" class="modal-backdrop" onclick={closeEditForm}
+		></button>
 	</div>
 {/if}
 
 <!-- Import Excel Modal -->
 {#if showImportModal}
-<div class="modal modal-open">
-	<div class="modal-box">
-		<h3 class="font-bold text-lg">Import Journal Entries from Excel</h3>
-		<form method="POST" action="?/import" use:enhance={handleAction} enctype="multipart/form-data">
-			<div class="py-4">
-				<p class="mb-2">Select an Excel file to import. Make sure the format is correct:</p>
-				<ul class="list-disc list-inside text-sm mb-4">
-					<li>Sheet 1 should contain the journal data.</li>
-					<li>Columns: Tanggal, Nomor Jurnal, Deskripsi, Referensi, Kode Akun, Deskripsi Baris, Debit, Kredit</li>
-				</ul>
-				<input type="file" name="excelFile" class="file-input file-input-bordered w-full" accept=".xlsx, .xls" required />
-			</div>
-			<div class="modal-action">
-				<button type="submit" class="btn btn-primary">Import</button>
-				<button type="button" class="btn" onclick={() => (showImportModal = false)}>Cancel</button>
-			</div>
-		</form>
+	<div class="modal modal-open">
+		<div class="modal-box">
+			<h3 class="text-lg font-bold">Import Journal Entries from Excel</h3>
+			<form
+				method="POST"
+				action="?/import"
+				use:enhance={handleAction}
+				enctype="multipart/form-data"
+			>
+				<div class="py-4">
+					<p class="mb-2">Select an Excel file to import. Make sure the format is correct:</p>
+					<ul class="mb-4 list-inside list-disc text-sm">
+						<li>Sheet 1 should contain the journal data.</li>
+						<li>
+							Columns: Tanggal, Nomor Jurnal, Deskripsi, Referensi, Kode Akun, Deskripsi Baris,
+							Debit, Kredit
+						</li>
+					</ul>
+					<input
+						type="file"
+						name="excelFile"
+						class="file-input file-input-bordered w-full"
+						accept=".xlsx, .xls"
+						required
+					/>
+				</div>
+				<div class="modal-action">
+					<button type="submit" class="btn btn-primary">Import</button>
+					<button type="button" class="btn" onclick={() => (showImportModal = false)}>Cancel</button
+					>
+				</div>
+			</form>
+		</div>
 	</div>
-</div>
 {/if}
