@@ -28,20 +28,22 @@ interface AccountBalanceData {
 	accounts: {
 		code: string;
 		name: string;
+		type: string;
+		level: number;
+		previousDebit: number;
+		previousCredit: number;
 		debit: number;
 		credit: number;
-		debitMovement: number;
-		creditMovement: number;
-		finalDebit: number;
-		finalCredit: number;
+		balance: number;
+		isDebit: boolean;
 	}[];
 	totals: {
 		debit: number;
 		credit: number;
-		debitMovement: number;
-		creditMovement: number;
-		finalDebit: number;
-		finalCredit: number;
+		previousDebit: number;
+		previousCredit: number;
+		balanceDebit: number;
+		balanceCredit: number;
 	};
 	period: {
 		year: number;
@@ -49,7 +51,12 @@ interface AccountBalanceData {
 	};
 }
 
-export async function exportAccountBalanceToPdf(data: AccountBalanceData) {
+// Helper untuk format angka dengan dua desimal, ribuan titik, desimal koma
+function formatCurrency2(value: number) {
+	return value.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+export async function exportAccountBalanceToPdf(data: AccountBalanceData, dateRange: { start: string; end: string }) {
 	if (!browser) {
 		console.warn('PDF export is only available in browser environment');
 		return;
@@ -69,80 +76,54 @@ export async function exportAccountBalanceToPdf(data: AccountBalanceData) {
 		});
 	}
 
+	const now = new Date();
+	const printedAt = `Printed at: ${now.toLocaleDateString()} ${now.toLocaleTimeString()}`;
+	const [year, month] = dateRange.start.split('-');
+	const filename = `${year}_${month}-account-balance.pdf`;
+
 	const docDefinition: TDocumentDefinitions = {
 		content: [
 			{ text: 'Account Balance', style: 'header' },
+			{ text: printedAt, style: 'printedAt', margin: [0, 0, 0, 5] },
 			{
-				text: `Year: ${data.period.year}`,
-				style: 'subheader',
-				margin: [0, 0, 0, 5]
-			},
-			{
-				text: `Month: ${data.period.month}`,
+				text: `Period: ${dateRange.start} to ${dateRange.end}`,
 				style: 'subheader',
 				margin: [0, 0, 0, 10]
 			},
 			{
 				table: {
 					headerRows: 1,
-					widths: ['auto', '*', 'auto', 'auto', 'auto', 'auto', 'auto', 'auto'],
+					widths: ['*', 'auto', 'auto', 'auto', 'auto', 'auto', 'auto', 90],
 					body: [
-						// Headers
 						[
 							{ text: 'Account', bold: true },
-							{ text: 'Name', bold: true },
-							{ text: 'Debit', alignment: 'right', bold: true },
-							{ text: 'Credit', alignment: 'right', bold: true },
-							{ text: 'Debit', alignment: 'right', bold: true },
-							{ text: 'Credit', alignment: 'right', bold: true },
-							{ text: 'Debit', alignment: 'right', bold: true },
-							{ text: 'Credit', alignment: 'right', bold: true }
+							{ text: 'Type', bold: true },
+							{ text: 'Previous Debit', alignment: 'right', bold: true },
+							{ text: 'Previous Credit', alignment: 'right', bold: true },
+							{ text: 'Current Debit', alignment: 'right', bold: true },
+							{ text: 'Current Credit', alignment: 'right', bold: true },
+							{ text: 'Balance Debit', alignment: 'right', bold: true },
+							{ text: 'Balance Credit', alignment: 'right', bold: true }
 						],
-						// Account rows
 						...data.accounts.map((account) => [
-							{ text: account.code },
-							{ text: account.name },
-							{ text: formatCurrency(account.debit), alignment: 'right' },
-							{ text: formatCurrency(account.credit), alignment: 'right' },
-							{ text: formatCurrency(account.debitMovement), alignment: 'right' },
-							{ text: formatCurrency(account.creditMovement), alignment: 'right' },
-							{ text: formatCurrency(account.finalDebit), alignment: 'right' },
-							{ text: formatCurrency(account.finalCredit), alignment: 'right' }
+							{ text: `${account.code} - ${account.name}` },
+							{ text: account.type },
+							{ text: formatCurrency2(account.previousDebit), alignment: 'right' },
+							{ text: formatCurrency2(account.previousCredit), alignment: 'right' },
+							{ text: formatCurrency2(account.debit), alignment: 'right' },
+							{ text: formatCurrency2(account.credit), alignment: 'right' },
+							{ text: formatCurrency2(account.isDebit ? account.balance : 0), alignment: 'right', fillColor: account.isDebit ? '#e6ffe6' : undefined },
+							{ text: formatCurrency2(!account.isDebit ? account.balance : 0), alignment: 'right', fillColor: !account.isDebit ? '#ffe6e6' : undefined }
 						]),
-						// Total row
 						[
-							{ text: 'TOTAL', colSpan: 2, bold: true },
+							{ text: 'Total', style: 'total', bold: true },
 							{},
-							{
-								text: formatCurrency(data.totals.debit),
-								alignment: 'right',
-								bold: true
-							},
-							{
-								text: formatCurrency(data.totals.credit),
-								alignment: 'right',
-								bold: true
-							},
-							{
-								text: formatCurrency(data.totals.debitMovement),
-								alignment: 'right',
-								bold: true
-							},
-							{
-								text: formatCurrency(data.totals.creditMovement),
-								alignment: 'right',
-								bold: true
-							},
-							{
-								text: formatCurrency(data.totals.finalDebit),
-								alignment: 'right',
-								bold: true
-							},
-							{
-								text: formatCurrency(data.totals.finalCredit),
-								alignment: 'right',
-								bold: true
-							}
+							{ text: formatCurrency2(data.totals.previousDebit), alignment: 'right', style: 'total', bold: true },
+							{ text: formatCurrency2(data.totals.previousCredit), alignment: 'right', style: 'total', bold: true },
+							{ text: formatCurrency2(data.totals.debit), alignment: 'right', style: 'total', bold: true },
+							{ text: formatCurrency2(data.totals.credit), alignment: 'right', style: 'total', bold: true },
+							{ text: formatCurrency2(data.totals.balanceDebit), alignment: 'right', style: 'total', bold: true },
+							{ text: formatCurrency2(data.totals.balanceCredit), alignment: 'right', style: 'total', bold: true }
 						]
 					]
 				}
@@ -158,6 +139,15 @@ export async function exportAccountBalanceToPdf(data: AccountBalanceData) {
 				fontSize: 14,
 				bold: true,
 				margin: [0, 0, 0, 5]
+			},
+			total: {
+				bold: true,
+				fillColor: '#f0f0f0'
+			},
+			printedAt: {
+				fontSize: 10,
+				italics: true,
+				color: '#888888'
 			}
 		},
 		defaultStyle: {
@@ -165,10 +155,10 @@ export async function exportAccountBalanceToPdf(data: AccountBalanceData) {
 		}
 	};
 
-	pdfMake.createPdf(docDefinition).download('account-balance.pdf');
+	pdfMake.createPdf(docDefinition).download(filename);
 }
 
-export async function exportAccountBalanceToExcel(data: AccountBalanceData) {
+export async function exportAccountBalanceToExcel(data: AccountBalanceData, dateRange: { start: string; end: string }) {
 	if (!browser) {
 		console.warn('Excel export is only available in browser environment');
 		return;
@@ -188,63 +178,62 @@ export async function exportAccountBalanceToExcel(data: AccountBalanceData) {
 		});
 	}
 
-	// Prepare the worksheet data
+	const now = new Date();
+	const printedAt = `Printed at: ${now.toLocaleDateString()} ${now.toLocaleTimeString()}`;
+	const [year, month] = dateRange.start.split('-');
+	const filename = `${year}_${month}-account-balance.xlsx`;
+
 	const wsData = [];
-
-	// Add title and period
 	wsData.push(['Account Balance']);
-	wsData.push([`Year: ${data.period.year}`]);
-	wsData.push([`Month: ${data.period.month}`]);
-	wsData.push([]); // Empty row for spacing
-
-	// Add headers
-	wsData.push(['Account', 'Name', 'Debit', 'Credit', 'Debit', 'Credit', 'Debit', 'Credit']);
-
-	// Add account rows
+	wsData.push([printedAt]);
+	wsData.push([`Period: ${dateRange.start} to ${dateRange.end}`]);
+	wsData.push([]);
+	wsData.push([
+		'Account',
+		'Type',
+		'Previous Debit',
+		'Previous Credit',
+		'Current Debit',
+		'Current Credit',
+		'Balance Debit',
+		'Balance Credit'
+	]);
 	data.accounts.forEach((account) => {
 		wsData.push([
-			account.code,
-			account.name,
-			account.debit,
-			account.credit,
-			account.debitMovement,
-			account.creditMovement,
-			account.finalDebit,
-			account.finalCredit
+			`${account.code} - ${account.name}`,
+			account.type,
+			formatCurrency2(account.previousDebit),
+			formatCurrency2(account.previousCredit),
+			formatCurrency2(account.debit),
+			formatCurrency2(account.credit),
+			formatCurrency2(account.isDebit ? account.balance : 0),
+			formatCurrency2(!account.isDebit ? account.balance : 0)
 		]);
 	});
-
-	// Add total row
 	wsData.push([
-		'TOTAL',
+		'Total',
 		'',
-		data.totals.debit,
-		data.totals.credit,
-		data.totals.debitMovement,
-		data.totals.creditMovement,
-		data.totals.finalDebit,
-		data.totals.finalCredit
+		formatCurrency2(data.totals.previousDebit),
+		formatCurrency2(data.totals.previousCredit),
+		formatCurrency2(data.totals.debit),
+		formatCurrency2(data.totals.credit),
+		formatCurrency2(data.totals.balanceDebit),
+		formatCurrency2(data.totals.balanceCredit)
 	]);
 
-	// Create worksheet
 	const ws = XLSX.utils.aoa_to_sheet(wsData);
-
-	// Set column widths
 	ws['!cols'] = [
-		{ wch: 15 }, // Account code
 		{ wch: 40 }, // Account name
-		{ wch: 15 }, // Debit
-		{ wch: 15 }, // Credit
-		{ wch: 15 }, // Debit Movement
-		{ wch: 15 }, // Credit Movement
-		{ wch: 15 }, // Final Debit
-		{ wch: 15 } // Final Credit
+		{ wch: 15 }, // Type
+		{ wch: 15 }, // Previous Debit
+		{ wch: 15 }, // Previous Credit
+		{ wch: 15 }, // Current Debit
+		{ wch: 15 }, // Current Credit
+		{ wch: 15 }, // Balance Debit
+		{ wch: 15 } // Balance Credit
 	];
 
-	// Create workbook and add worksheet
 	const wb = XLSX.utils.book_new();
 	XLSX.utils.book_append_sheet(wb, ws, 'Account Balance');
-
-	// Save the file
-	XLSX.writeFile(wb, 'account-balance.xlsx');
+	XLSX.writeFile(wb, filename);
 }

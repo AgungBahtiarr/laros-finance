@@ -1,5 +1,3 @@
-// src/routes/(authenticated)/gl/ledger/reports/utils.client.ts
-
 export function formatCurrency(amount: number | string | null | undefined): string {
 	if (amount === null || amount === undefined) return '-';
 	const num = typeof amount === 'string' ? parseFloat(amount) : amount;
