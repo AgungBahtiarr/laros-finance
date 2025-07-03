@@ -1,11 +1,33 @@
 import type { PageServerLoad } from './$types';
 import { getRevenueExpenseAccounts } from '$lib/utils/utils.server';
+import { fiscalPeriod } from '$lib/server/db/schema';
+import { eq } from 'drizzle-orm';
 
 export const load: PageServerLoad = async (event) => {
+	const { db } = event.locals;
 	const searchParams = event.url.searchParams;
-	const startDate = searchParams.get('startDate') || new Date().toISOString().split('T')[0];
-	const endDate = searchParams.get('endDate') || new Date().toISOString().split('T')[0];
-	const compareWithPrevious = searchParams.get('compareWithPrevious') === 'true';
+	const periodId = searchParams.get('periodId');
+
+	// Get all fiscal periods for dropdown
+	const periods = await db.query.fiscalPeriod.findMany({
+		orderBy: (fiscalPeriod, { desc }) => [desc(fiscalPeriod.year), desc(fiscalPeriod.month)]
+	});
+
+	// If no period selected, use latest period
+	const selectedPeriod = periodId
+		? await db.query.fiscalPeriod.findFirst({
+			where: eq(fiscalPeriod.id, parseInt(periodId))
+		})
+		: periods[0];
+
+	if (!selectedPeriod) {
+		throw new Error('No fiscal period found');
+	}
+
+	// Build date range for the selected period
+	const startDate = `${selectedPeriod.year}-${selectedPeriod.month.toString().padStart(2, '0')}-01`;
+	const endDate = `${selectedPeriod.year}-${selectedPeriod.month.toString().padStart(2, '0')}-31`;
+
 	const showPercentages = searchParams.get('showPercentages') === 'true';
 
 	const filters = {
@@ -14,7 +36,6 @@ export const load: PageServerLoad = async (event) => {
 	};
 
 	try {
-		// Get current period data
 		const { revenues, expenses } = await getRevenueExpenseAccounts(event, filters);
 
 		const revenueTotals = revenues.reduce(
@@ -37,71 +58,20 @@ export const load: PageServerLoad = async (event) => {
 
 		const netIncome = revenueTotals.balance + expenseTotals.balance;
 
-		const data = {
+		return {
+			periods,
+			selectedPeriod,
 			revenues: revenues || [],
 			expenses: expenses || [],
 			revenueTotals,
 			expenseTotals,
 			netIncome
 		};
-
-		// Get previous period data if requested
-		if (compareWithPrevious) {
-			try {
-				// Calculate previous period date range
-				const startDateObj = new Date(startDate);
-				const endDateObj = new Date(endDate);
-				const duration = endDateObj.getTime() - startDateObj.getTime();
-
-				const prevStartDate = new Date(startDateObj.getTime() - duration)
-					.toISOString()
-					.split('T')[0];
-				const prevEndDate = new Date(startDateObj.getTime() - 1).toISOString().split('T')[0];
-
-				const prevFilters = {
-					dateRange: { start: prevStartDate, end: prevEndDate },
-					showPercentages
-				};
-
-				const { revenues: prevRevenues, expenses: prevExpenses } = await getRevenueExpenseAccounts(
-					event,
-					prevFilters
-				);
-
-				const prevRevenueTotals = (prevRevenues || []).reduce(
-					(totals, acc) => ({
-						debit: totals.debit + (acc.debit || 0),
-						credit: totals.credit + (acc.credit || 0),
-						balance: totals.balance + (acc.balance || 0)
-					}),
-					{ debit: 0, credit: 0, balance: 0 }
-				);
-
-				const prevExpenseTotals = (prevExpenses || []).reduce(
-					(totals, acc) => ({
-						debit: totals.debit + (acc.debit || 0),
-						credit: totals.credit + (acc.credit || 0),
-						balance: totals.balance + (acc.balance || 0)
-					}),
-					{ debit: 0, credit: 0, balance: 0 }
-				);
-
-				data.previousPeriod = {
-					revenues: prevRevenues || [],
-					expenses: prevExpenses || [],
-					netIncome: prevRevenueTotals.balance - prevExpenseTotals.balance
-				};
-			} catch (prevError) {
-				console.error('Error fetching previous period data:', prevError);
-				// Continue without previous period data
-			}
-		}
-
-		return data;
 	} catch (error) {
 		console.error('Error loading profit and loss data:', error);
-		// Return empty data structure to prevent page crash
 		return {
+			periods,
+			selectedPeriod,
 			revenues: [],
 			expenses: [],
 			revenueTotals: { debit: 0, credit: 0, balance: 0 },

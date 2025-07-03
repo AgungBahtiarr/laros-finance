@@ -2,7 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { browser } from '$app/environment';
 	import ReportFilters from '$lib/components/ReportFilters.svelte';
-	import { formatCurrency, formatDate } from '$lib/utils/utils.client';
+	import { formatCurrencyWithDecimals, formatDate } from '$lib/utils/utils.client';
 	import type { PageData } from './$types';
 	import { exportJournalToPdf, exportJournalToExcel } from '$lib/utils/exports/journalExport';
 
@@ -114,23 +114,6 @@
 				</svg>
 				Export to PDF
 			</button>
-			<button class="btn btn-primary" onclick={() => window.print()}>
-				<svg
-					xmlns="http://www.w3.org/2000/svg"
-					class="mr-2 h-5 w-5"
-					viewBox="0 0 24 24"
-					fill="none"
-					stroke="currentColor"
-				>
-					<path
-						stroke-linecap="round"
-						stroke-linejoin="round"
-						stroke-width="2"
-						d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"
-					/>
-				</svg>
-				Print
-			</button>
 		</div>
 	</div>
 
@@ -169,22 +152,22 @@
 								</td>
 								<td>{detail.description}</td>
 								<td class="text-right">
-									{detail.debit ? formatCurrency(detail.debit) : '-'}
+									{detail.debit ? formatCurrencyWithDecimals(detail.debit) : '-'}
 								</td>
 								<td class="text-right">
-									{detail.credit ? formatCurrency(detail.credit) : '-'}
+									{detail.credit ? formatCurrencyWithDecimals(detail.credit) : '-'}
 								</td>
 							</tr>
 						{/each}
 						<tr class="font-semibold">
 							<td colspan="2">Entry Total</td>
 							<td class="text-right">
-								{formatCurrency(
+								{formatCurrencyWithDecimals(
 									entry.details.reduce((sum: number, d: any) => sum + Number(d.debit || 0), 0)
 								)}
 							</td>
 							<td class="text-right">
-								{formatCurrency(
+								{formatCurrencyWithDecimals(
 									entry.details.reduce((sum: number, d: any) => sum + Number(d.credit || 0), 0)
 								)}
 							</td>
@@ -207,8 +190,8 @@
 				<tbody>
 					<tr class="text-lg font-bold">
 						<td>{formatDate(dateRange.start)} - {formatDate(dateRange.end)}</td>
-						<td class="text-right">{formatCurrency(data.totals.debit)}</td>
-						<td class="text-right">{formatCurrency(data.totals.credit)}</td>
+						<td class="text-right">{formatCurrencyWithDecimals(data.totals.debit)}</td>
+						<td class="text-right">{formatCurrencyWithDecimals(data.totals.credit)}</td>
 					</tr>
 				</tbody>
 			</table>
