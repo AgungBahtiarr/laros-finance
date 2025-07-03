@@ -34,6 +34,7 @@ interface AccountBalance {
 	previousDebit?: number;
 	previousCredit?: number;
 	balance?: number;
+	isDebit: boolean;
 }
 
 interface TrialBalanceData {
@@ -43,6 +44,8 @@ interface TrialBalanceData {
 		credit: number;
 		previousDebit?: number;
 		previousCredit?: number;
+		balanceDebit?: number;
+		balanceCredit?: number;
 	};
 }
 
@@ -54,6 +57,12 @@ interface TableCell {
 	fillColor?: string;
 	bold?: boolean;
 	colSpan?: number;
+}
+
+// Helper untuk format angka dengan dua desimal, ribuan titik, desimal koma
+function formatCurrency2(value: number) {
+	return value
+		.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 export async function exportTrialBalanceToPdf(
@@ -79,9 +88,14 @@ export async function exportTrialBalanceToPdf(
 		});
 	}
 
+	// Tambahkan tanggal sekarang
+	const now = new Date();
+	const printedAt = `Printed at: ${now.toLocaleDateString()} ${now.toLocaleTimeString()}`;
+
 	const docDefinition: TDocumentDefinitions = {
 		content: [
 			{ text: 'Trial Balance', style: 'header' },
+			{ text: printedAt, style: 'printedAt', margin: [0, 0, 0, 5] },
 			{
 				text: `Period: ${dateRange.start} to ${dateRange.end}`,
 				style: 'subheader',
@@ -103,72 +117,24 @@ export async function exportTrialBalanceToPdf(
 							{ text: 'Balance Credit', alignment: 'right', bold: true }
 						],
 						// Account rows
-						...data.accounts.map((account) => {
-							const previousBalance = (account.previousDebit || 0) - (account.previousCredit || 0);
-							const currentBalance = account.debit - account.credit;
-							const finalBalance = previousBalance - currentBalance;
-
-							return [
-								{ text: `${account.code} - ${account.name}` },
-								{ text: formatCurrency(account.previousDebit || 0), alignment: 'right' },
-								{ text: formatCurrency(account.previousCredit || 0), alignment: 'right' },
-								{ text: formatCurrency(account.debit), alignment: 'right' },
-								{ text: formatCurrency(account.credit), alignment: 'right' },
-								{
-									text: formatCurrency(finalBalance > 0 ? Math.abs(finalBalance) : 0),
-									alignment: 'right',
-									fillColor: finalBalance > 0 ? '#e6ffe6' : undefined
-								},
-								{
-									text: formatCurrency(finalBalance < 0 ? Math.abs(finalBalance) : 0),
-									alignment: 'right',
-									fillColor: finalBalance < 0 ? '#ffe6e6' : undefined
-								}
-							];
-						}),
+						...data.accounts.map((account) => [
+							{ text: `${account.code} - ${account.name}` },
+							{ text: formatCurrency2(account.previousDebit || 0), alignment: 'right' },
+							{ text: formatCurrency2(account.previousCredit || 0), alignment: 'right' },
+							{ text: formatCurrency2(account.debit), alignment: 'right' },
+							{ text: formatCurrency2(account.credit), alignment: 'right' },
+							{ text: formatCurrency2(account.isDebit ? (account.balance || 0) : 0), alignment: 'right', fillColor: account.isDebit ? '#e6ffe6' : undefined },
+							{ text: formatCurrency2(!account.isDebit ? (account.balance || 0) : 0), alignment: 'right', fillColor: !account.isDebit ? '#ffe6e6' : undefined }
+						]),
 						// Total row
 						[
 							{ text: 'Total', style: 'total', bold: true },
-							{
-								text: formatCurrency(data.totals.previousDebit || 0),
-								alignment: 'right',
-								style: 'total',
-								bold: true
-							},
-							{
-								text: formatCurrency(data.totals.previousCredit || 0),
-								alignment: 'right',
-								style: 'total',
-								bold: true
-							},
-							{
-								text: formatCurrency(data.totals.debit),
-								alignment: 'right',
-								style: 'total',
-								bold: true
-							},
-							{
-								text: formatCurrency(data.totals.credit),
-								alignment: 'right',
-								style: 'total',
-								bold: true
-							},
-							{
-								text: formatCurrency(
-									Math.max(0, (data.totals.previousDebit || 0) - data.totals.debit)
-								),
-								alignment: 'right',
-								style: 'total',
-								bold: true
-							},
-							{
-								text: formatCurrency(
-									Math.max(0, (data.totals.previousCredit || 0) - data.totals.credit)
-								),
-								alignment: 'right',
-								style: 'total',
-								bold: true
-							}
+							{ text: formatCurrency2(data.totals.previousDebit || 0), alignment: 'right', style: 'total', bold: true },
+							{ text: formatCurrency2(data.totals.previousCredit || 0), alignment: 'right', style: 'total', bold: true },
+							{ text: formatCurrency2(data.totals.debit), alignment: 'right', style: 'total', bold: true },
+							{ text: formatCurrency2(data.totals.credit), alignment: 'right', style: 'total', bold: true },
+							{ text: formatCurrency2(data.totals.balanceDebit || 0), alignment: 'right', style: 'total', bold: true },
+							{ text: formatCurrency2(data.totals.balanceCredit || 0), alignment: 'right', style: 'total', bold: true }
 						]
 					]
 				}
@@ -188,6 +154,11 @@ export async function exportTrialBalanceToPdf(
 			total: {
 				bold: true,
 				fillColor: '#f0f0f0'
+			},
+			printedAt: {
+				fontSize: 10,
+				italics: true,
+				color: '#888888'
 			}
 		},
 		defaultStyle: {
@@ -195,7 +166,11 @@ export async function exportTrialBalanceToPdf(
 		}
 	};
 
-	pdfMake.createPdf(docDefinition).download('trial-balance.pdf');
+	// Generate filename: tahun_bulan-trial-balance.pdf
+	const [year, month] = dateRange.start.split('-');
+	const filename = `${year}_${month}-trial-balance.pdf`;
+
+	pdfMake.createPdf(docDefinition).download(filename);
 }
 
 export async function exportTrialBalanceToExcel(
@@ -221,11 +196,16 @@ export async function exportTrialBalanceToExcel(
 		});
 	}
 
+	// Tambahkan tanggal sekarang
+	const now = new Date();
+	const printedAt = `Printed at: ${now.toLocaleDateString()} ${now.toLocaleTimeString()}`;
+
 	// Prepare the worksheet data
 	const wsData = [];
 
-	// Add title and date range
+	// Add title, printed at, and date range
 	wsData.push(['Trial Balance']);
+	wsData.push([printedAt]);
 	wsData.push([`Period: ${dateRange.start} to ${dateRange.end}`]);
 	wsData.push([]); // Empty row for spacing
 
@@ -242,30 +222,26 @@ export async function exportTrialBalanceToExcel(
 
 	// Add account rows
 	data.accounts.forEach((account) => {
-		const previousBalance = (account.previousDebit || 0) - (account.previousCredit || 0);
-		const currentBalance = account.debit - account.credit;
-		const finalBalance = previousBalance - currentBalance;
-
 		wsData.push([
 			`${account.code} - ${account.name}`,
-			account.previousDebit || 0,
-			account.previousCredit || 0,
-			account.debit,
-			account.credit,
-			finalBalance > 0 ? Math.abs(finalBalance) : 0,
-			finalBalance < 0 ? Math.abs(finalBalance) : 0
+			formatCurrency2(account.previousDebit || 0),
+			formatCurrency2(account.previousCredit || 0),
+			formatCurrency2(account.debit),
+			formatCurrency2(account.credit),
+			formatCurrency2(account.isDebit ? (account.balance || 0) : 0),
+			formatCurrency2(!account.isDebit ? (account.balance || 0) : 0)
 		]);
 	});
 
 	// Add total row
 	wsData.push([
 		'Total',
-		data.totals.previousDebit || 0,
-		data.totals.previousCredit || 0,
-		data.totals.debit,
-		data.totals.credit,
-		Math.max(0, (data.totals.previousDebit || 0) - data.totals.debit),
-		Math.max(0, (data.totals.previousCredit || 0) - data.totals.credit)
+		formatCurrency2(data.totals.previousDebit || 0),
+		formatCurrency2(data.totals.previousCredit || 0),
+		formatCurrency2(data.totals.debit),
+		formatCurrency2(data.totals.credit),
+		formatCurrency2(data.totals.balanceDebit || 0),
+		formatCurrency2(data.totals.balanceCredit || 0)
 	]);
 
 	// Create worksheet
@@ -290,6 +266,10 @@ export async function exportTrialBalanceToExcel(
 	const wb = XLSX.utils.book_new();
 	XLSX.utils.book_append_sheet(wb, ws, 'Trial Balance');
 
+	// Generate filename: tahun_bulan-trial-balance.xlsx
+	const [year, month] = dateRange.start.split('-');
+	const filename = `${year}_${month}-trial-balance.xlsx`;
+
 	// Save the file
-	XLSX.writeFile(wb, 'trial-balance.xlsx');
+	XLSX.writeFile(wb, filename);
 }
