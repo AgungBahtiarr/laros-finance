@@ -26,63 +26,63 @@ async function main() {
 			.values([
 				{
 					name: `${currentYear} - Januari`,
-					startDate: new Date(`${currentYear}-01-01`),
-					endDate: new Date(`${currentYear}-01-31`)
+					month: 1,
+					year: currentYear
 				},
 				{
 					name: `${currentYear} - Februari`,
-					startDate: new Date(`${currentYear}-02-01`),
-					endDate: new Date(`${currentYear}-02-${currentYear % 4 === 0 ? '29' : '28'}`)
+					month: 2,
+					year: currentYear
 				},
 				{
 					name: `${currentYear} - Maret`,
-					startDate: new Date(`${currentYear}-03-01`),
-					endDate: new Date(`${currentYear}-03-31`)
+					month: 3,
+					year: currentYear
 				},
 				{
 					name: `${currentYear} - April`,
-					startDate: new Date(`${currentYear}-04-01`),
-					endDate: new Date(`${currentYear}-04-30`)
+					month: 4,
+					year: currentYear
 				},
 				{
 					name: `${currentYear} - Mei`,
-					startDate: new Date(`${currentYear}-05-01`),
-					endDate: new Date(`${currentYear}-05-31`)
+					month: 5,
+					year: currentYear
 				},
 				{
 					name: `${currentYear} - Juni`,
-					startDate: new Date(`${currentYear}-06-01`),
-					endDate: new Date(`${currentYear}-06-30`)
+					month: 6,
+					year: currentYear
 				},
 				{
 					name: `${currentYear} - Juli`,
-					startDate: new Date(`${currentYear}-07-01`),
-					endDate: new Date(`${currentYear}-07-31`)
+					month: 7,
+					year: currentYear
 				},
 				{
 					name: `${currentYear} - Agustus`,
-					startDate: new Date(`${currentYear}-08-01`),
-					endDate: new Date(`${currentYear}-08-31`)
+					month: 8,
+					year: currentYear
 				},
 				{
 					name: `${currentYear} - September`,
-					startDate: new Date(`${currentYear}-09-01`),
-					endDate: new Date(`${currentYear}-09-30`)
+					month: 9,
+					year: currentYear
 				},
 				{
 					name: `${currentYear} - Oktober`,
-					startDate: new Date(`${currentYear}-10-01`),
-					endDate: new Date(`${currentYear}-10-31`)
+					month: 10,
+					year: currentYear
 				},
 				{
 					name: `${currentYear} - November`,
-					startDate: new Date(`${currentYear}-11-01`),
-					endDate: new Date(`${currentYear}-11-30`)
+					month: 11,
+					year: currentYear
 				},
 				{
 					name: `${currentYear} - Desember`,
-					startDate: new Date(`${currentYear}-12-01`),
-					endDate: new Date(`${currentYear}-12-31`)
+					month: 12,
+					year: currentYear
 				}
 			])
 			.onConflictDoNothing();

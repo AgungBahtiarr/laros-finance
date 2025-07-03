@@ -55,7 +55,6 @@
 	// Filter state
 	let startDate = $state(data.filters.startDate);
 	let endDate = $state(data.filters.endDate);
-	let status = $state(data.filters.status);
 	let searchTerm = $state(data.filters.searchTerm);
 	let fiscalPeriodId = $state(data.filters.fiscalPeriodId);
 
@@ -325,7 +324,6 @@
 
 		if (startDate) searchParams.set('startDate', startDate);
 		if (endDate) searchParams.set('endDate', endDate);
-		if (status) searchParams.set('status', status);
 		if (searchTerm) searchParams.set('search', searchTerm);
 		if (fiscalPeriodId) searchParams.set('fiscalPeriodId', fiscalPeriodId);
 
@@ -336,7 +334,6 @@
 	function resetFilters() {
 		startDate = '';
 		endDate = '';
-		status = '';
 		searchTerm = '';
 		fiscalPeriodId = '';
 
@@ -443,7 +440,7 @@
 			<div class="card-body p-4">
 				<h3 class="card-title text-lg">Filter Journal Entries</h3>
 
-				<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
+				<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
 					<div class="form-control w-full">
 						<label class="label" for="startDate">
 							<span class="label-text">Start Date</span>
@@ -466,16 +463,6 @@
 							class="input input-bordered w-full"
 							bind:value={endDate}
 						/>
-					</div>
-
-					<div class="form-control w-full">
-						<label class="label" for="status">
-							<span class="label-text">Status</span>
-						</label>
-						<select id="status" class="select select-bordered w-full" bind:value={status}>
-							<option value="">All Statuses</option>
-							<option value="POSTED">Posted</option>
-						</select>
 					</div>
 
 					<div class="form-control w-full">
@@ -674,7 +661,6 @@
 							<td colspan="7" class="py-8 text-center text-gray-500">
 								{data.filters.startDate ||
 								data.filters.endDate ||
-								data.filters.status ||
 								data.filters.searchTerm ||
 								data.filters.fiscalPeriodId
 									? 'No journal entries match your filter criteria'

@@ -10,54 +10,68 @@
 	let currentPeriod = $state({
 		id: '',
 		name: '',
-		startDate: '',
-		endDate: '',
+		year: new Date().getFullYear(),
+		month: new Date().getMonth() + 1,
 		isClosed: false
 	});
 
-	function formatDate(dateString) {
-		const date = new Date(dateString);
-		return date.toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' });
-	}
+	const monthNames = [
+		'Januari',
+		'Februari',
+		'Maret',
+		'April',
+		'Mei',
+		'Juni',
+		'Juli',
+		'Agustus',
+		'September',
+		'Oktober',
+		'November',
+		'Desember'
+	];
 
-	function formatDateValue(dateString) {
-		const date = new Date(dateString);
-		return date.toISOString().split('T')[0];
+	function formatPeriod(year: number, month: number) {
+		return `${year} - ${monthNames[month - 1]}`;
 	}
 
 	// Open modal for creating a new fiscal period
 	function openCreateModal() {
 		isEditing = false;
-		// Set default dates to next month after the latest period
-		let startDate = new Date();
-		let endDate = new Date();
+
+		// Set default to next month after the latest period
+		let nextYear = new Date().getFullYear();
+		let nextMonth = new Date().getMonth() + 1;
 
 		if (data.periods.length > 0) {
-			const latestPeriod = data.periods[0]; // Periods are ordered by startDate desc
-			const latestEndDate = new Date(latestPeriod.endDate);
-			
-			// Start day after the latest end date
-			startDate = new Date(latestEndDate);
-			startDate.setDate(latestEndDate.getDate() + 1);
-			
-			// End date one month after start date
-			endDate = new Date(startDate);
-			endDate.setMonth(endDate.getMonth() + 1);
-			endDate.setDate(endDate.getDate() - 1);
-		} else {
-			// If no periods exist, default to current month
-			startDate = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
-			endDate = new Date(endDate.getFullYear(), endDate.getMonth() + 1, 0);
+			// Find the latest period
+			const latestPeriod = data.periods.reduce((latest, current) => {
+				if (
+					current.year > latest.year ||
+					(current.year === latest.year && current.month > latest.month)
+				) {
+					return current;
+				}
+				return latest;
+			});
+
+			// Set to next month after latest period
+			nextYear = latestPeriod.year;
+			nextMonth = latestPeriod.month + 1;
+
+			if (nextMonth > 12) {
+				nextMonth = 1;
+				nextYear++;
+			}
 		}
 
 		currentPeriod = {
 			id: '',
-			name: `${startDate.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}`,
-			startDate: formatDateValue(startDate),
-			endDate: formatDateValue(endDate),
+			name: formatPeriod(nextYear, nextMonth),
+			year: nextYear,
+			month: nextMonth,
 			isClosed: false
 		};
-		
+
 		showModal = true;
 	}
 
@@ -67,8 +81,8 @@
 		currentPeriod = {
 			id: period.id.toString(),
 			name: period.name,
-			startDate: formatDateValue(period.startDate),
-			endDate: formatDateValue(period.endDate),
+			year: period.year,
+			month: period.month,
 			isClosed: period.isClosed
 		};
 		showModal = true;
@@ -77,6 +91,13 @@
 	// Close the modal
 	function closeModal() {
 		showModal = false;
+	}
+
+	// Update period name when year or month changes
+	function updatePeriodName() {
+		if (currentPeriod.year && currentPeriod.month) {
+			currentPeriod.name = formatPeriod(currentPeriod.year, currentPeriod.month);
+		}
 	}
 
 	// Handle form submission for create/update
@@ -98,10 +119,14 @@
 		};
 	}
 
-	// Generate month name from date
-	function getMonthName(dateString) {
-		const date = new Date(dateString);
-		return date.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+	// Generate year options (current year ± 5 years)
+	function getYearOptions() {
+		const currentYear = new Date().getFullYear();
+		const years = [];
+		for (let i = currentYear - 5; i <= currentYear + 5; i++) {
+			years.push(i);
+		}
+		return years;
 	}
 </script>
 
@@ -126,7 +151,7 @@
 
 	<!-- Current Period Card -->
 	{#if data.currentPeriod}
-		<div class="card border bg-base-100">
+		<div class="card bg-base-100 border">
 			<div class="card-body">
 				<div class="flex items-center justify-between">
 					<div class="flex items-center gap-3">
@@ -142,12 +167,12 @@
 				</div>
 				<div class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
 					<div>
-						<div class="text-sm font-medium text-gray-500">Start Date</div>
-						<div>{formatDate(data.currentPeriod.startDate)}</div>
+						<div class="text-sm font-medium text-gray-500">Year</div>
+						<div>{data.currentPeriod.year}</div>
 					</div>
 					<div>
-						<div class="text-sm font-medium text-gray-500">End Date</div>
-						<div>{formatDate(data.currentPeriod.endDate)}</div>
+						<div class="text-sm font-medium text-gray-500">Month</div>
+						<div>{monthNames[data.currentPeriod.month - 1]}</div>
 					</div>
 					<div>
 						<div class="text-sm font-medium text-gray-500">Status</div>
@@ -159,7 +184,11 @@
 									type="submit"
 									class="btn btn-ghost btn-xs ml-2"
 									onclick={(e) => {
-										if (!confirm('Are you sure you want to close this period? This action cannot be undone.')) {
+										if (
+											!confirm(
+												'Are you sure you want to close this period? This action cannot be undone.'
+											)
+										) {
 											e.preventDefault();
 										}
 									}}
@@ -182,8 +211,8 @@
 				<thead class="bg-base-200">
 					<tr>
 						<th>Period Name</th>
-						<th>Start Date</th>
-						<th>End Date</th>
+						<th>Year</th>
+						<th>Month</th>
 						<th>Status</th>
 						<th class="w-32 text-center">Actions</th>
 					</tr>
@@ -192,8 +221,8 @@
 					{#each data.periods as period}
 						<tr class="hover">
 							<td class="font-medium">{period.name}</td>
-							<td>{formatDate(period.startDate)}</td>
-							<td>{formatDate(period.endDate)}</td>
+							<td>{period.year}</td>
+							<td>{monthNames[period.month - 1]}</td>
 							<td>
 								{#if period.isClosed}
 									<div class="badge badge-ghost">Closed</div>
@@ -220,8 +249,8 @@
 									{:else}
 										<form method="POST" action="?/close" use:enhance={handleStatusChange}>
 											<input type="hidden" name="id" value={period.id} />
-											<button 
-												type="submit" 
+											<button
+												type="submit"
 												class="btn btn-ghost btn-sm"
 												onclick={(e) => {
 													if (!confirm('Are you sure you want to close this period?')) {
@@ -257,8 +286,8 @@
 			<div class="font-bold">About Fiscal Periods</div>
 			<div class="text-xs">
 				Fiscal periods define the accounting timeframes for your organization. When a period is
-				closed, no further transactions can be posted to it. Ensure all transactions for a period are
-				properly recorded before closing it.
+				closed, no further transactions can be posted to it. Ensure all transactions for a period
+				are properly recorded before closing it.
 			</div>
 		</div>
 	</div>
@@ -291,39 +320,51 @@
 						id="name"
 						name="name"
 						class="input input-bordered"
-						placeholder="e.g. January 2024"
+						placeholder="e.g. Januari 2024"
 						maxlength="100"
 						required
 						bind:value={currentPeriod.name}
 					/>
 				</div>
 
-				<div class="form-control">
-					<label class="label" for="startDate">
-						<span class="label-text">Start Date</span>
-					</label>
-					<input
-						type="date"
-						id="startDate"
-						name="startDate"
-						class="input input-bordered"
-						required
-						bind:value={currentPeriod.startDate}
-					/>
-				</div>
+				<div class="grid grid-cols-2 gap-4">
+					<div class="form-control">
+						<label class="label" for="year">
+							<span class="label-text">Year</span>
+						</label>
+						<select
+							id="year"
+							name="year"
+							class="select select-bordered"
+							required
+							bind:value={currentPeriod.year}
+							onchange={updatePeriodName}
+						>
+							<option value="">Select Year</option>
+							{#each getYearOptions() as year}
+								<option value={year}>{year}</option>
+							{/each}
+						</select>
+					</div>
 
-				<div class="form-control">
-					<label class="label" for="endDate">
-						<span class="label-text">End Date</span>
-					</label>
-					<input
-						type="date"
-						id="endDate"
-						name="endDate"
-						class="input input-bordered"
-						required
-						bind:value={currentPeriod.endDate}
-					/>
+					<div class="form-control">
+						<label class="label" for="month">
+							<span class="label-text">Month</span>
+						</label>
+						<select
+							id="month"
+							name="month"
+							class="select select-bordered"
+							required
+							bind:value={currentPeriod.month}
+							onchange={updatePeriodName}
+						>
+							<option value="">Select Month</option>
+							{#each monthNames as monthName, index}
+								<option value={index + 1}>{monthName}</option>
+							{/each}
+						</select>
+					</div>
 				</div>
 
 				<div class="modal-action">
@@ -334,11 +375,11 @@
 				</div>
 			</form>
 		</div>
-		<div 
-			class="modal-backdrop" 
-			onclick={closeModal} 
-			role="button" 
-			tabindex="0" 
+		<div
+			class="modal-backdrop"
+			onclick={closeModal}
+			role="button"
+			tabindex="0"
 			onkeydown={(e) => e.key === 'Enter' && closeModal()}
 		></div>
 	</div>

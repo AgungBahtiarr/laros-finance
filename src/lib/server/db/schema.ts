@@ -216,8 +216,8 @@ export const accountGroupRelations = relations(accountGroup, ({ one, many }) => 
 export const fiscalPeriod = pgTable('fiscal_period', {
 	id: serial('id').primaryKey(),
 	name: varchar('name', { length: 100 }).notNull(),
-	startDate: date('start_date').notNull(),
-	endDate: date('end_date').notNull(),
+	month: integer('month').notNull(),
+	year: integer('year').notNull(),
 	isClosed: boolean('is_closed').notNull().default(false),
 	createdAt: timestamp('created_at').notNull().defaultNow(),
 	updatedAt: timestamp('updated_at').notNull().defaultNow()

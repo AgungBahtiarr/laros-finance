@@ -39,7 +39,6 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 		// Get filter parameters from URL
 		const startDate = url.searchParams.get('startDate') || '';
 		const endDate = url.searchParams.get('endDate') || '';
-		const status = url.searchParams.get('status') || '';
 		const searchTerm = url.searchParams.get('search') || '';
 		const fiscalPeriodId = url.searchParams.get('fiscalPeriodId') || '';
 		const page = parseInt(url.searchParams.get('page') || '1');
@@ -50,15 +49,11 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 		const conditions = [];
 
 		if (startDate) {
-			conditions.push(gte(journalEntry.date, startDate));
+			conditions.push(gte(journalEntry.date, new Date(startDate)));
 		}
 
 		if (endDate) {
-			conditions.push(lte(journalEntry.date, endDate));
-		}
-
-		if (status) {
-			conditions.push(eq(journalEntry.status, status));
+			conditions.push(lte(journalEntry.date, new Date(endDate)));
 		}
 
 		if (fiscalPeriodId) {
@@ -107,13 +102,13 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 
 		// Get fiscal periods for dropdown
 		const fiscalPeriods = await db.query.fiscalPeriod.findMany({
-			orderBy: [desc(fiscalPeriod.startDate)]
+			orderBy: [desc(fiscalPeriod.month)]
 		});
 
 		// Get current fiscal period (first active one)
 		const currentFiscalPeriod = await db.query.fiscalPeriod.findFirst({
 			where: eq(fiscalPeriod.isClosed, false),
-			orderBy: [asc(fiscalPeriod.startDate)]
+			orderBy: [asc(fiscalPeriod.month)]
 		});
 
 		// Generate default journal number for today
@@ -129,7 +124,6 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 			filters: {
 				startDate,
 				endDate,
-				status,
 				searchTerm,
 				fiscalPeriodId
 			},
@@ -237,7 +231,7 @@ export const actions: Actions = {
 
 			const activeFiscalPeriods = await db.query.fiscalPeriod.findMany({
 				where: eq(fiscalPeriod.isClosed, false),
-				orderBy: [asc(fiscalPeriod.startDate)]
+				orderBy: [asc(fiscalPeriod.month)]
 			});
 			console.log(`[Import] Found ${activeFiscalPeriods.length} active fiscal periods.`);
 
@@ -246,12 +240,16 @@ export const actions: Actions = {
 				for (const entry of journalData) {
 					console.log(`[Import] Processing journal number: ${entry.number}`);
 
+					// Extract year and month from entry date
+					const entryYear = entry.date.getFullYear();
+					const entryMonth = entry.date.getMonth() + 1; // getMonth() returns 0-11, so add 1
+
 					const period = activeFiscalPeriods.find(
-						(p) => entry.date >= new Date(p.startDate) && entry.date <= new Date(p.endDate)
+						(p) => p.year === entryYear && p.month === entryMonth
 					);
 					if (!period)
 						throw new Error(
-							`No active fiscal period for date ${entry.date.toISOString().split('T')[0]} in journal ${entry.number}.`
+							`No active fiscal period for date ${entry.date.toISOString().split('T')[0]} (year: ${entryYear}, month: ${entryMonth}) in journal ${entry.number}.`
 						);
 
 					let totalDebit = 0;

@@ -11,12 +11,26 @@ export function formatCurrency(amount: number | string | null | undefined): stri
 	}).format(num);
 }
 
+export function formatCurrencyWithDecimals(amount: number | string | null | undefined): string {
+	if (amount === null || amount === undefined) return '-';
+	const num = typeof amount === 'string' ? parseFloat(amount) : amount;
+	return new Intl.NumberFormat('id-ID', {
+		style: 'currency',
+		currency: 'IDR',
+		minimumFractionDigits: 2,
+		maximumFractionDigits: 2
+	}).format(num);
+}
+
 export function calculatePercentage(value: number, total: number): string {
 	if (total === 0) return '0%';
 	return `${((value / total) * 100).toFixed(2)}%`;
 }
 
-export function calculateChange(current: number, previous: number): { value: number; display: string } {
+export function calculateChange(
+	current: number,
+	previous: number
+): { value: number; display: string } {
 	if (previous === 0) {
 		return { value: 0, display: '-' };
 	}

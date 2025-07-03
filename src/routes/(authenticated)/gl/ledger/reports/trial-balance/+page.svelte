@@ -1,71 +1,61 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { browser } from '$app/environment';
-	import ReportFilters from '$lib/components/ReportFilters.svelte';
-	import { formatCurrency, calculatePercentage, calculateChange } from '$lib/utils/utils.client';
+	import { formatCurrencyWithDecimals } from '$lib/utils/utils.client';
 	import {
 		exportTrialBalanceToPdf,
 		exportTrialBalanceToExcel
 	} from '$lib/utils/exports/trialBalanceExport';
 
-	interface Account {
-		id: string;
+	interface TrialBalanceAccount {
+		id: number;
 		code: string;
 		name: string;
 		type: string;
 		level: number;
-		debit: number;
-		credit: number;
-		balance: number;
-		previousPeriodDebit?: number;
-		previousPeriodCredit?: number;
+		parentId?: number;
 		groupCode?: string;
 		groupName?: string;
-		parentId?: string;
+		balanceType?: string;
+		previousDebit: number;
+		previousCredit: number;
+		currentDebit: number;
+		currentCredit: number;
+		balance: number;
+		isDebit: boolean;
 	}
 
-	let { data } = $props<{
-		data: {
-			accounts: Account[];
-			totals: {
-				debit: number;
-				credit: number;
-			};
-			previousPeriod?: {
-				accounts: Account[];
-				totals: {
-					debit: number;
-					credit: number;
-				};
-			};
-		};
-	}>();
+	interface TrialBalanceTotals {
+		previousDebit: number;
+		previousCredit: number;
+		currentDebit: number;
+		currentCredit: number;
+		balanceDebit: number;
+		balanceCredit: number;
+	}
 
-	let dateRange = $state({
-		start: new Date().toISOString().split('T')[0],
-		end: new Date().toISOString().split('T')[0]
-	});
+	interface TrialBalanceData {
+		periods: Array<{ id: number; name: string; month: number; year: number }>;
+		selectedPeriod: { id: number; name: string; month: number; year: number };
+		accounts: TrialBalanceAccount[];
+		totals: TrialBalanceTotals;
+	}
 
-	let compareWithPrevious = $state(false);
-	let showPercentages = $state(false);
+	let { data } = $props<{ data: TrialBalanceData }>();
 
+	let selectedPeriodId = $state(data.selectedPeriod?.id);
+
+	// Initialize state from URL params
 	if (browser) {
 		const searchParams = new URLSearchParams(window.location.search);
-		dateRange = {
-			start: searchParams.get('startDate') || dateRange.start,
-			end: searchParams.get('endDate') || dateRange.end
-		};
-		compareWithPrevious = searchParams.get('compareWithPrevious') === 'true';
-		showPercentages = searchParams.get('showPercentages') === 'true';
+		selectedPeriodId = parseInt(searchParams.get('periodId') || data.selectedPeriod?.id);
 	}
 
+	// Update URL when filters change
 	$effect(() => {
 		if (browser) {
 			const params = new URLSearchParams();
-			params.set('startDate', dateRange.start);
-			params.set('endDate', dateRange.end);
-			params.set('compareWithPrevious', compareWithPrevious.toString());
-			params.set('showPercentages', showPercentages.toString());
+			if (selectedPeriodId) params.set('periodId', selectedPeriodId.toString());
 			goto(`?${params.toString()}`, { replaceState: true });
 		}
 	});
@@ -87,48 +77,39 @@
 		})
 	);
 
-	async function handlePdfExport() {
+	async function handleExport(type: 'pdf' | 'excel') {
 		const exportData = {
 			accounts: sortedAccounts.map((account) => ({
 				id: account.id,
 				code: account.code,
 				name: account.name,
 				type: account.type,
-				debit: account.debit,
-				credit: account.credit,
-				previousDebit: account.previousPeriodDebit || 0,
-				previousCredit: account.previousPeriodCredit || 0
+				level: account.level,
+				debit: account.currentDebit,
+				credit: account.currentCredit,
+				balance: account.balance,
+				previousDebit: account.previousDebit,
+				previousCredit: account.previousCredit,
+				isDebit: account.isDebit
 			})),
 			totals: {
-				debit: data.totals.debit,
-				credit: data.totals.credit,
-				previousDebit: data.previousPeriod?.totals.debit || 0,
-				previousCredit: data.previousPeriod?.totals.credit || 0
+				debit: data.totals.currentDebit,
+				credit: data.totals.currentCredit,
+				previousDebit: data.totals.previousDebit,
+				previousCredit: data.totals.previousCredit
 			}
 		};
-		await exportTrialBalanceToPdf(exportData, dateRange);
-	}
 
-	async function handleExcelExport() {
-		const exportData = {
-			accounts: sortedAccounts.map((account) => ({
-				id: account.id,
-				code: account.code,
-				name: account.name,
-				type: account.type,
-				debit: account.debit,
-				credit: account.credit,
-				previousDebit: account.previousPeriodDebit || 0,
-				previousCredit: account.previousPeriodCredit || 0
-			})),
-			totals: {
-				debit: data.totals.debit,
-				credit: data.totals.credit,
-				previousDebit: data.previousPeriod?.totals.debit || 0,
-				previousCredit: data.previousPeriod?.totals.credit || 0
-			}
+		const dateRange = {
+			start: `${data.selectedPeriod.year}-${data.selectedPeriod.month.toString().padStart(2, '0')}-01`,
+			end: `${data.selectedPeriod.year}-${data.selectedPeriod.month.toString().padStart(2, '0')}-31`
 		};
-		await exportTrialBalanceToExcel(exportData, dateRange);
+
+		if (type === 'pdf') {
+			await exportTrialBalanceToPdf(exportData, dateRange);
+		} else {
+			await exportTrialBalanceToExcel(exportData, dateRange);
+		}
 	}
 </script>
 
@@ -136,7 +117,7 @@
 	<div class="flex items-center justify-between">
 		<h1 class="text-2xl font-bold">Trial Balance</h1>
 		<div class="flex gap-2">
-			<button class="btn btn-primary" onclick={handleExcelExport}>
+			<button class="btn btn-primary" onclick={() => handleExport('excel')}>
 				<svg
 					xmlns="http://www.w3.org/2000/svg"
 					class="mr-2 h-5 w-5"
@@ -153,7 +134,7 @@
 				</svg>
 				Export to Excel
 			</button>
-			<button class="btn btn-primary" onclick={handlePdfExport}>
+			<button class="btn btn-primary" onclick={() => handleExport('pdf')}>
 				<svg
 					xmlns="http://www.w3.org/2000/svg"
 					class="mr-2 h-5 w-5"
@@ -191,13 +172,20 @@
 	</div>
 
 	<div class="print:hidden">
-		<ReportFilters
-			{dateRange}
-			showCompareOption={true}
-			showPercentagesOption={true}
-			bind:compareWithPrevious
-			bind:showPercentages
-		/>
+		<div class="form-control w-full max-w-xs">
+			<label class="label" for="period-select">
+				<span class="label-text">Fiscal Period</span>
+			</label>
+			<select
+				id="period-select"
+				class="select select-bordered w-full"
+				bind:value={selectedPeriodId}
+			>
+				{#each data.periods as period}
+					<option value={period.id}>{period.name}</option>
+				{/each}
+			</select>
+		</div>
 	</div>
 
 	<div class="overflow-x-auto">
@@ -212,66 +200,39 @@
 					<th class="text-right">Current Credit</th>
 					<th class="text-right">Balance Debit</th>
 					<th class="text-right">Balance Credit</th>
-					{#if showPercentages}
-						<th class="text-right">% of Total</th>
-					{/if}
 				</tr>
 			</thead>
-
 			<tbody>
 				{#each sortedAccounts as account}
-					{@const previousBalance =
-						(account.previousPeriodDebit || 0) - (account.previousPeriodCredit || 0)}
-					{@const currentBalance = account.debit - account.credit}
-					{@const finalBalance = previousBalance - currentBalance}
 					<tr>
 						<td class="pl-{account.level * 4}">
 							<span class="font-mono">{account.code}</span> - {account.name}
 						</td>
 						<td>{account.type}</td>
-						<td class="text-right">{formatCurrency(account.previousPeriodDebit || 0)}</td>
-						<td class="text-right">{formatCurrency(account.previousPeriodCredit || 0)}</td>
-						<td class="text-right">{formatCurrency(account.debit)}</td>
-						<td class="text-right">{formatCurrency(account.credit)}</td>
+						<td class="text-right">{formatCurrencyWithDecimals(account.previousDebit)}</td>
+						<td class="text-right">{formatCurrencyWithDecimals(account.previousCredit)}</td>
+						<td class="text-right">{formatCurrencyWithDecimals(account.currentDebit)}</td>
+						<td class="text-right">{formatCurrencyWithDecimals(account.currentCredit)}</td>
 						<td class="text-right">
-							{formatCurrency(finalBalance > 0 ? Math.abs(finalBalance) : 0)}
+							{formatCurrencyWithDecimals(account.isDebit ? account.balance : 0)}
 						</td>
 						<td class="text-right">
-							{formatCurrency(finalBalance < 0 ? Math.abs(finalBalance) : 0)}
+							{formatCurrencyWithDecimals(!account.isDebit ? account.balance : 0)}
 						</td>
-						{#if showPercentages}
-							<td class="text-right">
-								{calculatePercentage(
-									Math.abs(finalBalance),
-									Math.abs(data.totals.debit - data.totals.credit)
-								)}
-							</td>
-						{/if}
 					</tr>
 				{/each}
-
-				<!-- Totals -->
-				<tr class="text-lg font-bold">
-					<td colspan="2">Total</td>
-					<td class="text-right">{formatCurrency(data.previousPeriod?.totals.debit || 0)}</td>
-					<td class="text-right">{formatCurrency(data.previousPeriod?.totals.credit || 0)}</td>
-					<td class="text-right">{formatCurrency(data.totals.debit)}</td>
-					<td class="text-right">{formatCurrency(data.totals.credit)}</td>
-					<td class="text-right">
-						{formatCurrency(
-							Math.max(0, (data.previousPeriod?.totals.debit || 0) - data.totals.debit)
-						)}
-					</td>
-					<td class="text-right">
-						{formatCurrency(
-							Math.max(0, (data.previousPeriod?.totals.credit || 0) - data.totals.credit)
-						)}
-					</td>
-					{#if showPercentages}
-						<td class="text-right">100%</td>
-					{/if}
-				</tr>
 			</tbody>
+			<tfoot>
+				<tr class="font-bold">
+					<td colspan="2">Total</td>
+					<td class="text-right">{formatCurrencyWithDecimals(data.totals.previousDebit)}</td>
+					<td class="text-right">{formatCurrencyWithDecimals(data.totals.previousCredit)}</td>
+					<td class="text-right">{formatCurrencyWithDecimals(data.totals.currentDebit)}</td>
+					<td class="text-right">{formatCurrencyWithDecimals(data.totals.currentCredit)}</td>
+					<td class="text-right">{formatCurrencyWithDecimals(data.totals.balanceDebit)}</td>
+					<td class="text-right">{formatCurrencyWithDecimals(data.totals.balanceCredit)}</td>
+				</tr>
+			</tfoot>
 		</table>
 	</div>
 </div>
@@ -281,7 +242,6 @@
 		.table {
 			font-size: 12px;
 		}
-
 		.table th,
 		.table td {
 			padding: 0.5rem;
