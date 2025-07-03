@@ -9,30 +9,28 @@ import {
 	fiscalPeriod,
 	user
 } from '$lib/server/db/schema';
-import { eq, and, desc, asc, gte, lte, sql, count } from 'drizzle-orm';
+import { eq, and, desc, asc, gte, lte, sql, count, inArray } from 'drizzle-orm';
+import * as XLSX from 'xlsx';
 
 // Helper function to generate next journal number based on date
 async function generateNextJournalNumber(inputDate: string) {
 	const date = new Date(inputDate);
-	const year = date.getFullYear().toString().slice(-2); // dari input date
-	const month = (date.getMonth() + 1).toString().padStart(2, '0'); // dari input date
+	const year = date.getFullYear().toString().slice(-2);
+	const month = (date.getMonth() + 1).toString().padStart(2, '0');
 
-	const prefix = `JV${year}${month}`;
+	const prefix = `JV-${year}${month}`;
 
-	// Cari journal terakhir HANYA di bulan yang sama dengan input date
 	const lastEntry = await db.query.journalEntry.findFirst({
 		where: sql`${journalEntry.number} LIKE ${prefix + '%'}`,
 		orderBy: [desc(journalEntry.number)]
 	});
 
 	if (lastEntry) {
-		// Ada journal sebelumnya di bulan ini, lanjutkan urutannya
-		const lastSequence = parseInt(lastEntry.number.substring(6) || '0');
-		const newSequence = (lastSequence + 1).toString().padStart(2, '0');
+		const lastSequence = parseInt(lastEntry.number.substring(8) || '0');
+		const newSequence = (lastSequence + 1).toString().padStart(4, '0');
 		return prefix + newSequence;
 	} else {
-		// Belum ada journal di bulan ini, mulai dari 01
-		return `${prefix}01`;
+		return `${prefix}0001`;
 	}
 }
 
@@ -147,7 +145,183 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 };
 
 export const actions: Actions = {
-	// Action untuk generate journal number berdasarkan tanggal
+	import: async ({ request, locals }) => {
+		if (!locals.user) {
+			return fail(401, { error: 'You must be logged in to import journals' });
+		}
+
+		const formData = await request.formData();
+		const file = formData.get('excelFile') as File;
+
+		if (!file || file.size === 0) {
+			return fail(400, { error: 'No file uploaded' });
+		}
+
+		try {
+			const buffer = await file.arrayBuffer();
+			const workbook = XLSX.read(buffer, { type: 'buffer', cellDates: true });
+			const sheetName = workbook.SheetNames[0];
+			const sheet = workbook.Sheets[sheetName];
+
+			const rows = XLSX.utils.sheet_to_json(sheet, {
+				header: 1,
+				defval: null,
+				blankrows: false
+			}) as any[][];
+
+			// Skip the first row which contains the messy headers
+			const dataRows = rows.slice(1);
+
+			console.log(`[Import] Found ${dataRows.length} data rows in Excel.`);
+
+			const journalData: any[] = [];
+			let currentJournal: any = null;
+
+			for (const row of dataRows) {
+				if (!row || row.length === 0) continue; // Skip empty rows
+
+				const firstCol = row[0] ? String(row[0]).trim() : '';
+				const secondCol = row[1] ? String(row[1]).trim() : '';
+
+				const isHeader =
+					(row[0] instanceof Date || /^\d{4}-\d{2}-\d{2}/.test(firstCol)) &&
+					secondCol.startsWith('JV');
+
+				if (isHeader) {
+					if (currentJournal) {
+						journalData.push(currentJournal);
+					}
+					currentJournal = {
+						date: new Date(firstCol),
+						number: secondCol,
+						reference: row[2] || '',
+						description: row[3] || '',
+						lines: []
+					};
+				} else if (currentJournal && !isNaN(parseInt(firstCol))) {
+					currentJournal.lines.push({
+						'Kode Akun': firstCol,
+						'Deskripsi Baris': [row[1], row[2], row[3]].filter(Boolean).join(' - '),
+						Debit: parseFloat(row[4]) || 0,
+						Kredit: parseFloat(row[5]) || 0
+					});
+				} else if (firstCol.toLowerCase().startsWith('total')) {
+					if (currentJournal) {
+						journalData.push(currentJournal);
+					}
+					currentJournal = null;
+				}
+			}
+
+			if (currentJournal) {
+				journalData.push(currentJournal);
+			}
+
+			console.log(`[Import] Parsed ${journalData.length} journal entries from the file.`);
+
+			if (journalData.length === 0) {
+				return fail(400, {
+					error:
+						'No valid journal entries could be parsed. Please check the file format and content.'
+				});
+			}
+
+			const allAccountCodes = [
+				...new Set(journalData.flatMap((j) => j.lines.map((l: any) => l['Kode Akun'])))
+			];
+			const accountsInDb = await db.query.chartOfAccount.findMany({
+				where: inArray(chartOfAccount.code, allAccountCodes)
+			});
+			const accountMap = new Map(accountsInDb.map((acc) => [String(acc.code), acc.id]));
+			console.log(`[Import] Found ${accountMap.size} matching accounts in the database.`);
+
+			const activeFiscalPeriods = await db.query.fiscalPeriod.findMany({
+				where: eq(fiscalPeriod.isClosed, false),
+				orderBy: [asc(fiscalPeriod.startDate)]
+			});
+			console.log(`[Import] Found ${activeFiscalPeriods.length} active fiscal periods.`);
+
+			await db.transaction(async (tx) => {
+				console.log('[Import] Starting database transaction.');
+				for (const entry of journalData) {
+					console.log(`[Import] Processing journal number: ${entry.number}`);
+
+					const period = activeFiscalPeriods.find(
+						(p) => entry.date >= new Date(p.startDate) && entry.date <= new Date(p.endDate)
+					);
+					if (!period)
+						throw new Error(
+							`No active fiscal period for date ${entry.date.toISOString().split('T')[0]} in journal ${entry.number}.`
+						);
+
+					let totalDebit = 0;
+					let totalCredit = 0;
+					const journalLines = [];
+
+					for (const [i, line] of entry.lines.entries()) {
+						const accountCode = String(line['Kode Akun']);
+						const accountId = accountMap.get(accountCode);
+						if (!accountId)
+							throw new Error(
+								`Account with code "${accountCode}" not found for journal ${entry.number}.`
+							);
+
+						const debit = parseFloat(line['Debit'] || 0);
+						const credit = parseFloat(line['Kredit'] || 0);
+						totalDebit += debit;
+						totalCredit += credit;
+
+						journalLines.push({
+							accountId,
+							description: line['Deskripsi Baris'] || '',
+							debitAmount: debit,
+							creditAmount: credit,
+							lineNumber: i + 1
+						});
+					}
+
+					if (Math.abs(totalDebit - totalCredit) > 0.01)
+						throw new Error(
+							`Journal ${entry.number} is not balanced. Debits: ${totalDebit}, Credits: ${totalCredit}`
+						);
+
+					const newEntryResult = await tx
+						.insert(journalEntry)
+						.values({
+							number: entry.number,
+							date: entry.date,
+							description: entry.description,
+							reference: entry.reference,
+							fiscalPeriodId: period.id,
+							status: 'POSTED',
+							totalDebit,
+							totalCredit,
+							createdBy: locals.user.id,
+							postedAt: new Date(),
+							postedBy: locals.user.id
+						})
+						.returning({ id: journalEntry.id });
+					const journalEntryId = newEntryResult[0].id;
+					console.log(`[Import] Inserted journal entry ID: ${journalEntryId}`);
+
+					await tx
+						.insert(journalEntryLine)
+						.values(journalLines.map((line) => ({ ...line, journalEntryId })));
+					console.log(`[Import] Inserted lines for entry ID: ${journalEntryId}`);
+				}
+				console.log('[Import] Database transaction committed.');
+			});
+
+			return { success: true };
+		} catch (err) {
+			console.error('Error importing journal entries:', err);
+			const errorMessage =
+				err instanceof Error ? err.message : 'An unknown error occurred during import.';
+			return fail(500, { error: `Failed to import journal entries: ${errorMessage}` });
+		}
+	},
+
+	// The rest of the actions (generateJournalNumber, create, delete, update) remain unchanged.
 	generateJournalNumber: async ({ request }) => {
 		const formData = await request.formData();
 		const date = formData.get('date') as string;
@@ -514,3 +688,4 @@ export const actions: Actions = {
 		}
 	}
 };
+('');
