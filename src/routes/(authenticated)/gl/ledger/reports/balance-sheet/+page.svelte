@@ -2,8 +2,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { browser } from '$app/environment';
-	import ReportFilters from '$lib/components/ReportFilters.svelte';
-	import { formatCurrency, calculatePercentage, calculateChange } from '$lib/utils/utils.client';
+	import { formatCurrencyWithDecimals } from '$lib/utils/utils.client';
 	import {
 		exportBalanceSheetToPdf,
 		exportBalanceSheetToExcel
@@ -12,55 +11,43 @@
 
 	let { data } = $props<{ data: PageData }>();
 
-	let compareWithPrevious = $state(false);
-	let showPercentages = $state(false);
+	let selectedPeriodId = $state(data.selectedPeriod?.id);
 
-	// Initialize dateRange
-	const defaultDate = new Date().toISOString().split('T')[0];
-	let dateRange = $state({
-		start: defaultDate,
-		end: defaultDate
-	});
-
-	// Initialize state from URL params on client-side only
-	$effect(() => {
-		if (browser) {
-			const searchParams = new URLSearchParams(window.location.search);
-			dateRange.start = searchParams.get('startDate') || defaultDate;
-			dateRange.end = searchParams.get('endDate') || defaultDate;
-			compareWithPrevious = searchParams.get('compareWithPrevious') === 'true';
-			showPercentages = searchParams.get('showPercentages') === 'true';
-		}
-	});
+	if (browser) {
+		const searchParams = new URLSearchParams(window.location.search);
+		selectedPeriodId = parseInt(searchParams.get('periodId') || data.selectedPeriod?.id);
+	}
 
 	$effect(() => {
 		if (browser) {
 			const params = new URLSearchParams();
-			params.set('startDate', dateRange.start);
-			params.set('endDate', dateRange.end);
-			params.set('compareWithPrevious', compareWithPrevious.toString());
-			params.set('showPercentages', showPercentages.toString());
+			if (selectedPeriodId) params.set('periodId', selectedPeriodId.toString());
 			goto(`?${params.toString()}`, { replaceState: true });
 		}
 	});
 
-	let totalAktiva = $derived(data.totalAktiva?.balance || 0);
-	let totalPasiva = $derived(data.totalPasiva?.balance || 0);
+	const dateRange = $derived({
+		start: `${data.selectedPeriod.year}-${data.selectedPeriod.month.toString().padStart(2, '0')}-01`,
+		end: `${data.selectedPeriod.year}-${data.selectedPeriod.month.toString().padStart(2, '0')}-31`
+	});
 
 	async function handlePdfExport() {
-		await exportBalanceSheetToPdf(data, dateRange, showPercentages, compareWithPrevious);
+		await exportBalanceSheetToPdf(data, dateRange, false, false);
 	}
 
 	async function handleExcelExport() {
-		await exportBalanceSheetToExcel(data, dateRange, showPercentages, compareWithPrevious);
+		await exportBalanceSheetToExcel(data, dateRange, false, false);
 	}
+
+	let totalAktiva = $derived(data.totalAktiva?.balance || 0);
+	let totalPasiva = $derived(data.totalPasiva?.balance || 0);
 </script>
 
 <div class="flex flex-col gap-6">
 	<div class="flex items-center justify-between">
 		<h1 class="text-2xl font-bold">Neraca (Balance Sheet)</h1>
 		<div class="flex gap-2">
-			<button class="btn btn-primary" onclick={handleExcelExport}>
+			<button class="btn btn-primary" on:click={handleExcelExport}>
 				<svg
 					xmlns="http://www.w3.org/2000/svg"
 					class="mr-2 h-5 w-5"
@@ -77,7 +64,7 @@
 				</svg>
 				Export to Excel
 			</button>
-			<button class="btn btn-primary" onclick={handlePdfExport}>
+			<button class="btn btn-primary" on:click={handlePdfExport}>
 				<svg
 					xmlns="http://www.w3.org/2000/svg"
 					class="mr-2 h-5 w-5"
@@ -98,13 +85,20 @@
 	</div>
 
 	<div class="print:hidden">
-		<ReportFilters
-			bind:dateRange
-			showCompareOption={true}
-			showPercentagesOption={true}
-			bind:compareWithPrevious
-			bind:showPercentages
-		/>
+		<div class="form-control w-full max-w-xs">
+			<label class="label" for="period-select">
+				<span class="label-text">Fiscal Period</span>
+			</label>
+			<select
+				id="period-select"
+				class="select select-bordered w-full"
+				bind:value={selectedPeriodId}
+			>
+				{#each data.periods as period}
+					<option value={period.id}>{period.name}</option>
+				{/each}
+			</select>
+		</div>
 	</div>
 
 	<div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
@@ -115,259 +109,60 @@
 					<tr>
 						<th>Aktiva (Assets)</th>
 						<th class="text-right">Amount</th>
-						{#if showPercentages}
-							<th class="text-right">% of Total</th>
-						{/if}
-						{#if compareWithPrevious}
-							<th class="text-right">Previous Period</th>
-							{#if showPercentages}
-								<th class="text-right">% of Total</th>
-							{/if}
-							<th class="text-right">Change</th>
-						{/if}
 					</tr>
 				</thead>
-
 				<tbody>
 					<!-- Aktiva Lancar -->
 					<tr class="bg-base-200 font-bold">
-						<td
-							colspan={2 +
-								(showPercentages ? 1 : 0) +
-								(compareWithPrevious ? (showPercentages ? 3 : 2) : 0)}
-						>
-							Aktiva Lancar (Current Assets)
-						</td>
+						<td colspan={2}>Aktiva Lancar (Current Assets)</td>
 					</tr>
-
 					{#if data.aktivaLancar && data.aktivaLancar.length > 0}
 						{#each data.aktivaLancar as asset}
 							<tr>
 								<td class="pl-{asset.level * 4}">{asset.name}</td>
-								<td class="text-right">{formatCurrency(asset.balance || 0)}</td>
-								{#if showPercentages}
-									<td class="text-right">{calculatePercentage(asset.balance || 0, totalAktiva)}</td>
-								{/if}
-								{#if compareWithPrevious && data.previousPeriod}
-									{@const prevAsset = data.previousPeriod.aktivaLancar?.find(
-										(a) => a.id === asset.id
-									)}
-									<td class="text-right">
-										{prevAsset ? formatCurrency(prevAsset.balance || 0) : '-'}
-									</td>
-									{#if showPercentages}
-										<td class="text-right">
-											{prevAsset
-												? calculatePercentage(
-														prevAsset.balance || 0,
-														data.previousPeriod.aktivaLancar.reduce(
-															(sum, a) => sum + (a.balance || 0),
-															0
-														)
-													)
-												: '-'}
-										</td>
-									{/if}
-									<td class="text-right">
-										{#if prevAsset}
-											{@const change = calculateChange(asset.balance || 0, prevAsset.balance || 0)}
-											<span
-												class={change.value > 0
-													? 'text-success'
-													: change.value < 0
-														? 'text-error'
-														: ''}
-											>
-												{change.display}
-											</span>
-										{:else}
-											-
-										{/if}
-									</td>
-								{/if}
+								<td class="text-right">{formatCurrencyWithDecimals(asset.balance || 0)}</td>
 							</tr>
 						{/each}
 					{:else}
 						<tr>
-							<td
-								colspan={2 +
-									(showPercentages ? 1 : 0) +
-									(compareWithPrevious ? (showPercentages ? 3 : 2) : 0)}
-								class="text-center text-gray-500"
-							>
-								No current assets found for the selected period
-							</td>
+							<td colspan={2} class="text-center text-gray-500">No current assets found for the selected period</td>
 						</tr>
 					{/if}
-
 					<!-- Aktiva Tetap -->
 					<tr class="bg-base-200 font-bold">
-						<td
-							colspan={2 +
-								(showPercentages ? 1 : 0) +
-								(compareWithPrevious ? (showPercentages ? 3 : 2) : 0)}
-						>
-							Aktiva Tetap (Fixed Assets)
-						</td>
+						<td colspan={2}>Aktiva Tetap (Fixed Assets)</td>
 					</tr>
-
 					{#if data.aktivaTetap && data.aktivaTetap.length > 0}
 						{#each data.aktivaTetap as asset}
 							<tr>
 								<td class="pl-{asset.level * 4}">{asset.name}</td>
-								<td class="text-right">{formatCurrency(asset.balance || 0)}</td>
-								{#if showPercentages}
-									<td class="text-right">{calculatePercentage(asset.balance || 0, totalAktiva)}</td>
-								{/if}
-								{#if compareWithPrevious && data.previousPeriod}
-									{@const prevAsset = data.previousPeriod.aktivaTetap?.find(
-										(a) => a.id === asset.id
-									)}
-									<td class="text-right">
-										{prevAsset ? formatCurrency(prevAsset.balance || 0) : '-'}
-									</td>
-									{#if showPercentages}
-										<td class="text-right">
-											{prevAsset
-												? calculatePercentage(
-														prevAsset.balance || 0,
-														data.previousPeriod.aktivaTetap.reduce(
-															(sum, a) => sum + (a.balance || 0),
-															0
-														)
-													)
-												: '-'}
-										</td>
-									{/if}
-									<td class="text-right">
-										{#if prevAsset}
-											{@const change = calculateChange(asset.balance || 0, prevAsset.balance || 0)}
-											<span
-												class={change.value > 0
-													? 'text-success'
-													: change.value < 0
-														? 'text-error'
-														: ''}
-											>
-												{change.display}
-											</span>
-										{:else}
-											-
-										{/if}
-									</td>
-								{/if}
+								<td class="text-right">{formatCurrencyWithDecimals(asset.balance || 0)}</td>
 							</tr>
 						{/each}
 					{:else}
 						<tr>
-							<td
-								colspan={2 +
-									(showPercentages ? 1 : 0) +
-									(compareWithPrevious ? (showPercentages ? 3 : 2) : 0)}
-								class="text-center text-gray-500"
-							>
-								No fixed assets found for the selected period
-							</td>
+							<td colspan={2} class="text-center text-gray-500">No fixed assets found for the selected period</td>
 						</tr>
 					{/if}
-
 					<!-- Aktiva Lainnya -->
 					<tr class="bg-base-200 font-bold">
-						<td
-							colspan={2 +
-								(showPercentages ? 1 : 0) +
-								(compareWithPrevious ? (showPercentages ? 3 : 2) : 0)}
-						>
-							Aktiva Lainnya (Other Assets)
-						</td>
+						<td colspan={2}>Aktiva Lainnya (Other Assets)</td>
 					</tr>
-
 					{#if data.aktivaLainnya && data.aktivaLainnya.length > 0}
 						{#each data.aktivaLainnya as asset}
 							<tr>
 								<td class="pl-{asset.level * 4}">{asset.name}</td>
-								<td class="text-right">{formatCurrency(asset.balance || 0)}</td>
-								{#if showPercentages}
-									<td class="text-right">{calculatePercentage(asset.balance || 0, totalAktiva)}</td>
-								{/if}
-								{#if compareWithPrevious && data.previousPeriod}
-									{@const prevAsset = data.previousPeriod.aktivaLainnya?.find(
-										(a) => a.id === asset.id
-									)}
-									<td class="text-right">
-										{prevAsset ? formatCurrency(prevAsset.balance || 0) : '-'}
-									</td>
-									{#if showPercentages}
-										<td class="text-right">
-											{prevAsset
-												? calculatePercentage(
-														prevAsset.balance || 0,
-														data.previousPeriod.aktivaLainnya.reduce(
-															(sum, a) => sum + (a.balance || 0),
-															0
-														)
-													)
-												: '-'}
-										</td>
-									{/if}
-									<td class="text-right">
-										{#if prevAsset}
-											{@const change = calculateChange(asset.balance || 0, prevAsset.balance || 0)}
-											<span
-												class={change.value > 0
-													? 'text-success'
-													: change.value < 0
-														? 'text-error'
-														: ''}
-											>
-												{change.display}
-											</span>
-										{:else}
-											-
-										{/if}
-									</td>
-								{/if}
+								<td class="text-right">{formatCurrencyWithDecimals(asset.balance || 0)}</td>
 							</tr>
 						{/each}
 					{:else}
 						<tr>
-							<td
-								colspan={2 +
-									(showPercentages ? 1 : 0) +
-									(compareWithPrevious ? (showPercentages ? 3 : 2) : 0)}
-								class="text-center text-gray-500"
-							>
-								No other assets found for the selected period
-							</td>
+							<td colspan={2} class="text-center text-gray-500">No other assets found for the selected period</td>
 						</tr>
 					{/if}
-
-					<!-- Total Aktiva -->
 					<tr class="font-bold">
 						<td>Total Aktiva</td>
-						<td class="text-right">{formatCurrency(totalAktiva)}</td>
-						{#if showPercentages}
-							<td class="text-right">100%</td>
-						{/if}
-						{#if compareWithPrevious && data.previousPeriod}
-							{@const prevTotalAktiva = [
-								...data.previousPeriod.aktivaLancar,
-								...data.previousPeriod.aktivaTetap,
-								...data.previousPeriod.aktivaLainnya
-							].reduce((sum, a) => sum + (a.balance || 0), 0)}
-							{@const change = calculateChange(totalAktiva, prevTotalAktiva)}
-							<td class="text-right">{formatCurrency(prevTotalAktiva)}</td>
-							{#if showPercentages}
-								<td class="text-right">100%</td>
-							{/if}
-							<td class="text-right">
-								<span
-									class={change.value > 0 ? 'text-success' : change.value < 0 ? 'text-error' : ''}
-								>
-									{change.display}
-								</span>
-							</td>
-						{/if}
+						<td class="text-right">{formatCurrencyWithDecimals(totalAktiva)}</td>
 					</tr>
 				</tbody>
 			</table>
@@ -378,271 +173,62 @@
 			<table class="table-zebra table w-full">
 				<thead>
 					<tr>
-						<th>Pasiva (Liabilities & Equity)</th>
+						<th>Pasiva (Liabilities + Equity)</th>
 						<th class="text-right">Amount</th>
-						{#if showPercentages}
-							<th class="text-right">% of Total</th>
-						{/if}
-						{#if compareWithPrevious}
-							<th class="text-right">Previous Period</th>
-							{#if showPercentages}
-								<th class="text-right">% of Total</th>
-							{/if}
-							<th class="text-right">Change</th>
-						{/if}
 					</tr>
 				</thead>
-
 				<tbody>
 					<!-- Hutang Lancar -->
 					<tr class="bg-base-200 font-bold">
-						<td
-							colspan={2 +
-								(showPercentages ? 1 : 0) +
-								(compareWithPrevious ? (showPercentages ? 3 : 2) : 0)}
-						>
-							Hutang Lancar (Current Liabilities)
-						</td>
+						<td colspan={2}>Hutang Lancar (Current Liabilities)</td>
 					</tr>
-
 					{#if data.hutangLancar && data.hutangLancar.length > 0}
 						{#each data.hutangLancar as liability}
 							<tr>
 								<td class="pl-{liability.level * 4}">{liability.name}</td>
-								<td class="text-right">{formatCurrency(liability.balance || 0)}</td>
-								{#if showPercentages}
-									<td class="text-right">
-										{calculatePercentage(liability.balance || 0, totalPasiva)}
-									</td>
-								{/if}
-								{#if compareWithPrevious && data.previousPeriod}
-									{@const prevLiability = data.previousPeriod.hutangLancar?.find(
-										(l) => l.id === liability.id
-									)}
-									<td class="text-right">
-										{prevLiability ? formatCurrency(prevLiability.balance || 0) : '-'}
-									</td>
-									{#if showPercentages}
-										<td class="text-right">
-											{prevLiability
-												? calculatePercentage(
-														prevLiability.balance || 0,
-														data.previousPeriod.hutangLancar.reduce(
-															(sum, l) => sum + (l.balance || 0),
-															0
-														)
-													)
-												: '-'}
-										</td>
-									{/if}
-									<td class="text-right">
-										{#if prevLiability}
-											{@const change = calculateChange(
-												liability.balance || 0,
-												prevLiability.balance || 0
-											)}
-											<span
-												class={change.value > 0
-													? 'text-success'
-													: change.value < 0
-														? 'text-error'
-														: ''}
-											>
-												{change.display}
-											</span>
-										{:else}
-											-
-										{/if}
-									</td>
-								{/if}
+								<td class="text-right">{formatCurrencyWithDecimals(liability.balance || 0)}</td>
 							</tr>
 						{/each}
 					{:else}
 						<tr>
-							<td
-								colspan={2 +
-									(showPercentages ? 1 : 0) +
-									(compareWithPrevious ? (showPercentages ? 3 : 2) : 0)}
-								class="text-center text-gray-500"
-							>
-								No current liabilities found for the selected period
-							</td>
+							<td colspan={2} class="text-center text-gray-500">No current liabilities found for the selected period</td>
 						</tr>
 					{/if}
-
 					<!-- Hutang Jangka Panjang -->
 					<tr class="bg-base-200 font-bold">
-						<td
-							colspan={2 +
-								(showPercentages ? 1 : 0) +
-								(compareWithPrevious ? (showPercentages ? 3 : 2) : 0)}
-						>
-							Hutang Jangka Panjang (Long-term Liabilities)
-						</td>
+						<td colspan={2}>Hutang Jangka Panjang (Long-term Liabilities)</td>
 					</tr>
-
 					{#if data.hutangJangkaPanjang && data.hutangJangkaPanjang.length > 0}
 						{#each data.hutangJangkaPanjang as liability}
 							<tr>
 								<td class="pl-{liability.level * 4}">{liability.name}</td>
-								<td class="text-right">{formatCurrency(liability.balance || 0)}</td>
-								{#if showPercentages}
-									<td class="text-right">
-										{calculatePercentage(liability.balance || 0, totalPasiva)}
-									</td>
-								{/if}
-								{#if compareWithPrevious && data.previousPeriod}
-									{@const prevLiability = data.previousPeriod.hutangJangkaPanjang?.find(
-										(l) => l.id === liability.id
-									)}
-									<td class="text-right">
-										{prevLiability ? formatCurrency(prevLiability.balance || 0) : '-'}
-									</td>
-									{#if showPercentages}
-										<td class="text-right">
-											{prevLiability
-												? calculatePercentage(
-														prevLiability.balance || 0,
-														data.previousPeriod.hutangJangkaPanjang.reduce(
-															(sum, l) => sum + (l.balance || 0),
-															0
-														)
-													)
-												: '-'}
-										</td>
-									{/if}
-									<td class="text-right">
-										{#if prevLiability}
-											{@const change = calculateChange(
-												liability.balance || 0,
-												prevLiability.balance || 0
-											)}
-											<span
-												class={change.value > 0
-													? 'text-success'
-													: change.value < 0
-														? 'text-error'
-														: ''}
-											>
-												{change.display}
-											</span>
-										{:else}
-											-
-										{/if}
-									</td>
-								{/if}
+								<td class="text-right">{formatCurrencyWithDecimals(liability.balance || 0)}</td>
 							</tr>
 						{/each}
 					{:else}
 						<tr>
-							<td
-								colspan={2 +
-									(showPercentages ? 1 : 0) +
-									(compareWithPrevious ? (showPercentages ? 3 : 2) : 0)}
-								class="text-center text-gray-500"
-							>
-								No long-term liabilities found for the selected period
-							</td>
+							<td colspan={2} class="text-center text-gray-500">No long-term liabilities found for the selected period</td>
 						</tr>
 					{/if}
-
-					<!-- Modal -->
+					<!-- Modal (Equity) -->
 					<tr class="bg-base-200 font-bold">
-						<td
-							colspan={2 +
-								(showPercentages ? 1 : 0) +
-								(compareWithPrevious ? (showPercentages ? 3 : 2) : 0)}
-						>
-							Modal (Equity)
-						</td>
+						<td colspan={2}>Modal (Equity)</td>
 					</tr>
-
 					{#if data.modal && data.modal.length > 0}
-						{#each data.modal as equity}
+						{#each data.modal as eq}
 							<tr>
-								<td class="pl-{equity.level * 4}">{equity.name}</td>
-								<td class="text-right">{formatCurrency(equity.balance || 0)}</td>
-								{#if showPercentages}
-									<td class="text-right">
-										{calculatePercentage(equity.balance || 0, totalPasiva)}
-									</td>
-								{/if}
-								{#if compareWithPrevious && data.previousPeriod}
-									{@const prevEquity = data.previousPeriod.modal?.find((e) => e.id === equity.id)}
-									<td class="text-right">
-										{prevEquity ? formatCurrency(prevEquity.balance || 0) : '-'}
-									</td>
-									{#if showPercentages}
-										<td class="text-right">
-											{prevEquity
-												? calculatePercentage(
-														prevEquity.balance || 0,
-														data.previousPeriod.modal.reduce((sum, e) => sum + (e.balance || 0), 0)
-													)
-												: '-'}
-										</td>
-									{/if}
-									<td class="text-right">
-										{#if prevEquity}
-											{@const change = calculateChange(
-												equity.balance || 0,
-												prevEquity.balance || 0
-											)}
-											<span
-												class={change.value > 0
-													? 'text-success'
-													: change.value < 0
-														? 'text-error'
-														: ''}
-											>
-												{change.display}
-											</span>
-										{:else}
-											-
-										{/if}
-									</td>
-								{/if}
+								<td class="pl-{eq.level * 4}">{eq.name}</td>
+								<td class="text-right">{formatCurrencyWithDecimals(eq.balance || 0)}</td>
 							</tr>
 						{/each}
 					{:else}
 						<tr>
-							<td
-								colspan={2 +
-									(showPercentages ? 1 : 0) +
-									(compareWithPrevious ? (showPercentages ? 3 : 2) : 0)}
-								class="text-center text-gray-500"
-							>
-								No equity accounts found for the selected period
-							</td>
+							<td colspan={2} class="text-center text-gray-500">No equity found for the selected period</td>
 						</tr>
 					{/if}
-
-					<!-- Total Pasiva -->
 					<tr class="font-bold">
 						<td>Total Pasiva</td>
-						<td class="text-right">{formatCurrency(totalPasiva)}</td>
-						{#if showPercentages}
-							<td class="text-right">100%</td>
-						{/if}
-						{#if compareWithPrevious && data.previousPeriod}
-							{@const prevTotalPasiva = [
-								...data.previousPeriod.hutangLancar,
-								...data.previousPeriod.hutangJangkaPanjang,
-								...data.previousPeriod.modal
-							].reduce((sum, p) => sum + (p.balance || 0), 0)}
-							{@const change = calculateChange(totalPasiva, prevTotalPasiva)}
-							<td class="text-right">{formatCurrency(prevTotalPasiva)}</td>
-							{#if showPercentages}
-								<td class="text-right">100%</td>
-							{/if}
-							<td class="text-right">
-								<span
-									class={change.value > 0 ? 'text-success' : change.value < 0 ? 'text-error' : ''}
-								>
-									{change.display}
-								</span>
-							</td>
-						{/if}
+						<td class="text-right">{formatCurrencyWithDecimals(totalPasiva)}</td>
 					</tr>
 				</tbody>
 			</table>

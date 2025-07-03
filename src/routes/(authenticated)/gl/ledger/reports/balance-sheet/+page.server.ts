@@ -1,6 +1,8 @@
 import type { PageServerLoad } from './$types';
 import { getBalanceSheetAccounts } from '$lib/utils/utils.server';
 import type { AccountBalance } from '$lib/utils/types';
+import { fiscalPeriod } from '$lib/server/db/schema';
+import { eq } from 'drizzle-orm';
 
 interface BalanceSheetData {
 	// Aktiva (Assets)
@@ -23,26 +25,37 @@ interface BalanceSheetData {
 		balance: number;
 	};
 
-	previousPeriod?: {
-		aktivaLancar: AccountBalance[];
-		aktivaTetap: AccountBalance[];
-		aktivaLainnya: AccountBalance[];
-		hutangLancar: AccountBalance[];
-		hutangJangkaPanjang: AccountBalance[];
-		modal: AccountBalance[];
-	};
+	periods: any[];
+	selectedPeriod: any;
 }
 
 export const load: PageServerLoad = async (event) => {
+	const { db } = event.locals;
 	const searchParams = event.url.searchParams;
-	const startDate = searchParams.get('startDate') || new Date().toISOString().split('T')[0];
-	const endDate = searchParams.get('endDate') || new Date().toISOString().split('T')[0];
-	const compareWithPrevious = searchParams.get('compareWithPrevious') === 'true';
-	const showPercentages = searchParams.get('showPercentages') === 'true';
+	const periodId = searchParams.get('periodId');
+
+	// Get all fiscal periods for dropdown
+	const periods = await db.query.fiscalPeriod.findMany({
+		orderBy: (fiscalPeriod, { desc }) => [desc(fiscalPeriod.year), desc(fiscalPeriod.month)]
+	});
+
+	// If no period selected, use latest period
+	const selectedPeriod = periodId
+		? await db.query.fiscalPeriod.findFirst({
+			where: eq(fiscalPeriod.id, parseInt(periodId))
+		})
+		: periods[0];
+
+	if (!selectedPeriod) {
+		throw new Error('No fiscal period found');
+	}
+
+	// Build date range for the selected period
+	const startDate = `${selectedPeriod.year}-${selectedPeriod.month.toString().padStart(2, '0')}-01`;
+	const endDate = `${selectedPeriod.year}-${selectedPeriod.month.toString().padStart(2, '0')}-31`;
 
 	const filters = {
-		dateRange: { start: startDate, end: endDate },
-		showPercentages
+		dateRange: { start: startDate, end: endDate }
 	};
 
 	// Get current period data
@@ -117,7 +130,7 @@ export const load: PageServerLoad = async (event) => {
 		)
 	};
 
-	const data: BalanceSheetData = {
+	return {
 		aktivaLancar,
 		aktivaTetap,
 		aktivaLainnya,
@@ -125,73 +138,8 @@ export const load: PageServerLoad = async (event) => {
 		hutangLancar,
 		hutangJangkaPanjang,
 		modal: equity,
-		totalPasiva
+		totalPasiva,
+		periods,
+		selectedPeriod
 	};
-
-	// Get previous period data if requested
-	if (compareWithPrevious) {
-		const startDateObj = new Date(startDate);
-		const endDateObj = new Date(endDate);
-		const duration = endDateObj.getTime() - startDateObj.getTime();
-
-		const prevStartDate = new Date(startDateObj.getTime() - duration).toISOString().split('T')[0];
-		const prevEndDate = new Date(startDateObj.getTime() - 1).toISOString().split('T')[0];
-
-		const prevFilters = {
-			dateRange: { start: prevStartDate, end: prevEndDate },
-			showPercentages
-		};
-
-		const prevData = await getBalanceSheetAccounts(event, prevFilters);
-
-		// Kategorisasi data periode sebelumnya
-		const prevAktivaLancar = prevData.assets.filter(
-			(acc) =>
-				acc.groupName === 'Aktiva Lancar' ||
-				acc.name.toLowerCase().includes('kas') ||
-				acc.name.toLowerCase().includes('bank') ||
-				acc.name.toLowerCase().includes('piutang') ||
-				acc.name.toLowerCase().includes('persediaan')
-		);
-
-		const prevAktivaTetap = prevData.assets.filter(
-			(acc) =>
-				acc.groupName === 'Aktiva Tetap' ||
-				acc.name.toLowerCase().includes('tanah') ||
-				acc.name.toLowerCase().includes('bangunan') ||
-				acc.name.toLowerCase().includes('kendaraan') ||
-				acc.name.toLowerCase().includes('peralatan')
-		);
-
-		const prevAktivaLainnya = prevData.assets.filter(
-			(acc) =>
-				acc.groupName === 'Aktiva Lain-Lain' ||
-				(!prevAktivaLancar.find((a) => a.id === acc.id) &&
-					!prevAktivaTetap.find((a) => a.id === acc.id))
-		);
-
-		const prevHutangLancar = prevData.liabilities.filter(
-			(acc) =>
-				acc.groupName === 'Hutang Lancar' ||
-				acc.name.toLowerCase().includes('hutang dagang') ||
-				acc.name.toLowerCase().includes('hutang usaha') ||
-				acc.name.toLowerCase().includes('hutang pajak')
-		);
-
-		const prevHutangJangkaPanjang = prevData.liabilities.filter(
-			(acc) =>
-				acc.groupName === 'Hutang Jangka Panjang' || !prevHutangLancar.find((h) => h.id === acc.id)
-		);
-
-		data.previousPeriod = {
-			aktivaLancar: prevAktivaLancar,
-			aktivaTetap: prevAktivaTetap,
-			aktivaLainnya: prevAktivaLainnya,
-			hutangLancar: prevHutangLancar,
-			hutangJangkaPanjang: prevHutangJangkaPanjang,
-			modal: prevData.equity
-		};
-	}
-
-	return data;
 };
