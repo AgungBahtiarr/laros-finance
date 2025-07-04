@@ -16,8 +16,8 @@ export const load: PageServerLoad = async (event) => {
 	// If no period selected, use latest period
 	const selectedPeriod = periodId
 		? await db.query.fiscalPeriod.findFirst({
-			where: eq(fiscalPeriod.id, parseInt(periodId))
-		})
+				where: eq(fiscalPeriod.id, parseInt(periodId))
+			})
 		: periods[0];
 
 	if (!selectedPeriod) {
@@ -25,8 +25,9 @@ export const load: PageServerLoad = async (event) => {
 	}
 
 	// Build date range for the selected period
+	const lastDay = new Date(selectedPeriod.year, selectedPeriod.month, 0).getDate();
 	const startDate = `${selectedPeriod.year}-${selectedPeriod.month.toString().padStart(2, '0')}-01`;
-	const endDate = `${selectedPeriod.year}-${selectedPeriod.month.toString().padStart(2, '0')}-31`;
+	const endDate = `${selectedPeriod.year}-${selectedPeriod.month.toString().padStart(2, '0')}-${lastDay.toString().padStart(2, '0')}`;
 
 	const showPercentages = searchParams.get('showPercentages') === 'true';
 
@@ -36,7 +37,7 @@ export const load: PageServerLoad = async (event) => {
 	};
 
 	try {
-		const { 
+		const {
 			revenues,
 			expenses,
 			pendapatan,

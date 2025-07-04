@@ -226,6 +226,10 @@
 							<td colspan={2} class="text-center text-gray-500">No equity found for the selected period</td>
 						</tr>
 					{/if}
+					<tr>
+						<td>Laba Rugi Berjalan</td>
+						<td class="text-right">{formatCurrencyWithDecimals(data.netIncome || 0)}</td>
+					</tr>
 					<tr class="font-bold">
 						<td>Total Pasiva</td>
 						<td class="text-right">{formatCurrencyWithDecimals(totalPasiva)}</td>

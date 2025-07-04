@@ -1,5 +1,5 @@
 import type { PageServerLoad } from './$types';
-import { getBalanceSheetAccounts } from '$lib/utils/utils.server';
+import { getBalanceSheetAccounts, getRevenueExpenseAccounts } from '$lib/utils/utils.server';
 import type { AccountBalance } from '$lib/utils/types';
 import { fiscalPeriod } from '$lib/server/db/schema';
 import { eq } from 'drizzle-orm';
@@ -42,8 +42,8 @@ export const load: PageServerLoad = async (event) => {
 	// If no period selected, use latest period
 	const selectedPeriod = periodId
 		? await db.query.fiscalPeriod.findFirst({
-			where: eq(fiscalPeriod.id, parseInt(periodId))
-		})
+				where: eq(fiscalPeriod.id, parseInt(periodId))
+			})
 		: periods[0];
 
 	if (!selectedPeriod) {
@@ -51,15 +51,20 @@ export const load: PageServerLoad = async (event) => {
 	}
 
 	// Build date range for the selected period
-	const startDate = `${selectedPeriod.year}-${selectedPeriod.month.toString().padStart(2, '0')}-01`;
-	const endDate = `${selectedPeriod.year}-${selectedPeriod.month.toString().padStart(2, '0')}-31`;
+	const startDate = `${selectedPeriod.year}-01-01`; // Start from the beginning of the year
+	const lastDay = new Date(selectedPeriod.year, selectedPeriod.month, 0).getDate();
+	const endDate = `${selectedPeriod.year}-${selectedPeriod.month.toString().padStart(2, '0')}-${lastDay.toString().padStart(2, '0')}`;
 
 	const filters = {
 		dateRange: { start: startDate, end: endDate }
 	};
 
-	// Get current period data
 	const { assets, liabilities, equity } = await getBalanceSheetAccounts(event, filters);
+	const { revenues, expenses } = await getRevenueExpenseAccounts(event, filters);
+
+	const netIncome =
+		revenues.reduce((sum, acc) => sum + acc.balance, 0) +
+		expenses.reduce((sum, acc) => sum + acc.balance, 0);
 
 	// Kategorisasi Aktiva
 	const aktivaLancar = assets.filter(
@@ -124,10 +129,11 @@ export const load: PageServerLoad = async (event) => {
 			(sum, acc) => sum + acc.credit,
 			0
 		),
-		balance: [...hutangLancar, ...hutangJangkaPanjang, ...equity].reduce(
-			(sum, acc) => sum + acc.balance,
-			0
-		)
+		balance:
+			[...hutangLancar, ...hutangJangkaPanjang, ...equity].reduce(
+				(sum, acc) => sum + acc.balance,
+				0
+			) + netIncome
 	};
 
 	return {
@@ -139,6 +145,7 @@ export const load: PageServerLoad = async (event) => {
 		hutangJangkaPanjang,
 		modal: equity,
 		totalPasiva,
+		netIncome,
 		periods,
 		selectedPeriod
 	};
