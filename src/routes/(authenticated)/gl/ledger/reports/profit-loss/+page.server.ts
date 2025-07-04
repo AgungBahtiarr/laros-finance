@@ -36,7 +36,15 @@ export const load: PageServerLoad = async (event) => {
 	};
 
 	try {
-		const { revenues, expenses } = await getRevenueExpenseAccounts(event, filters);
+		const { 
+			revenues,
+			expenses,
+			pendapatan,
+			biayaOperasional,
+			biayaOperasionalLainnya,
+			biayaAdministrasiUmum,
+			pendapatanBiayaLainLain
+		} = await getRevenueExpenseAccounts(event, filters);
 
 		const revenueTotals = revenues.reduce(
 			(totals, acc) => ({
@@ -63,6 +71,11 @@ export const load: PageServerLoad = async (event) => {
 			selectedPeriod,
 			revenues: revenues || [],
 			expenses: expenses || [],
+			pendapatan: pendapatan || [],
+			biayaOperasional: biayaOperasional || [],
+			biayaOperasionalLainnya: biayaOperasionalLainnya || [],
+			biayaAdministrasiUmum: biayaAdministrasiUmum || [],
+			pendapatanBiayaLainLain: pendapatanBiayaLainLain || [],
 			revenueTotals,
 			expenseTotals,
 			netIncome
@@ -74,6 +87,11 @@ export const load: PageServerLoad = async (event) => {
 			selectedPeriod,
 			revenues: [],
 			expenses: [],
+			pendapatan: [],
+			biayaOperasional: [],
+			biayaOperasionalLainnya: [],
+			biayaAdministrasiUmum: [],
+			pendapatanBiayaLainLain: [],
 			revenueTotals: { debit: 0, credit: 0, balance: 0 },
 			expenseTotals: { debit: 0, credit: 0, balance: 0 },
 			netIncome: 0

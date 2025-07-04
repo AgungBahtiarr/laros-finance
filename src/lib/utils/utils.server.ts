@@ -135,56 +135,60 @@ export async function getRevenueExpenseAccounts(
 ): Promise<{
 	revenues: AccountBalance[];
 	expenses: AccountBalance[];
+	pendapatan: AccountBalance[];
+	biayaOperasional: AccountBalance[];
+	biayaOperasionalLainnya: AccountBalance[];
+	biayaAdministrasiUmum: AccountBalance[];
+	pendapatanBiayaLainLain: AccountBalance[];
 }> {
 	const balances = await getAccountBalances(event, filters);
 
-	// Filter revenue accounts based on existing account groups from seed data
-	const revenues = balances
-		.filter(
-			(account) =>
-				// Based on your seed data account groups
-				account.groupName === 'Pendapatan' ||
-				account.groupName === '(Pendapatan) Biaya Lain-Lain' ||
-				// Fallback filters for account codes and names
-				account.code.startsWith('4') ||
-				account.name.toLowerCase().includes('pendapatan') ||
-				account.name.toLowerCase().includes('penjualan') ||
-				account.name.toLowerCase().includes('jasa') ||
-				account.name.toLowerCase().includes('revenue') ||
-				account.name.toLowerCase().includes('income')
-		)
+	const revenues = balances.filter(
+		(account) =>
+			account.groupName === 'Pendapatan' ||
+			account.groupName === '(Pendapatan) Biaya Lain-Lain' ||
+			account.code.startsWith('4')
+	);
+
+	const expenses = balances.filter(
+		(account) =>
+			account.groupName === 'Harga Pokok (COGS/HPP)' ||
+			account.groupName === 'Biaya Operasional' ||
+			account.groupName === 'Biaya Operasional Lainnya' ||
+			account.groupName === 'Biaya Administrasi & Umum' ||
+			account.code.startsWith('5') ||
+			account.code.startsWith('6') ||
+			account.code.startsWith('7')
+	);
+
+	const pendapatan = balances
+		.filter((account) => account.groupName === 'Pendapatan')
 		.sort((a, b) => a.code.localeCompare(b.code));
 
-	// Filter expense accounts based on existing account groups from seed data
-	const expenses = balances
-		.filter(
-			(account) =>
-				// Based on your seed data account groups
-				account.groupName === 'Harga Pokok (COGS/HPP)' ||
-				account.groupName === 'Biaya Operasional' ||
-				account.groupName === 'Biaya Operasional Lainnya' ||
-				account.groupName === 'Biaya Administrasi & Umum' ||
-				account.groupName === 'Biaya Yang Masih Harus Dibayar' ||
-				// Include negative entries from (Pendapatan) Biaya Lain-Lain for expenses
-				(account.groupName === '(Pendapatan) Biaya Lain-Lain' && account.balance < 0) ||
-				// Fallback filters for account codes and names
-				account.code.startsWith('5') ||
-				account.code.startsWith('6') ||
-				account.code.startsWith('7') ||
-				account.name.toLowerCase().includes('beban') ||
-				account.name.toLowerCase().includes('biaya') ||
-				account.name.toLowerCase().includes('expense') ||
-				account.name.toLowerCase().includes('harga pokok') ||
-				account.name.toLowerCase().includes('operasional') ||
-				account.name.toLowerCase().includes('administrasi') ||
-				account.name.toLowerCase().includes('umum') ||
-				account.name.toLowerCase().includes('cost')
-		)
+	const biayaOperasional = balances
+		.filter((account) => account.groupName === 'Biaya Operasional')
+		.sort((a, b) => a.code.localeCompare(b.code));
+
+	const biayaOperasionalLainnya = balances
+		.filter((account) => account.groupName === 'Biaya Operasional Lainnya')
+		.sort((a, b) => a.code.localeCompare(b.code));
+
+	const biayaAdministrasiUmum = balances
+		.filter((account) => account.groupName === 'Biaya Administrasi & Umum')
+		.sort((a, b) => a.code.localeCompare(b.code));
+
+	const pendapatanBiayaLainLain = balances
+		.filter((account) => account.groupName === '(Pendapatan) Biaya Lain-Lain')
 		.sort((a, b) => a.code.localeCompare(b.code));
 
 	return {
 		revenues,
-		expenses
+		expenses,
+		pendapatan,
+		biayaOperasional,
+		biayaOperasionalLainnya,
+		biayaAdministrasiUmum,
+		pendapatanBiayaLainLain
 	};
 }
 

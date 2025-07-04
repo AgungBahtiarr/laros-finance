@@ -103,46 +103,111 @@
 				</tr>
 			</thead>
 			<tbody>
-				<!-- Revenues -->
+				<!-- Pendapatan -->
 				<tr class="bg-base-200 font-bold">
-					<td colspan={2}>Revenues</td>
+					<td colspan={2}>Pendapatan</td>
 				</tr>
-				{#if data.revenues && data.revenues.length > 0}
-					{#each data.revenues as revenue}
+				{#if data.pendapatan && data.pendapatan.length > 0}
+					{#each data.pendapatan as item}
 						<tr>
-							<td class="pl-{revenue.level * 4}">{revenue.name}</td>
-							<td class="text-right">{formatCurrencyWithDecimals(revenue.balance || 0)}</td>
+							<td class="pl-{item.level * 4}">{item.name}</td>
+							<td class="text-right">{formatCurrencyWithDecimals(item.balance || 0)}</td>
 						</tr>
 					{/each}
+					<tr class="font-bold">
+						<td>Total Pendapatan</td>
+						<td class="text-right">{formatCurrencyWithDecimals(data.pendapatan.reduce((sum, item) => sum + (item.balance || 0), 0))}</td>
+					</tr>
 				{:else}
 					<tr>
 						<td colspan={2} class="text-center text-gray-500">No revenue data found for the selected period</td>
 					</tr>
 				{/if}
-				<tr class="font-bold">
-					<td>Total Revenues</td>
-					<td class="text-right">{formatCurrencyWithDecimals(data.revenueTotals?.balance || 0)}</td>
-				</tr>
-				<!-- Expenses -->
+
+				<!-- Biaya Operasional -->
 				<tr class="bg-base-200 font-bold">
-					<td colspan={2}>Expenses</td>
+					<td colspan={2}>Biaya Operasional</td>
 				</tr>
-				{#if data.expenses && data.expenses.length > 0}
-					{#each data.expenses as expense}
+				{#if data.biayaOperasional && data.biayaOperasional.length > 0}
+					{#each data.biayaOperasional as item}
 						<tr>
-							<td class="pl-{expense.level * 4}">{expense.name}</td>
-							<td class="text-right">{formatCurrencyWithDecimals(expense.balance || 0)}</td>
+							<td class="pl-{item.level * 4}">{item.name}</td>
+							<td class="text-right">{formatCurrencyWithDecimals(item.balance || 0)}</td>
 						</tr>
 					{/each}
+					<tr class="font-bold">
+						<td>Total Biaya Operasional</td>
+						<td class="text-right">{formatCurrencyWithDecimals(data.biayaOperasional.reduce((sum, item) => sum + (item.balance || 0), 0))}</td>
+					</tr>
 				{:else}
 					<tr>
-						<td colspan={2} class="text-center text-gray-500">No expense data found for the selected period</td>
+						<td colspan={2} class="text-center text-gray-500">No data found</td>
 					</tr>
 				{/if}
-				<tr class="font-bold">
-					<td>Total Expenses</td>
-					<td class="text-right">{formatCurrencyWithDecimals(data.expenseTotals?.balance || 0)}</td>
+
+				<!-- Biaya Operasional Lainnya -->
+				<tr class="bg-base-200 font-bold">
+					<td colspan={2}>Biaya Operasional Lainnya</td>
 				</tr>
+				{#if data.biayaOperasionalLainnya && data.biayaOperasionalLainnya.length > 0}
+					{#each data.biayaOperasionalLainnya as item}
+						<tr>
+							<td class="pl-{item.level * 4}">{item.name}</td>
+							<td class="text-right">{formatCurrencyWithDecimals(item.balance || 0)}</td>
+						</tr>
+					{/each}
+					<tr class="font-bold">
+						<td>Total Biaya Operasional Lainnya</td>
+						<td class="text-right">{formatCurrencyWithDecimals(data.biayaOperasionalLainnya.reduce((sum, item) => sum + (item.balance || 0), 0))}</td>
+					</tr>
+				{:else}
+					<tr>
+						<td colspan={2} class="text-center text-gray-500">No data found</td>
+					</tr>
+				{/if}
+
+				<!-- Biaya Administrasi & Umum -->
+				<tr class="bg-base-200 font-bold">
+					<td colspan={2}>Biaya Administrasi & Umum</td>
+				</tr>
+				{#if data.biayaAdministrasiUmum && data.biayaAdministrasiUmum.length > 0}
+					{#each data.biayaAdministrasiUmum as item}
+						<tr>
+							<td class="pl-{item.level * 4}">{item.name}</td>
+							<td class="text-right">{formatCurrencyWithDecimals(item.balance || 0)}</td>
+						</tr>
+					{/each}
+					<tr class="font-bold">
+						<td>Total Biaya Administrasi & Umum</td>
+						<td class="text-right">{formatCurrencyWithDecimals(data.biayaAdministrasiUmum.reduce((sum, item) => sum + (item.balance || 0), 0))}</td>
+					</tr>
+				{:else}
+					<tr>
+						<td colspan={2} class="text-center text-gray-500">No data found</td>
+					</tr>
+				{/if}
+
+				<!-- (Pendapatan) Biaya Lain-Lain -->
+				<tr class="bg-base-200 font-bold">
+					<td colspan={2}>(Pendapatan) Biaya Lain-Lain</td>
+				</tr>
+				{#if data.pendapatanBiayaLainLain && data.pendapatanBiayaLainLain.length > 0}
+					{#each data.pendapatanBiayaLainLain as item}
+						<tr>
+							<td class="pl-{item.level * 4}">{item.name}</td>
+							<td class="text-right">{formatCurrencyWithDecimals(item.balance || 0)}</td>
+						</tr>
+					{/each}
+					<tr class="font-bold">
+						<td>Total (Pendapatan) Biaya Lain-Lain</td>
+						<td class="text-right">{formatCurrencyWithDecimals(data.pendapatanBiayaLainLain.reduce((sum, item) => sum + (item.balance || 0), 0))}</td>
+					</tr>
+				{:else}
+					<tr>
+						<td colspan={2} class="text-center text-gray-500">No data found</td>
+					</tr>
+				{/if}
+
 				<tr class="text-lg font-bold">
 					<td>Net Income</td>
 					<td class="text-right">{formatCurrencyWithDecimals(data.netIncome || 0)}</td>
