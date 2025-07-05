@@ -198,16 +198,3 @@
 		</div>
 	</div>
 </div>
-
-<style>
-	@media print {
-		.table {
-			font-size: 12px;
-		}
-
-		.table th,
-		.table td {
-			padding: 0.5rem;
-		}
-	}
-</style>

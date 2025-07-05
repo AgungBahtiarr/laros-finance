@@ -2,7 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { browser } from '$app/environment';
 	import ReportFilters from '$lib/components/ReportFilters.svelte';
-	import { formatCurrency } from '$lib/utils/utils.client';
+	import { formatCurrencyWithDecimals } from '$lib/utils/utils.client';
 	import { onMount } from 'svelte';
 	import { exportGLSummaryToPdf, exportGLSummaryToExcel } from '$lib/utils/exports/glSummaryExport';
 
@@ -280,26 +280,26 @@
 						<tr>
 							<td class="font-mono">{row.accountCode}</td>
 							<td>{row.accountName}</td>
-							<td class="text-right">{formatCurrency(row.beginningBalance)}</td>
-							<td class="text-right">{formatCurrency(row.changeDebit)}</td>
-							<td class="text-right">{formatCurrency(row.changeCredit)}</td>
+							<td class="text-right">{formatCurrencyWithDecimals(row.beginningBalance)}</td>
+							<td class="text-right">{formatCurrencyWithDecimals(row.changeDebit)}</td>
+							<td class="text-right">{formatCurrencyWithDecimals(row.changeCredit)}</td>
 							<td class="text-right">
 								<span
 									class={row.netChange > 0 ? 'text-success' : row.netChange < 0 ? 'text-error' : ''}
 								>
-									{formatCurrency(row.netChange)}
+									{formatCurrencyWithDecimals(row.netChange)}
 								</span>
 							</td>
-							<td class="text-right">{formatCurrency(row.endingBalance)}</td>
+							<td class="text-right">{formatCurrencyWithDecimals(row.endingBalance)}</td>
 						</tr>
 					{/each}
 				</tbody>
 				<tfoot>
 					<tr class="text-lg font-bold">
 						<td colspan="2">Total</td>
-						<td class="text-right">{formatCurrency(data.totals.beginningBalance)}</td>
-						<td class="text-right">{formatCurrency(data.totals.changeDebit)}</td>
-						<td class="text-right">{formatCurrency(data.totals.changeCredit)}</td>
+						<td class="text-right">{formatCurrencyWithDecimals(data.totals.beginningBalance)}</td>
+						<td class="text-right">{formatCurrencyWithDecimals(data.totals.changeDebit)}</td>
+						<td class="text-right">{formatCurrencyWithDecimals(data.totals.changeCredit)}</td>
 						<td class="text-right">
 							<span
 								class={data.totals.netChange > 0
@@ -308,26 +308,13 @@
 										? 'text-error'
 										: ''}
 							>
-								{formatCurrency(data.totals.netChange)}
+								{formatCurrencyWithDecimals(data.totals.netChange)}
 							</span>
 						</td>
-						<td class="text-right">{formatCurrency(data.totals.endingBalance)}</td>
+						<td class="text-right">{formatCurrencyWithDecimals(data.totals.endingBalance)}</td>
 					</tr>
 				</tfoot>
 			</table>
 		</div>
 	{/if}
 </div>
-
-<style>
-	@media print {
-		.table {
-			font-size: 12px;
-		}
-
-		.table th,
-		.table td {
-			padding: 0.5rem;
-		}
-	}
-</style>

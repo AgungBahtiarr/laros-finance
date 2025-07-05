@@ -2,7 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { browser } from '$app/environment';
 	import ReportFilters from '$lib/components/ReportFilters.svelte';
-	import { formatCurrency, formatDate } from '$lib/utils/utils.client';
+	import { formatCurrencyWithDecimals, formatDate } from '$lib/utils/utils.client';
 	import { onMount } from 'svelte';
 	import { exportGLDetailToPdf, exportGLDetailToExcel } from '$lib/utils/exports/glDetailExport';
 
@@ -76,7 +76,6 @@
 			<div class="flex gap-2">
 				<button class="btn btn-primary" onclick={handleExcelExport}>Export to Excel</button>
 				<button class="btn btn-primary" onclick={handlePdfExport}>Export to PDF</button>
-				<button class="btn btn-primary" onclick={() => window.print()}>Print</button>
 			</div>
 		</div>
 	</div>
@@ -123,7 +122,7 @@
 						<tr class="font-bold bg-base-200">
 							<td>{accountData.accountCode}</td>
 							<td colspan="4">{accountData.accountName}</td>
-							<td class="text-right" colspan="3">{formatCurrency(accountData.openingBalance)}</td>
+							<td class="text-right" colspan="3">{formatCurrencyWithDecimals(accountData.openingBalance)}</td>
 						</tr>
 						{#each accountData.transactions as trx}
 							<tr>
@@ -132,16 +131,16 @@
 								<td>{trx.reffNumber}</td>
 								<td>{trx.note}</td>
 								<td>{trx.detailNote}</td>
-								<td class="text-right">{formatCurrency(trx.debit)}</td>
-								<td class="text-right">{formatCurrency(trx.credit)}</td>
-								<td class="text-right">{formatCurrency(trx.balance)}</td>
+								<td class="text-right">{formatCurrencyWithDecimals(trx.debit)}</td>
+								<td class="text-right">{formatCurrencyWithDecimals(trx.credit)}</td>
+								<td class="text-right">{formatCurrencyWithDecimals(trx.balance)}</td>
 							</tr>
 						{/each}
 						<tr class="font-bold border-t-2">
 							<td colspan="5" class="text-right">Total {accountData.accountCode}</td>
-							<td class="text-right">{formatCurrency(accountData.totalDebit)}</td>
-							<td class="text-right">{formatCurrency(accountData.totalCredit)}</td>
-							<td class="text-right">{formatCurrency(accountData.endingBalance)}</td>
+							<td class="text-right">{formatCurrencyWithDecimals(accountData.totalDebit)}</td>
+							<td class="text-right">{formatCurrencyWithDecimals(accountData.totalCredit)}</td>
+							<td class="text-right">{formatCurrencyWithDecimals(accountData.endingBalance)}</td>
 						</tr>
 					{/each}
 				</tbody>
@@ -149,15 +148,3 @@
 		</div>
 	{/if}
 </div>
-
-<style>
-	@media print {
-		.table {
-			font-size: 10px;
-		}
-		.table th,
-		.table td {
-			padding: 0.25rem;
-		}
-	}
-</style>
