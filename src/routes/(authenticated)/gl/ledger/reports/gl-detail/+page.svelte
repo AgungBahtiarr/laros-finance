@@ -61,11 +61,75 @@
 	}
 
 	async function handlePdfExport() {
-		// ... (export logic needs to be updated for the new data structure)
+		try {
+			const exportData = {
+				detailData: data.reportData.flatMap((account) =>
+					account.transactions.map((trx) => ({
+						accountId: account.accountId,
+						accountCode: account.accountCode,
+						accountName: account.accountName,
+						date: trx.date,
+						journalNumber: trx.journalNumber,
+						reffNumber: trx.reffNumber,
+						note: trx.note,
+						detailNote: trx.detailNote,
+						openingBalance: account.openingBalance,
+						debit: trx.debit,
+						credit: trx.credit,
+						balance: trx.balance
+					}))
+				),
+				totals: {
+					openingBalance: data.reportData.reduce((sum, acc) => sum + acc.openingBalance, 0),
+					debit: data.reportData.reduce((sum, acc) => sum + acc.totalDebit, 0),
+					credit: data.reportData.reduce((sum, acc) => sum + acc.totalCredit, 0),
+					balance: data.reportData.reduce((sum, acc) => sum + acc.endingBalance, 0)
+				}
+			};
+
+			await exportGLDetailToPdf(exportData, dateRange);
+		} catch (error) {
+			console.error('Failed to export PDF:', error);
+			alert('Failed to export PDF. Please try again.');
+		} finally {
+			console.error('Done exporting PDF');
+		}
 	}
 
 	async function handleExcelExport() {
-		// ... (export logic needs to be updated for the new data structure)
+		try {
+			const exportData = {
+				detailData: data.reportData.flatMap((account) =>
+					account.transactions.map((trx) => ({
+						accountId: account.accountId,
+						accountCode: account.accountCode,
+						accountName: account.accountName,
+						date: trx.date,
+						journalNumber: trx.journalNumber,
+						reffNumber: trx.reffNumber,
+						note: trx.note,
+						detailNote: trx.detailNote,
+						openingBalance: account.openingBalance,
+						debit: trx.debit,
+						credit: trx.credit,
+						balance: trx.balance
+					}))
+				),
+				totals: {
+					openingBalance: data.reportData.reduce((sum, acc) => sum + acc.openingBalance, 0),
+					debit: data.reportData.reduce((sum, acc) => sum + acc.totalDebit, 0),
+					credit: data.reportData.reduce((sum, acc) => sum + acc.totalCredit, 0),
+					balance: data.reportData.reduce((sum, acc) => sum + acc.endingBalance, 0)
+				}
+			};
+
+			await exportGLDetailToExcel(exportData, dateRange);
+		} catch (error) {
+			console.error('Failed to export Excel:', error);
+			alert('Failed to export Excel. Please try again.');
+		} finally {
+			console.log('Done Exporting Excel');
+		}
 	}
 </script>
 
@@ -74,8 +138,12 @@
 		<div class="flex items-center justify-between">
 			<h1 class="text-2xl font-bold">General Ledger Detail</h1>
 			<div class="flex gap-2">
-				<button class="btn btn-primary" onclick={handleExcelExport}>Export to Excel</button>
-				<button class="btn btn-primary" onclick={handlePdfExport}>Export to PDF</button>
+				<button class="btn btn-primary" onclick={handleExcelExport}>
+					Export to Excel
+				</button>
+				<button class="btn btn-primary" onclick={handlePdfExport}>
+					Export to PDF
+				</button>
 			</div>
 		</div>
 	</div>
@@ -84,9 +152,9 @@
 		<ReportFilters {dateRange} onchange={handleDateRangeChange} />
 	</div>
 
-	<div class="print-header hidden print:block text-xs mb-4">
-		<h1 class="text-xl font-bold text-center">General Ledger Detail</h1>
-		<div class="grid grid-cols-4 gap-x-4 mt-2">
+	<div class="print-header mb-4 hidden text-xs print:block">
+		<h1 class="text-center text-xl font-bold">General Ledger Detail</h1>
+		<div class="mt-2 grid grid-cols-4 gap-x-4">
 			<div><strong>From:</strong> {formatDate(dateRange.start)}</div>
 			<div><strong>Client:</strong> -</div>
 			<div><strong>To:</strong> {formatDate(dateRange.end)}</div>
@@ -101,7 +169,7 @@
 			<span class="loading loading-spinner loading-lg"></span>
 		</div>
 	{:else if data.reportData.length === 0}
-		<div class="text-center py-8">No data available for the selected date range.</div>
+		<div class="py-8 text-center">No data available for the selected date range.</div>
 	{:else}
 		<div class="overflow-x-auto">
 			<table class="table-zebra table-sm table w-full text-xs">
@@ -119,10 +187,10 @@
 				</thead>
 				<tbody>
 					{#each data.reportData as accountData}
-						<tr class="font-bold bg-base-200">
+						<tr class="bg-base-200 font-bold">
 							<td>{accountData.accountCode}</td>
 							<td colspan="4">{accountData.accountName}</td>
-							<td class="text-right" colspan="3">{formatCurrencyWithDecimals(accountData.openingBalance)}</td>
+							<td colspan="3">{formatCurrencyWithDecimals(accountData.openingBalance)}</td>
 						</tr>
 						{#each accountData.transactions as trx}
 							<tr>
@@ -136,8 +204,8 @@
 								<td class="text-right">{formatCurrencyWithDecimals(trx.balance)}</td>
 							</tr>
 						{/each}
-						<tr class="font-bold border-t-2">
-							<td colspan="5" class="text-right">Total {accountData.accountCode}</td>
+						<tr class="border-t-2 font-bold">
+							<td colspan="5" class="text-left">Total {accountData.accountCode}</td>
 							<td class="text-right">{formatCurrencyWithDecimals(accountData.totalDebit)}</td>
 							<td class="text-right">{formatCurrencyWithDecimals(accountData.totalCredit)}</td>
 							<td class="text-right">{formatCurrencyWithDecimals(accountData.endingBalance)}</td>
