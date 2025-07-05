@@ -99,10 +99,16 @@
 			}
 		};
 
-		const dateRange = {
-			start: `${data.selectedPeriod.year}-${data.selectedPeriod.month.toString().padStart(2, '0')}-01`,
-			end: `${data.selectedPeriod.year}-${data.selectedPeriod.month.toString().padStart(2, '0')}-31`
-		};
+        const lastDayOfMonth = new Date(
+            data.selectedPeriod.year,
+            data.selectedPeriod.month,
+            0
+        ).getDate();
+
+        const dateRange = $derived({
+            start: `${data.selectedPeriod.year}-${data.selectedPeriod.month.toString().padStart(2, '0')}-01`,
+            end: `${data.selectedPeriod.year}-${data.selectedPeriod.month.toString().padStart(2, '0')}-${lastDayOfMonth.toString().padStart(2, '0')}`
+        });
 
 		if (type === 'pdf') {
 			await exportAccountBalanceToPdf(exportData, dateRange);
