@@ -1,6 +1,6 @@
 import type { PageServerLoad } from './$types';
 import { and, eq, gte, lte, inArray, sql, desc, lt } from 'drizzle-orm';
-import { chartOfAccount, fiscalPeriod, journalEntry, journalEntryLine } from '$lib/server/db/schema';
+import { chartOfAccount, journalEntry, journalEntryLine } from '$lib/server/db/schema';
 
 const PAGE_SIZE = 25;
 
@@ -12,18 +12,6 @@ export const load: PageServerLoad = async (event) => {
 		const endDate = searchParams.get('endDate') || new Date().toISOString().split('T')[0];
 		const selectedAccounts = searchParams.get('accounts')?.split(',').map(Number) || [];
 		const page = Number(searchParams.get('page')) || 1;
-
-		// Get the fiscal period first to fail fast if not found
-		const period = await db.query.fiscalPeriod.findFirst({
-			where: and(
-				lte(fiscalPeriod.startDate, startDate),
-				gte(fiscalPeriod.endDate, endDate)
-			)
-		});
-
-		if (!period) {
-			throw new Error('No fiscal period found for the specified date range');
-		}
 
 		// Get active accounts for the filter
 		const accounts = await db

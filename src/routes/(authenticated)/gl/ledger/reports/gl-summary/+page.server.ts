@@ -1,8 +1,6 @@
 import type { PageServerLoad } from './$types';
 import { and, eq, gte, lte, inArray, sql, lt } from 'drizzle-orm';
-import { chartOfAccount, fiscalPeriod, journalEntry, journalEntryLine } from '$lib/server/db/schema';
-
-const PAGE_SIZE = 25;
+import { chartOfAccount, journalEntry, journalEntryLine } from '$lib/server/db/schema';
 
 export const load: PageServerLoad = async (event) => {
 	try {
@@ -11,19 +9,6 @@ export const load: PageServerLoad = async (event) => {
 		const startDate = searchParams.get('startDate') || new Date().toISOString().split('T')[0];
 		const endDate = searchParams.get('endDate') || new Date().toISOString().split('T')[0];
 		const selectedAccounts = searchParams.get('accounts')?.split(',').map(Number) || [];
-		const page = Number(searchParams.get('page')) || 1;
-
-		// Get the fiscal period first to fail fast if not found
-		const period = await db.query.fiscalPeriod.findFirst({
-			where: and(
-				lte(fiscalPeriod.startDate, startDate),
-				gte(fiscalPeriod.endDate, endDate)
-			)
-		});
-
-		if (!period) {
-			throw new Error('No fiscal period found for the specified date range');
-		}
 
 		// Get active accounts for the filter
 		const accounts = await db
@@ -41,48 +26,7 @@ export const load: PageServerLoad = async (event) => {
 			? inArray(journalEntryLine.accountId, selectedAccounts)
 			: undefined;
 
-		// Get total count of unique accounts with transactions
-		const totalCountResult = await db
-			.select({
-				count: sql<number>`COUNT(DISTINCT ${journalEntryLine.accountId})`.as('count')
-			})
-			.from(journalEntryLine)
-			.leftJoin(journalEntry, eq(journalEntryLine.journalEntryId, journalEntry.id))
-			.where(
-				and(
-					lte(journalEntry.date, endDate),
-					eq(journalEntry.status, 'POSTED'),
-					accountFilter || undefined
-				)
-			);
-
-		const totalCount = Number(totalCountResult[0]?.count || 0);
-
-		if (totalCount === 0) {
-			return {
-				accounts,
-				summaryData: [],
-				totals: {
-					beginningBalance: 0,
-					changeDebit: 0,
-					changeCredit: 0,
-					netChange: 0,
-					endingBalance: 0
-				},
-				selectedAccounts,
-				pagination: {
-					currentPage: 1,
-					totalPages: 0,
-					totalItems: 0,
-					pageSize: PAGE_SIZE
-				}
-			};
-		}
-
-		// Calculate offset for pagination
-		const offset = (page - 1) * PAGE_SIZE;
-
-		// Get unique accounts with transactions for the current page
+		// Get unique accounts with transactions
 		const accountsWithTransactions = await db
 			.select({
 				accountId: journalEntryLine.accountId
@@ -97,9 +41,22 @@ export const load: PageServerLoad = async (event) => {
 				)
 			)
 			.groupBy(journalEntryLine.accountId)
-			.orderBy(journalEntryLine.accountId)
-			.limit(PAGE_SIZE)
-			.offset(offset);
+			.orderBy(journalEntryLine.accountId);
+
+		if (accountsWithTransactions.length === 0) {
+			return {
+				accounts,
+				summaryData: [],
+				totals: {
+					beginningBalance: 0,
+					changeDebit: 0,
+					changeCredit: 0,
+					netChange: 0,
+					endingBalance: 0
+				},
+				selectedAccounts
+			};
+		}
 
 		// Get account details and balances
 		const balances = await Promise.all(
@@ -119,41 +76,26 @@ export const load: PageServerLoad = async (event) => {
 					throw new Error(`Account not found: ${accountId}`);
 				}
 
-				// Get beginning balance
-				const beginningBalanceResult = await db
+				// Get balances in a single query
+				const balancesResult = await db
 					.select({
-						balance: sql<string>`COALESCE(SUM(COALESCE(${journalEntryLine.debitAmount}, 0) - COALESCE(${journalEntryLine.creditAmount}, 0)), 0)`.as('balance')
+						beginningBalance: sql<number>`COALESCE(SUM(CASE WHEN ${journalEntry.date} < ${startDate} THEN COALESCE(${journalEntryLine.debitAmount}, 0) - COALESCE(${journalEntryLine.creditAmount}, 0) ELSE 0 END), 0)`.as('beginning_balance'),
+						changeDebit: sql<number>`COALESCE(SUM(CASE WHEN ${journalEntry.date} >= ${startDate} THEN COALESCE(${journalEntryLine.debitAmount}, 0) ELSE 0 END), 0)`.as('change_debit'),
+						changeCredit: sql<number>`COALESCE(SUM(CASE WHEN ${journalEntry.date} >= ${startDate} THEN COALESCE(${journalEntryLine.creditAmount}, 0) ELSE 0 END), 0)`.as('change_credit')
 					})
 					.from(journalEntryLine)
 					.leftJoin(journalEntry, eq(journalEntryLine.journalEntryId, journalEntry.id))
 					.where(
 						and(
 							eq(journalEntryLine.accountId, accountId),
-							lt(journalEntry.date, startDate),
-							eq(journalEntry.status, 'POSTED')
-						)
-					);
-
-				// Get period movements
-				const movementsResult = await db
-					.select({
-						debit: sql<string>`COALESCE(SUM(COALESCE(${journalEntryLine.debitAmount}, 0)), 0)`.as('debit'),
-						credit: sql<string>`COALESCE(SUM(COALESCE(${journalEntryLine.creditAmount}, 0)), 0)`.as('credit')
-					})
-					.from(journalEntryLine)
-					.leftJoin(journalEntry, eq(journalEntryLine.journalEntryId, journalEntry.id))
-					.where(
-						and(
-							eq(journalEntryLine.accountId, accountId),
-							gte(journalEntry.date, startDate),
 							lte(journalEntry.date, endDate),
 							eq(journalEntry.status, 'POSTED')
 						)
 					);
 
-				const beginningBalance = Number(beginningBalanceResult[0]?.balance || 0);
-				const changeDebit = Number(movementsResult[0]?.debit || 0);
-				const changeCredit = Number(movementsResult[0]?.credit || 0);
+				const beginningBalance = Number(balancesResult[0]?.beginningBalance || 0);
+				const changeDebit = Number(balancesResult[0]?.changeDebit || 0);
+				const changeCredit = Number(balancesResult[0]?.changeCredit || 0);
 				const netChange = changeDebit - changeCredit;
 				const endingBalance = beginningBalance + netChange;
 
@@ -192,13 +134,7 @@ export const load: PageServerLoad = async (event) => {
 			accounts,
 			summaryData: balances,
 			totals,
-			selectedAccounts,
-			pagination: {
-				currentPage: page,
-				totalPages: Math.ceil(totalCount / PAGE_SIZE),
-				totalItems: totalCount,
-				pageSize: PAGE_SIZE
-			}
+			selectedAccounts
 		};
 	} catch (error) {
 		console.error('Error in GL Summary load:', error);

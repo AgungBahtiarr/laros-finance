@@ -23,9 +23,6 @@
 		data.accounts.filter((account) => selectedAccounts.includes(account.id))
 	);
 
-	let currentPage = $state(data.pagination.currentPage);
-	let totalPages = $derived(data.pagination.totalPages);
-
 	let filteredAccounts = $derived(
 		searchQuery
 			? data.accounts
@@ -47,12 +44,10 @@
 			const searchParams = new URLSearchParams(window.location.search);
 			const startDate = searchParams.get('startDate');
 			const endDate = searchParams.get('endDate');
-			const page = searchParams.get('page');
 			const accounts = searchParams.get('accounts');
 
 			if (startDate) dateRange.start = startDate;
 			if (endDate) dateRange.end = endDate;
-			if (page) currentPage = Number(page);
 			if (accounts) selectedAccounts = accounts.split(',').map(Number);
 		}
 		isInitialized = true;
@@ -84,7 +79,6 @@
 			const params = new URLSearchParams();
 			params.set('startDate', dateRange.start);
 			params.set('endDate', dateRange.end);
-			params.set('page', currentPage.toString());
 			if (selectedAccounts.length > 0) {
 				params.set('accounts', selectedAccounts.join(','));
 			}
@@ -103,7 +97,6 @@
 		if (isInitialized) {
 			const { start, end } = dateRange;
 			const accounts = selectedAccounts;
-			const page = currentPage;
 			updateURL();
 		}
 	});
@@ -111,7 +104,6 @@
 	function handleAccountSelection(accountId: number) {
 		if (!selectedAccounts.includes(accountId)) {
 			selectedAccounts = [...selectedAccounts, accountId];
-			currentPage = 1; // Reset to first page when filter changes
 		}
 		searchQuery = '';
 		showDropdown = false;
@@ -119,18 +111,10 @@
 
 	function removeAccount(accountId: number) {
 		selectedAccounts = selectedAccounts.filter((id) => id !== accountId);
-		currentPage = 1; // Reset to first page when filter changes
-	}
-
-	function changePage(newPage: number) {
-		if (newPage >= 1 && newPage <= totalPages) {
-			currentPage = newPage;
-		}
 	}
 
 	function handleDateRangeChange(event: CustomEvent<{ start: string; end: string }>) {
 		dateRange = event.detail;
-		currentPage = 1; // Reset to first page when date range changes
 	}
 
 	async function handlePdfExport() {
@@ -279,7 +263,7 @@
 		</div>
 	{:else}
 		<div class="overflow-x-auto">
-			<table class="table-zebra table w-full">
+			<table class="table-zebra table-sm table w-full">
 				<thead>
 					<tr>
 						<th>Account</th>
@@ -331,41 +315,6 @@
 					</tr>
 				</tfoot>
 			</table>
-
-			{#if data.pagination.totalPages > 1}
-				<div class="mt-4 flex items-center justify-center gap-2 print:hidden">
-					<button class="btn btn-sm" disabled={currentPage === 1} onclick={() => changePage(1)}>
-						«
-					</button>
-					<button
-						class="btn btn-sm"
-						disabled={currentPage === 1}
-						onclick={() => changePage(currentPage - 1)}
-					>
-						‹
-					</button>
-
-					<span class="mx-2">
-						Page {currentPage} of {totalPages}
-						({data.pagination.totalItems} items)
-					</span>
-
-					<button
-						class="btn btn-sm"
-						disabled={currentPage === totalPages}
-						onclick={() => changePage(currentPage + 1)}
-					>
-						›
-					</button>
-					<button
-						class="btn btn-sm"
-						disabled={currentPage === totalPages}
-						onclick={() => changePage(totalPages)}
-					>
-						»
-					</button>
-				</div>
-			{/if}
 		</div>
 	{/if}
 </div>
