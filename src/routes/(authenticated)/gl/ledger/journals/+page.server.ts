@@ -7,7 +7,8 @@ import {
 	journalEntryLine,
 	chartOfAccount,
 	fiscalPeriod,
-	user
+	user,
+	asset
 } from '$lib/server/db/schema';
 import { eq, and, desc, asc, gte, lte, sql, count, inArray } from 'drizzle-orm';
 import * as XLSX from 'xlsx';
@@ -451,6 +452,26 @@ export const actions: Actions = {
 					creditAmount: line.creditAmount,
 					lineNumber: line.lineNumber
 				});
+
+				// If account is Mesin dan Peralatan (ID 9), create an asset
+				if (line.accountId === 9 && line.debitAmount > 0) {
+					const journalDate = new Date(date);
+					await db.insert(asset).values({
+						namaHarta: description,
+						hargaPerolehan: line.debitAmount,
+						bulanPerolehan: journalDate.getMonth() + 1,
+						tahunPerolehan: journalDate.getFullYear(),
+						qty: 1,
+						jenisHartaId: 1, // Default: Harta Berwujud Bukan Bangunan
+						kelompokHartaId: 1, // Default: Kelompok 1
+						metodePenyusutanKomersialId: 1, // Default: Garis Lurus
+						metodePenyusutanFiskalId: 1, // Default: Garis Lurus
+						nilaiSisaBuku: line.debitAmount, // Initial book value is the same as acquisition price
+						penyusutanFiskalTahunIni: 0,
+						jenisUsaha: '11',
+						kode: `ASSET-${Date.now()}`
+					});
+				}
 			}
 
 			const isResellerTransaction = journalLines.some(
