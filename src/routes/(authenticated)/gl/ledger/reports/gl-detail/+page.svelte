@@ -5,6 +5,7 @@
 	import { formatCurrencyWithDecimals, formatDate } from '$lib/utils/utils.client';
 	import { onMount } from 'svelte';
 	import { exportGLDetailToPdf, exportGLDetailToExcel } from '$lib/utils/exports/glDetailExport';
+	import SearchAbleSelect from '$lib/components/SearchAbleSelect.svelte';
 
 	let { data } = $props();
 	let isLoading = $state(false);
@@ -15,15 +16,19 @@
 		end: data.dateRange.end
 	});
 
+	let selectedAccountId = $state(data.selectedAccountId || '');
+
 	// Initialize from URL params only once on mount
 	onMount(() => {
 		if (browser) {
 			const searchParams = new URLSearchParams(window.location.search);
 			const startDate = searchParams.get('startDate');
 			const endDate = searchParams.get('endDate');
+			const accountId = searchParams.get('accountId');
 
 			if (startDate) dateRange.start = startDate;
 			if (endDate) dateRange.end = endDate;
+			if (accountId) selectedAccountId = accountId;
 		}
 		isInitialized = true;
 	});
@@ -39,6 +44,11 @@
 			const params = new URLSearchParams();
 			params.set('startDate', dateRange.start);
 			params.set('endDate', dateRange.end);
+			if (selectedAccountId) {
+				params.set('accountId', selectedAccountId);
+			} else {
+				params.delete('accountId');
+			}
 
 			clearTimeout(updateTimeout);
 			updateTimeout = setTimeout(async () => {
@@ -138,18 +148,24 @@
 		<div class="flex items-center justify-between">
 			<h1 class="text-2xl font-bold">General Ledger Detail</h1>
 			<div class="flex gap-2">
-				<button class="btn btn-primary" onclick={handleExcelExport}>
-					Export to Excel
-				</button>
-				<button class="btn btn-primary" onclick={handlePdfExport}>
-					Export to PDF
-				</button>
+				<button class="btn btn-primary" onclick={handleExcelExport}> Export to Excel </button>
+				<button class="btn btn-primary" onclick={handlePdfExport}> Export to PDF </button>
 			</div>
 		</div>
 	</div>
 
 	<div class="space-y-4 print:hidden">
 		<ReportFilters {dateRange} onchange={handleDateRangeChange} />
+		<div class="form-control w-full max-w-xs">
+			<label for="account-select" class="label">
+				<span class="label-text">Filter Akun</span>
+			</label>
+			<SearchAbleSelect
+				items={data.accounts}
+				bind:value={selectedAccountId}
+				placeholder="Pilih Akun"
+			/>
+		</div>
 	</div>
 
 	<div class="print-header mb-4 hidden text-xs print:block">
@@ -159,7 +175,17 @@
 			<div><strong>Client:</strong> -</div>
 			<div><strong>To:</strong> {formatDate(dateRange.end)}</div>
 			<div><strong>Vendor:</strong> -</div>
-			<div class="col-span-2"><strong>Filter Account:</strong> All</div>
+			<div class="col-span-2">
+				<strong>Filter Account:</strong>
+				{#if selectedAccountId}
+					{@const selectedAccount = data.accounts.find((a) => a.id === selectedAccountId)}
+					{#if selectedAccount}
+						{selectedAccount.code} - {selectedAccount.name}
+					{/if}
+				{:else}
+					All
+				{/if}
+			</div>
 			<div class="col-span-2"><strong>Project:</strong> -</div>
 		</div>
 	</div>
