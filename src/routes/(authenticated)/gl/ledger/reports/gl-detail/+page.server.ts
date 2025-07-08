@@ -8,6 +8,25 @@ export const load: PageServerLoad = async (event) => {
 		const searchParams = event.url.searchParams;
 		const startDate = searchParams.get('startDate') || new Date().toISOString().split('T')[0];
 		const endDate = searchParams.get('endDate') || new Date().toISOString().split('T')[0];
+		const accountId = searchParams.get('accountId');
+
+		const coa = await db
+			.select({
+				id: chartOfAccount.id,
+				name: chartOfAccount.name,
+				code: chartOfAccount.code
+			})
+			.from(chartOfAccount)
+			.orderBy(chartOfAccount.code);
+
+		const whereClauses = [
+			lte(journalEntry.date, endDate),
+			eq(journalEntry.status, 'POSTED')
+		];
+
+		if (accountId) {
+			whereClauses.push(eq(journalEntryLine.accountId, accountId));
+		}
 
 		// Get all transactions for all accounts up to the end date
 		const allTransactions = await db
@@ -28,12 +47,7 @@ export const load: PageServerLoad = async (event) => {
 			.from(journalEntryLine)
 			.leftJoin(journalEntry, eq(journalEntryLine.journalEntryId, journalEntry.id))
 			.leftJoin(chartOfAccount, eq(journalEntryLine.accountId, chartOfAccount.id))
-			.where(
-				and(
-					lte(journalEntry.date, endDate),
-					eq(journalEntry.status, 'POSTED')
-				)
-			)
+			.where(and(...whereClauses))
 			.orderBy(chartOfAccount.code, journalEntry.date, journalEntry.number);
 
 		// Process data in TypeScript
@@ -94,7 +108,9 @@ export const load: PageServerLoad = async (event) => {
 
 		return {
 			reportData: finalReportData,
-			dateRange: { start: startDate, end: endDate }
+			dateRange: { start: startDate, end: endDate },
+			accounts: coa,
+			selectedAccountId: accountId
 		};
 	} catch (error) {
 		console.error('Error in GL Detail load:', error);
