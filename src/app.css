@@ -1,11 +1,11 @@
 @import 'tailwindcss';
 @plugin "daisyui" {
-	themes: laros, dark;
+	themes: light, dark;
 }
 
 @plugin "daisyui/theme" {
-	name: 'laros';
-	default: false;
+	name: 'light';
+	default: true;
 	prefersdark: false;
 	color-scheme: 'light';
 	--color-base-100: oklch(98% 0.001 106.423);
