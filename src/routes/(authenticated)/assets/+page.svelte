@@ -81,7 +81,7 @@
 		</div>
 	</div>
 
-	<div class="rounded-lg border bg-white">
+	<div class="dark:bg-base-300 rounded-lg border bg-white">
 		<div class="overflow-x-auto">
 			<table class="table">
 				<thead class="bg-base-200">

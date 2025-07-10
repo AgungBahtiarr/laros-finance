@@ -4,6 +4,7 @@
 	import Navbar from '$lib/components/Navbar.svelte';
 	import Sidebar from '$lib/components/Sidebar.svelte';
 	import SignOut from '$lib/components/SignOut.svelte';
+	import ThemeToggle from '$lib/components/ThemeToggle.svelte';
 	import { onMount } from 'svelte';
 
 	const { children } = $props();
@@ -26,6 +27,7 @@
 		<!-- Navbar -->
 		<Navbar user={currentUser}>
 			<SignOut />
+			<ThemeToggle />
 		</Navbar>
 
 		<!-- Page content -->
