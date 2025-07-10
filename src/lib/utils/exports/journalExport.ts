@@ -1,22 +1,5 @@
-import type { Content, TDocumentDefinitions } from 'pdfmake/interfaces';
 import * as XLSX from 'xlsx';
-import { formatCurrency, formatDate } from '../utils.client';
-
-// Only initialize pdfMake in the browser
-let pdfMakeInstance: any = null;
-async function initializePdfMake() {
-	if (typeof window !== 'undefined' && !pdfMakeInstance) {
-		const pdfMake = (await import('pdfmake/build/pdfmake')).default;
-		const fonts = await import('pdfmake/build/vfs_fonts');
-		pdfMake.vfs = (fonts as any).pdfMake.vfs;
-		pdfMakeInstance = pdfMake;
-		return pdfMake;
-	}
-	if (pdfMakeInstance) {
-		return pdfMakeInstance;
-	}
-	throw new Error('PDF generation is only available in the browser');
-}
+import { formatDate } from '../utils.client';
 
 interface JournalDetail {
 	accountCode: string;
@@ -30,6 +13,7 @@ interface JournalEntry {
 	number: string;
 	date: string;
 	description: string;
+	reference?: string;
 	details: JournalDetail[];
 }
 
@@ -45,289 +29,123 @@ interface JournalData {
 	};
 }
 
-export async function exportJournalToPdf(data: JournalData) {
-	const pdfMake = await initializePdfMake();
-
-	const content: Content[] = [
-		{
-			columns: [
-				{
-					width: '*',
-					text: 'LAPORAN JURNAL',
-					style: 'header',
-					alignment: 'center'
-				}
-			]
-		},
-		{
-			columns: [
-				{
-					width: '*',
-					text: `Periode: ${formatDate(data.period.start)} s/d ${formatDate(data.period.end)}`,
-					style: 'subheader',
-					alignment: 'center'
-				}
-			],
-			margin: [0, 0, 0, 20]
-		}
-	];
-
-	// Add entries
-	data.entries.forEach((entry) => {
-		// Add journal header
-		content.push(
-			{
-				table: {
-					widths: ['auto', '*', 'auto', '*'],
-					body: [
-						[
-							{ text: 'Nomor', style: 'tableHeader' },
-							{ text: entry.number, style: 'tableCell' },
-							{ text: 'Tanggal', style: 'tableHeader' },
-							{ text: formatDate(entry.date), style: 'tableCell' }
-						]
-					]
-				},
-				layout: 'noBorders'
-			},
-			{
-				table: {
-					widths: ['auto', '*'],
-					body: [
-						[
-							{ text: 'Deskripsi', style: 'tableHeader' },
-							{ text: entry.description, style: 'tableCell' }
-						]
-					]
-				},
-				layout: 'noBorders',
-				margin: [0, 5, 0, 5]
-			}
-		);
-
-		// Add journal details
-		const detailsTable = {
-			table: {
-				headerRows: 1,
-				widths: ['auto', '*', 'auto', 'auto'],
-				body: [
-					[
-						{ text: 'Kode Akun', style: 'tableHeader', alignment: 'center' },
-						{ text: 'Nama Akun', style: 'tableHeader', alignment: 'center' },
-						{ text: 'Debit', style: 'tableHeader', alignment: 'center' },
-						{ text: 'Kredit', style: 'tableHeader', alignment: 'center' }
-					],
-					...entry.details.map((detail) => [
-						{ text: detail.accountCode, style: 'tableCell', alignment: 'center' },
-						{ text: detail.accountName, style: 'tableCell' },
-						{
-							text: detail.debit ? formatCurrency(detail.debit) : '',
-							style: 'tableCell',
-							alignment: 'right'
-						},
-						{
-							text: detail.credit ? formatCurrency(detail.credit) : '',
-							style: 'tableCell',
-							alignment: 'right'
-						}
-					])
-				]
-			},
-			layout: {
-				hLineWidth: function (i: number, node: any) {
-					return i === 0 || i === 1 || i === node.table.body.length ? 1 : 0;
-				},
-				vLineWidth: function (i: number) {
-					return 1;
-				},
-				hLineColor: function (i: number) {
-					return '#aaaaaa';
-				},
-				vLineColor: function (i: number) {
-					return '#aaaaaa';
-				},
-				paddingLeft: function (i: number) {
-					return 5;
-				},
-				paddingRight: function (i: number) {
-					return 5;
-				},
-				paddingTop: function (i: number) {
-					return 3;
-				},
-				paddingBottom: function (i: number) {
-					return 3;
-				}
-			}
-		};
-
-		content.push(detailsTable);
-
-		// Add entry total
-		const entryDebitTotal = entry.details.reduce((sum, d) => sum + (d.debit || 0), 0);
-		const entryCreditTotal = entry.details.reduce((sum, d) => sum + (d.credit || 0), 0);
-
-		content.push({
-			table: {
-				widths: ['*', 'auto', 'auto'],
-				body: [
-					[
-						{ text: 'Total', style: 'totalRow', alignment: 'right' },
-						{
-							text: formatCurrency(entryDebitTotal),
-							style: 'totalRow',
-							alignment: 'right'
-						},
-						{
-							text: formatCurrency(entryCreditTotal),
-							style: 'totalRow',
-							alignment: 'right'
-						}
-					]
-				]
-			},
-			layout: 'noBorders',
-			margin: [0, 0, 0, 20]
-		});
-	});
-
-	// Add report summary
-	content.push({
-		table: {
-			widths: ['*', 'auto', 'auto'],
-			body: [
-				[
-					{ text: 'TOTAL JURNAL', style: 'totalHeader', alignment: 'right' },
-					{
-						text: formatCurrency(data.totals.debit),
-						style: 'totalHeader',
-						alignment: 'right'
-					},
-					{
-						text: formatCurrency(data.totals.credit),
-						style: 'totalHeader',
-						alignment: 'right'
-					}
-				]
-			]
-		},
-		layout: {
-			hLineWidth: function (i: number) {
-				return 1;
-			},
-			vLineWidth: function (i: number) {
-				return 0;
-			},
-			hLineColor: function (i: number) {
-				return '#aaaaaa';
-			}
-		}
-	});
-
-	const docDefinition: TDocumentDefinitions = {
-		content,
-		styles: {
-			header: {
-				fontSize: 16,
-				bold: true,
-				margin: [0, 0, 0, 10]
-			},
-			subheader: {
-				fontSize: 12,
-				margin: [0, 0, 0, 5]
-			},
-			tableHeader: {
-				fontSize: 11,
-				bold: true,
-				fillColor: '#f3f4f6'
-			},
-			tableCell: {
-				fontSize: 10
-			},
-			totalRow: {
-				fontSize: 10,
-				bold: true
-			},
-			totalHeader: {
-				fontSize: 11,
-				bold: true
-			}
-		},
-		defaultStyle: {
-			font: 'Helvetica'
-		},
-		pageSize: 'A4',
-		pageOrientation: 'portrait',
-		pageMargins: [40, 40, 40, 40]
-	};
-
-	pdfMake.createPdf(docDefinition).download('laporan-jurnal.pdf');
-}
-
 export async function exportJournalToExcel(data: JournalData) {
 	const workbook = XLSX.utils.book_new();
 	const rows: any[] = [];
 
-	// Add title and period
-	rows.push(['LAPORAN JURNAL']);
-	rows.push([`Periode: ${formatDate(data.period.start)} s/d ${formatDate(data.period.end)}`]);
-	rows.push([]); // Empty row for spacing
+	// Add header rows as shown in the image
+	rows.push(['Journal']); // Row 1
+	rows.push(['From', data.period.start]); // Row 2
+	rows.push(['To', data.period.end]); // Row 3
+	rows.push([]); // Row 4 - empty
 
-	// Add entries
+	// Row 5 - Column headers
+	rows.push([
+		'Date \n Account',
+		'Journal Number \n Account Name',
+		'Reff. Number \n Detail Note',
+		'Note',
+		'Debit',
+		'Credit'
+	]);
+
+	// Add entries in the format shown in the image
 	data.entries.forEach((entry) => {
-		// Add journal header
-		rows.push(['Nomor:', entry.number, 'Tanggal:', formatDate(entry.date)]);
-		rows.push(['Deskripsi:', entry.description]);
-		rows.push([]); // Empty row for spacing
+		// Add journal header row with date, journal number, reference, note/description
+		rows.push([
+			entry.date, // Date
+			entry.number, // Journal Number
+			entry.reference || '', // Reference
+			entry.description, // Note/Description
+			'', // Empty debit
+			'' // Empty credit
+		]);
 
-		// Add details header
-		rows.push(['Kode Akun', 'Nama Akun', 'Debit', 'Kredit']);
-
-		// Add details
+		// Add detail rows for each account line
 		entry.details.forEach((detail) => {
-			rows.push([detail.accountCode, detail.accountName, detail.debit || '', detail.credit || '']);
+			// Format line description to match import expectation
+			const lineDescription = detail.description
+				? `${detail.accountName} - ${detail.description}`
+				: detail.accountName;
+
+			rows.push([
+				detail.accountCode, // Account code in first column
+				detail.accountName, // Account name
+				lineDescription, // Detail note
+				'', // Empty note column
+				detail.debit || '', // Debit amount
+				detail.credit || '' // Credit amount
+			]);
 		});
 
-		// Add entry total
+		// Add total row
 		const entryDebitTotal = entry.details.reduce((sum, d) => sum + (d.debit || 0), 0);
 		const entryCreditTotal = entry.details.reduce((sum, d) => sum + (d.credit || 0), 0);
-		rows.push(['', 'Total', entryDebitTotal, entryCreditTotal]);
-
-		rows.push([]); // Empty row for spacing
-		rows.push([]); // Empty row for spacing
+		rows.push([
+			'', // Empty date column
+			'Total', // Total label
+			'', // Empty detail note
+			'', // Empty note column
+			entryDebitTotal, // Total debit
+			entryCreditTotal // Total credit
+		]);
 	});
-
-	// Add report summary
-	rows.push(['', 'TOTAL JURNAL', data.totals.debit, data.totals.credit]);
 
 	const worksheet = XLSX.utils.aoa_to_sheet(rows);
 
-	// Set column widths
+	// Set column widths to match expected format
 	const colWidths = [
-		{ wch: 15 }, // Kode Akun
-		{ wch: 40 }, // Nama Akun/Deskripsi
+		{ wch: 15 }, // Date/Account
+		{ wch: 25 }, // Journal Number/Account Name
+		{ wch: 25 }, // Reff. Number/Detail Note
+		{ wch: 25 }, // Note
 		{ wch: 15 }, // Debit
-		{ wch: 15 } // Kredit
+		{ wch: 15 } // Credit
 	];
 	worksheet['!cols'] = colWidths;
 
-	// Apply styles
+	// Apply number formatting for amount columns and wrap text for headers
 	const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1');
 	for (let row = range.s.r; row <= range.e.r; row++) {
 		for (let col = range.s.c; col <= range.e.c; col++) {
 			const cellRef = XLSX.utils.encode_cell({ r: row, c: col });
 			if (!worksheet[cellRef]) continue;
 
-			worksheet[cellRef].s = {
-				font: { name: 'Arial', sz: 10 },
-				alignment: {
-					vertical: 'center',
-					horizontal: col >= 2 ? 'right' : 'left'
-				}
-			};
+			// Apply wrap text to header row (row 5, index 4)
+			if (row === 4) {
+				worksheet[cellRef].s = {
+					font: { name: 'Arial', sz: 10, bold: true },
+					alignment: { vertical: 'center', horizontal: 'center', wrapText: true }
+				};
+			}
+			// Apply number format to debit and credit columns (E and F)
+			else if (col === 4 || col === 5) {
+				// Debit and Credit columns
+				worksheet[cellRef].s = {
+					font: { name: 'Arial', sz: 10 },
+					alignment: { vertical: 'center', horizontal: 'right' },
+					numFmt: '#,##0'
+				};
+			} else if (col === 0 && row > 4) {
+				// Date column (after header rows)
+				worksheet[cellRef].s = {
+					font: { name: 'Arial', sz: 10 },
+					alignment: { vertical: 'center', horizontal: 'left' },
+					numFmt: 'yyyy-mm-dd'
+				};
+			} else {
+				worksheet[cellRef].s = {
+					font: { name: 'Arial', sz: 10 },
+					alignment: { vertical: 'center', horizontal: 'left' }
+				};
+			}
 		}
 	}
 
-	XLSX.utils.book_append_sheet(workbook, worksheet, 'Jurnal');
-	XLSX.writeFile(workbook, 'laporan-jurnal.xlsx');
+	// Set row height for header row to accommodate wrapped text
+	if (!worksheet['!rows']) worksheet['!rows'] = [];
+	worksheet['!rows'][4] = { hpt: 30 };
+
+	XLSX.utils.book_append_sheet(workbook, worksheet, 'Journal');
+	XLSX.writeFile(workbook, `report_journal${data.period.start}_to_${data.period.end}.xlsx`);
 }

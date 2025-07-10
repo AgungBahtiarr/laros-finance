@@ -4,7 +4,7 @@
 	import ReportFilters from '$lib/components/ReportFilters.svelte';
 	import { formatCurrencyWithDecimals, formatDate } from '$lib/utils/utils.client';
 	import type { PageData } from './$types';
-	import { exportJournalToPdf, exportJournalToExcel } from '$lib/utils/exports/journalExport';
+	import { exportJournalToExcel } from '$lib/utils/exports/journalExport';
 
 	let { data } = $props();
 
@@ -30,28 +30,6 @@
 			goto(`?${params.toString()}`, { replaceState: true });
 		}
 	});
-
-	async function handlePdfExport() {
-		const exportData = {
-			entries: data.entries.map((entry) => ({
-				...entry,
-				details: entry.details.map((detail) => ({
-					...detail,
-					debit: Number(detail.debit || 0),
-					credit: Number(detail.credit || 0)
-				}))
-			})),
-			totals: {
-				debit: Number(data.totals.debit),
-				credit: Number(data.totals.credit)
-			},
-			period: {
-				start: dateRange.start,
-				end: dateRange.end
-			}
-		};
-		await exportJournalToPdf(exportData);
-	}
 
 	async function handleExcelExport() {
 		const exportData = {
@@ -97,23 +75,6 @@
 				</svg>
 				Export to Excel
 			</button>
-			<button class="btn btn-primary" onclick={handlePdfExport}>
-				<svg
-					xmlns="http://www.w3.org/2000/svg"
-					class="mr-2 h-5 w-5"
-					viewBox="0 0 24 24"
-					fill="none"
-					stroke="currentColor"
-				>
-					<path
-						stroke-linecap="round"
-						stroke-linejoin="round"
-						stroke-width="2"
-						d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
-					/>
-				</svg>
-				Export to PDF
-			</button>
 		</div>
 	</div>
 
@@ -128,6 +89,9 @@
 					<div>
 						<h3 class="text-lg font-semibold">Journal #{entry.number}</h3>
 						<p class="text-base-content/70 text-sm">{formatDate(entry.date)}</p>
+						{#if entry.reference}
+							<p class="text-base-content/70 text-sm">Ref: {entry.reference}</p>
+						{/if}
 					</div>
 					<div class="text-right">
 						<p class="text-base-content/70 text-sm">Description:</p>
