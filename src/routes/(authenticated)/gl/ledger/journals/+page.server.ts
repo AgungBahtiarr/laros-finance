@@ -307,6 +307,30 @@ export const actions: Actions = {
 						.insert(journalEntryLine)
 						.values(journalLines.map((line) => ({ ...line, journalEntryId })));
 					console.log(`[Import] Inserted lines for entry ID: ${journalEntryId}`);
+
+					// Create asset if account is Mesin dan Peralatan (ID 9)
+					for (const line of journalLines) {
+						if (line.accountId === 9 && line.debitAmount > 0) {
+							await tx.insert(asset).values({
+								namaHarta: line.description,
+								hargaPerolehan: line.debitAmount,
+								bulanPerolehan: entry.date.getMonth() + 1,
+								tahunPerolehan: entry.date.getFullYear(),
+								qty: 1,
+								jenisHartaId: 1, // Default: Harta Berwujud Bukan Bangunan
+								kelompokHartaId: 1, // Default: Kelompok 1
+								metodePenyusutanKomersialId: 1, // Default: Garis Lurus
+								metodePenyusutanFiskalId: 1, // Default: Garis Lurus
+								nilaiSisaBuku: line.debitAmount, // Initial book value is the same as acquisition price
+								penyusutanFiskalTahunIni: 0,
+								jenisUsaha: '11',
+								kode: `ASSET-${Date.now()}-${journalEntryId}-${line.accountId}`
+							});
+							console.log(
+								`[Import] Created asset for journal entry ID: ${journalEntryId}, amount: ${line.debitAmount}`
+							);
+						}
+					}
 				}
 				console.log('[Import] Database transaction committed.');
 			});
@@ -457,7 +481,7 @@ export const actions: Actions = {
 				if (line.accountId === 9 && line.debitAmount > 0) {
 					const journalDate = new Date(date);
 					await db.insert(asset).values({
-						namaHarta: description,
+						namaHarta: line.description,
 						hargaPerolehan: line.debitAmount,
 						bulanPerolehan: journalDate.getMonth() + 1,
 						tahunPerolehan: journalDate.getFullYear(),
