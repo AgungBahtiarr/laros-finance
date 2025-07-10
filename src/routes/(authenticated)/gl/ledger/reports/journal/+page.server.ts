@@ -15,6 +15,7 @@ export const load: PageServerLoad = async (event) => {
 			number: journalEntry.number,
 			date: journalEntry.date,
 			description: journalEntry.description,
+			reference: journalEntry.reference,
 			line: {
 				id: journalEntryLine.id,
 				description: journalEntryLine.description,
@@ -31,17 +32,12 @@ export const load: PageServerLoad = async (event) => {
 		.from(journalEntry)
 		.leftJoin(journalEntryLine, eq(journalEntryLine.journalEntryId, journalEntry.id))
 		.leftJoin(chartOfAccount, eq(journalEntryLine.accountId, chartOfAccount.id))
-		.where(
-			and(
-				gte(journalEntry.date, startDate),
-				lte(journalEntry.date, endDate)
-			)
-		)
+		.where(and(gte(journalEntry.date, startDate), lte(journalEntry.date, endDate)))
 		.orderBy(journalEntry.date, journalEntry.number);
 
 	// Group journal details by journal entry
 	const entries = journalEntries.reduce((acc, row) => {
-		const entry = acc.find(e => e.id === row.id);
+		const entry = acc.find((e) => e.id === row.id);
 		if (entry && row.line) {
 			entry.details.push({
 				accountId: row.account.id,
@@ -58,15 +54,18 @@ export const load: PageServerLoad = async (event) => {
 				number: row.number,
 				date: row.date,
 				description: row.description,
-				details: [{
-					accountId: row.account.id,
-					accountCode: row.account.code,
-					accountName: row.account.name,
-					description: row.line.description,
-					debit: row.line.debitAmount,
-					credit: row.line.creditAmount,
-					lineNumber: row.line.lineNumber
-				}]
+				reference: row.reference,
+				details: [
+					{
+						accountId: row.account.id,
+						accountCode: row.account.code,
+						accountName: row.account.name,
+						description: row.line.description,
+						debit: row.line.debitAmount,
+						credit: row.line.creditAmount,
+						lineNumber: row.line.lineNumber
+					}
+				]
 			});
 		}
 		return acc;
@@ -88,4 +87,4 @@ export const load: PageServerLoad = async (event) => {
 		entries,
 		totals
 	};
-}; 
+};
