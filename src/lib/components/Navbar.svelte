@@ -48,7 +48,7 @@
 			<ul
 				id="user-menu"
 				tabindex="-1"
-				class="menu dropdown-content mt-3 w-52 rounded-lg border bg-white p-2 shadow-lg"
+				class="menu dropdown-content bg-base-100 mt-3 w-52 rounded-lg border p-2 shadow-lg"
 			>
 				<li class="text-gray-700">{@render children()}</li>
 			</ul>
