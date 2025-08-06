@@ -12,7 +12,8 @@
 		ChevronRight,
 		ChevronDown,
 		Save,
-		RefreshCw
+		RefreshCw,
+		Search
 	} from '@lucide/svelte';
 
 	import SearchAbleSelect from '$lib/components/SearchAbleSelect.svelte';
@@ -57,6 +58,7 @@
 	let endDate = $state(data.filters.endDate);
 	let searchTerm = $state(data.filters.searchTerm);
 	let fiscalPeriodId = $state(data.filters.fiscalPeriodId);
+	let journalType = $state(data.filters.journalType);
 
 	function parseLocaleNumber(value) {
 		if (typeof value !== 'string') return value;
@@ -319,13 +321,14 @@
 	}
 
 	// Apply filters
-	function applyFilters() {
+	function applyFilters(resetPage = false) {
 		const searchParams = new URLSearchParams();
 
 		if (startDate) searchParams.set('startDate', startDate);
 		if (endDate) searchParams.set('endDate', endDate);
 		if (searchTerm) searchParams.set('search', searchTerm);
 		if (fiscalPeriodId) searchParams.set('fiscalPeriodId', fiscalPeriodId);
+		if (journalType && journalType !== 'all') searchParams.set('journalType', journalType);
 
 		goto(`?${searchParams.toString()}`);
 	}
@@ -336,6 +339,7 @@
 		endDate = '';
 		searchTerm = '';
 		fiscalPeriodId = '';
+		journalType = 'all';
 
 		goto('/gl/ledger/journals');
 	}
@@ -440,7 +444,7 @@
 			<div class="card-body p-4">
 				<h3 class="card-title text-lg">Filter Journal Entries</h3>
 
-				<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
+				<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-5">
 					<div class="form-control w-full">
 						<label class="label" for="startDate">
 							<span class="label-text">Start Date</span>
@@ -478,6 +482,19 @@
 							{#each data.fiscalPeriods as period}
 								<option value={period.id}>{period.name}</option>
 							{/each}
+						</select>
+					</div>
+
+					<div class="form-control w-full">
+						<label class="label" for="journalType">
+							<span class="label-text">Journal Type</span>
+						</label>
+						<select id="journalType" class="select select-bordered w-full" bind:value={journalType}>
+							<option value="all">All Journals</option>
+							<option value="commitment">Hanya Komitmen</option>
+							<option value="breakdown">Hanya Breakdown</option>
+							<option value="paired">Journal Berpasangan</option>
+							<option value="unpaired">Journal Tidak Berpasangan</option>
 						</select>
 					</div>
 
@@ -542,6 +559,11 @@
 									{/if}
 									{entry.number}
 								</button>
+								{#if entry.number.startsWith('b')}
+									<div class="badge badge-info badge-xs">Breakdown</div>
+								{:else}
+									<div class="badge badge-primary badge-xs">Komitmen</div>
+								{/if}
 							</td>
 							<td>{formatDate(entry.date)}</td>
 							<td>

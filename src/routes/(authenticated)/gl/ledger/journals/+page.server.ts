@@ -42,6 +42,7 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 		const endDate = url.searchParams.get('endDate') || '';
 		const searchTerm = url.searchParams.get('search') || '';
 		const fiscalPeriodId = url.searchParams.get('fiscalPeriodId') || '';
+		const journalType = url.searchParams.get('journalType') || 'all';
 		const page = parseInt(url.searchParams.get('page') || '1');
 		const limit = parseInt(url.searchParams.get('limit') || '10');
 		const offset = (page - 1) * limit;
@@ -67,18 +68,93 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 			);
 		}
 
-		const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+		// Handle journal type filter
+		if (journalType === 'commitment') {
+			conditions.push(sql`${journalEntry.number} NOT LIKE 'b%'`);
+		} else if (journalType === 'breakdown') {
+			conditions.push(sql`${journalEntry.number} LIKE 'b%'`);
+		} else if (journalType === 'paired' || journalType === 'unpaired') {
+			// Get all journal numbers first (without journal type filter)
+			const baseConditions = [];
+
+			if (startDate) {
+				baseConditions.push(gte(journalEntry.date, new Date(startDate)));
+			}
+			if (endDate) {
+				baseConditions.push(lte(journalEntry.date, new Date(endDate)));
+			}
+			if (fiscalPeriodId) {
+				baseConditions.push(eq(journalEntry.fiscalPeriodId, parseInt(fiscalPeriodId)));
+			}
+			if (searchTerm) {
+				baseConditions.push(
+					sql`(${journalEntry.number} LIKE ${'%' + searchTerm + '%'} OR ${journalEntry.description} LIKE ${'%' + searchTerm + '%'})`
+				);
+			}
+
+			const baseWhereClause = baseConditions.length > 0 ? and(...baseConditions) : undefined;
+
+			const allJournalNumbers = await db
+				.select({ number: journalEntry.number })
+				.from(journalEntry)
+				.where(baseWhereClause);
+
+			const pairedNumbers: string[] = [];
+			const unpairedNumbers: string[] = [];
+
+			// Check each journal number for its pair
+			for (const journal of allJournalNumbers) {
+				const number = journal.number;
+				if (number.startsWith('b')) {
+					// For breakdown journals, check if original exists
+					const originalNumber = number.substring(1);
+					const hasOriginal = allJournalNumbers.some((j) => j.number === originalNumber);
+					if (hasOriginal) {
+						pairedNumbers.push(number);
+					} else {
+						unpairedNumbers.push(number);
+					}
+				} else {
+					// For original journals, check if breakdown exists
+					const breakdownNumber = 'b' + number;
+					const hasBreakdown = allJournalNumbers.some((j) => j.number === breakdownNumber);
+					if (hasBreakdown) {
+						pairedNumbers.push(number);
+					} else {
+						unpairedNumbers.push(number);
+					}
+				}
+			}
+
+			if (journalType === 'paired') {
+				if (pairedNumbers.length > 0) {
+					conditions.push(inArray(journalEntry.number, pairedNumbers));
+				} else {
+					// If no pairs found, return empty result
+					conditions.push(sql`1 = 0`);
+				}
+			} else if (journalType === 'unpaired') {
+				if (unpairedNumbers.length > 0) {
+					conditions.push(inArray(journalEntry.number, unpairedNumbers));
+				} else {
+					// If no unpaired found, return empty result
+					conditions.push(sql`1 = 0`);
+				}
+			}
+		}
+
+		const finalWhereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
 		// Get total count of entries
 		const totalEntriesResult = await db
 			.select({ count: count() })
 			.from(journalEntry)
-			.where(whereClause);
+			.where(finalWhereClause);
 		const totalEntries = totalEntriesResult[0].count;
 
 		// Get journal entries with filters
 		const entries = await db.query.journalEntry.findMany({
-			where: whereClause,
+			where: finalWhereClause,
 			with: {
 				fiscalPeriod: true,
 				createdByUser: true,
@@ -126,7 +202,8 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 				startDate,
 				endDate,
 				searchTerm,
-				fiscalPeriodId
+				fiscalPeriodId,
+				journalType
 			},
 			pagination: {
 				currentPage: page,
