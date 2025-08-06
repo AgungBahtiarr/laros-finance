@@ -15,6 +15,12 @@ export interface AccountBalance {
 	groupCode?: string;
 	groupName?: string;
 	parentId?: number;
+	balanceType?: string;
+	previousDebit?: number;
+	previousCredit?: number;
+	currentDebit?: number;
+	currentCredit?: number;
+	isDebit?: boolean;
 }
 
 export interface ReportFilters {
@@ -23,4 +29,5 @@ export interface ReportFilters {
 	compareWithPrevious?: boolean;
 	selectedAccounts?: string[];
 	includeSubAccounts?: boolean;
+	journalType?: 'all' | 'commitment' | 'breakdown';
 }

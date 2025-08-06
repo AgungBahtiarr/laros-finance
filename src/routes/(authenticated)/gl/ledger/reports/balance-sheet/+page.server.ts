@@ -33,6 +33,7 @@ export const load: PageServerLoad = async (event) => {
 	const { db } = event.locals;
 	const searchParams = event.url.searchParams;
 	const periodId = searchParams.get('periodId');
+	const journalType = searchParams.get('journalType') || 'all';
 
 	// Get all fiscal periods for dropdown
 	const periods = await db.query.fiscalPeriod.findMany({
@@ -56,7 +57,8 @@ export const load: PageServerLoad = async (event) => {
 	const endDate = `${selectedPeriod.year}-${selectedPeriod.month.toString().padStart(2, '0')}-${lastDay.toString().padStart(2, '0')}`;
 
 	const filters = {
-		dateRange: { start: startDate, end: endDate }
+		dateRange: { start: startDate, end: endDate },
+		journalType: journalType as 'all' | 'commitment' | 'breakdown'
 	};
 
 	const { assets, liabilities, equity } = await getBalanceSheetAccounts(event, filters);
@@ -147,6 +149,10 @@ export const load: PageServerLoad = async (event) => {
 		totalPasiva,
 		netIncome,
 		periods,
-		selectedPeriod
+		selectedPeriod,
+		filters: {
+			periodId,
+			journalType
+		}
 	};
 };

@@ -9,6 +9,7 @@ export const load: PageServerLoad = async (event) => {
 		const startDate = searchParams.get('startDate') || new Date().toISOString().split('T')[0];
 		const endDate = searchParams.get('endDate') || new Date().toISOString().split('T')[0];
 		const selectedAccounts = searchParams.get('accounts')?.split(',').map(Number) || [];
+		const journalType = searchParams.get('journalType') || 'all';
 
 		// Get active accounts for the filter
 		const accounts = await db
@@ -22,9 +23,18 @@ export const load: PageServerLoad = async (event) => {
 			.orderBy(chartOfAccount.code);
 
 		// Build account filter
-		const accountFilter = selectedAccounts.length > 0 
-			? inArray(journalEntryLine.accountId, selectedAccounts)
-			: undefined;
+		const accountFilter =
+			selectedAccounts.length > 0
+				? inArray(journalEntryLine.accountId, selectedAccounts)
+				: undefined;
+
+		// Build journal type filter
+		let journalTypeFilter = undefined;
+		if (journalType === 'commitment') {
+			journalTypeFilter = sql`${journalEntry.number} NOT LIKE 'b%'`;
+		} else if (journalType === 'breakdown') {
+			journalTypeFilter = sql`${journalEntry.number} LIKE 'b%'`;
+		}
 
 		// Get unique accounts with transactions
 		const accountsWithTransactions = await db
@@ -37,7 +47,8 @@ export const load: PageServerLoad = async (event) => {
 				and(
 					lte(journalEntry.date, endDate),
 					eq(journalEntry.status, 'POSTED'),
-					accountFilter || undefined
+					accountFilter || undefined,
+					journalTypeFilter || undefined
 				)
 			)
 			.groupBy(journalEntryLine.accountId)
@@ -54,7 +65,12 @@ export const load: PageServerLoad = async (event) => {
 					netChange: 0,
 					endingBalance: 0
 				},
-				selectedAccounts
+				selectedAccounts,
+				filters: {
+					startDate,
+					endDate,
+					journalType
+				}
 			};
 		}
 
@@ -79,9 +95,18 @@ export const load: PageServerLoad = async (event) => {
 				// Get balances in a single query
 				const balancesResult = await db
 					.select({
-						beginningBalance: sql<number>`COALESCE(SUM(CASE WHEN ${journalEntry.date} < ${startDate} THEN COALESCE(${journalEntryLine.debitAmount}, 0) - COALESCE(${journalEntryLine.creditAmount}, 0) ELSE 0 END), 0)`.as('beginning_balance'),
-						changeDebit: sql<number>`COALESCE(SUM(CASE WHEN ${journalEntry.date} >= ${startDate} THEN COALESCE(${journalEntryLine.debitAmount}, 0) ELSE 0 END), 0)`.as('change_debit'),
-						changeCredit: sql<number>`COALESCE(SUM(CASE WHEN ${journalEntry.date} >= ${startDate} THEN COALESCE(${journalEntryLine.creditAmount}, 0) ELSE 0 END), 0)`.as('change_credit')
+						beginningBalance:
+							sql<number>`COALESCE(SUM(CASE WHEN ${journalEntry.date} < ${startDate} THEN COALESCE(${journalEntryLine.debitAmount}, 0) - COALESCE(${journalEntryLine.creditAmount}, 0) ELSE 0 END), 0)`.as(
+								'beginning_balance'
+							),
+						changeDebit:
+							sql<number>`COALESCE(SUM(CASE WHEN ${journalEntry.date} >= ${startDate} THEN COALESCE(${journalEntryLine.debitAmount}, 0) ELSE 0 END), 0)`.as(
+								'change_debit'
+							),
+						changeCredit:
+							sql<number>`COALESCE(SUM(CASE WHEN ${journalEntry.date} >= ${startDate} THEN COALESCE(${journalEntryLine.creditAmount}, 0) ELSE 0 END), 0)`.as(
+								'change_credit'
+							)
 					})
 					.from(journalEntryLine)
 					.leftJoin(journalEntry, eq(journalEntryLine.journalEntryId, journalEntry.id))
@@ -89,7 +114,8 @@ export const load: PageServerLoad = async (event) => {
 						and(
 							eq(journalEntryLine.accountId, accountId),
 							lte(journalEntry.date, endDate),
-							eq(journalEntry.status, 'POSTED')
+							eq(journalEntry.status, 'POSTED'),
+							journalTypeFilter || undefined
 						)
 					);
 
@@ -134,10 +160,15 @@ export const load: PageServerLoad = async (event) => {
 			accounts,
 			summaryData: balances,
 			totals,
-			selectedAccounts
+			selectedAccounts,
+			filters: {
+				startDate,
+				endDate,
+				journalType
+			}
 		};
 	} catch (error) {
 		console.error('Error in GL Summary load:', error);
 		throw error;
 	}
-}; 
+};

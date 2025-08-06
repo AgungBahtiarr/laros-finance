@@ -9,6 +9,7 @@ export const load: PageServerLoad = async (event) => {
 		const startDate = searchParams.get('startDate') || new Date().toISOString().split('T')[0];
 		const endDate = searchParams.get('endDate') || new Date().toISOString().split('T')[0];
 		const accountId = searchParams.get('accountId');
+		const journalType = searchParams.get('journalType') || 'all';
 
 		const coa = await db
 			.select({
@@ -19,13 +20,17 @@ export const load: PageServerLoad = async (event) => {
 			.from(chartOfAccount)
 			.orderBy(chartOfAccount.code);
 
-		const whereClauses = [
-			lte(journalEntry.date, endDate),
-			eq(journalEntry.status, 'POSTED')
-		];
+		const whereClauses = [lte(journalEntry.date, endDate), eq(journalEntry.status, 'POSTED')];
 
 		if (accountId) {
 			whereClauses.push(eq(journalEntryLine.accountId, accountId));
+		}
+
+		// Add journal type filter
+		if (journalType === 'commitment') {
+			whereClauses.push(sql`${journalEntry.number} NOT LIKE 'b%'`);
+		} else if (journalType === 'breakdown') {
+			whereClauses.push(sql`${journalEntry.number} LIKE 'b%'`);
 		}
 
 		// Get all transactions for all accounts up to the end date
@@ -98,7 +103,7 @@ export const load: PageServerLoad = async (event) => {
 				runningBalance += trx.debit - trx.credit;
 				trx.balance = runningBalance;
 			}
-			
+
 			accountData.endingBalance += accountData.totalDebit - accountData.totalCredit;
 		}
 
@@ -110,7 +115,12 @@ export const load: PageServerLoad = async (event) => {
 			reportData: finalReportData,
 			dateRange: { start: startDate, end: endDate },
 			accounts: coa,
-			selectedAccountId: accountId
+			selectedAccountId: accountId,
+			filters: {
+				startDate,
+				endDate,
+				journalType
+			}
 		};
 	} catch (error) {
 		console.error('Error in GL Detail load:', error);

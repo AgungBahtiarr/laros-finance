@@ -1,5 +1,5 @@
 import type { PageServerLoad } from './$types';
-import { and, eq, gte, lte } from 'drizzle-orm';
+import { and, eq, gte, lte, sql, inArray } from 'drizzle-orm';
 import { journalEntry, journalEntryLine, chartOfAccount } from '$lib/server/db/schema';
 
 export const load: PageServerLoad = async (event) => {
@@ -7,6 +7,56 @@ export const load: PageServerLoad = async (event) => {
 	const searchParams = event.url.searchParams;
 	const startDate = searchParams.get('startDate') || new Date().toISOString().split('T')[0];
 	const endDate = searchParams.get('endDate') || new Date().toISOString().split('T')[0];
+	const journalType = searchParams.get('journalType') || 'all';
+
+	// Build base where conditions
+	const baseConditions = [
+		gte(journalEntry.date, startDate),
+		lte(journalEntry.date, endDate),
+		eq(journalEntry.status, 'POSTED')
+	];
+
+	// Handle journal type filter
+	if (journalType === 'commitment') {
+		baseConditions.push(sql`${journalEntry.number} NOT LIKE 'b%'`);
+	} else if (journalType === 'breakdown') {
+		baseConditions.push(sql`${journalEntry.number} LIKE 'b%'`);
+	} else if (journalType === 'paired') {
+		// Get all journal numbers in date range first
+		const allJournalNumbers = await db
+			.select({ number: journalEntry.number })
+			.from(journalEntry)
+			.where(and(...baseConditions.slice(0, -1))); // Remove status condition for broader search
+
+		const pairedNumbers: string[] = [];
+
+		// Check each journal number for its pair
+		for (const journal of allJournalNumbers) {
+			const number = journal.number;
+			if (number.startsWith('b')) {
+				// For breakdown journals, check if original exists
+				const originalNumber = number.substring(1);
+				const hasOriginal = allJournalNumbers.some((j) => j.number === originalNumber);
+				if (hasOriginal) {
+					pairedNumbers.push(number);
+				}
+			} else {
+				// For original journals, check if breakdown exists
+				const breakdownNumber = 'b' + number;
+				const hasBreakdown = allJournalNumbers.some((j) => j.number === breakdownNumber);
+				if (hasBreakdown) {
+					pairedNumbers.push(number);
+				}
+			}
+		}
+
+		if (pairedNumbers.length > 0) {
+			baseConditions.push(inArray(journalEntry.number, pairedNumbers));
+		} else {
+			// If no pairs found, return empty result
+			baseConditions.push(sql`1 = 0`);
+		}
+	}
 
 	// Get journal entries for the selected period
 	const journalEntries = await db
@@ -32,7 +82,7 @@ export const load: PageServerLoad = async (event) => {
 		.from(journalEntry)
 		.leftJoin(journalEntryLine, eq(journalEntryLine.journalEntryId, journalEntry.id))
 		.leftJoin(chartOfAccount, eq(journalEntryLine.accountId, chartOfAccount.id))
-		.where(and(gte(journalEntry.date, startDate), lte(journalEntry.date, endDate)))
+		.where(and(...baseConditions))
 		.orderBy(journalEntry.date, journalEntry.number);
 
 	// Group journal details by journal entry
@@ -85,6 +135,11 @@ export const load: PageServerLoad = async (event) => {
 
 	return {
 		entries,
-		totals
+		totals,
+		filters: {
+			startDate,
+			endDate,
+			journalType
+		}
 	};
 };

@@ -69,6 +69,7 @@ export const load: PageServerLoad = async (event) => {
 	const { db } = event.locals;
 	const searchParams = event.url.searchParams;
 	const periodId = searchParams.get('periodId');
+	const journalType = searchParams.get('journalType') || 'all';
 
 	// Get all fiscal periods for dropdown
 	const periods = await db.query.fiscalPeriod.findMany({
@@ -129,6 +130,21 @@ export const load: PageServerLoad = async (event) => {
 					const startOfYear = `${selectedPeriod.year}-01-01`;
 					const endOfPrevMonth = `${selectedPeriod.year}-${previousPeriod.month.toString().padStart(2, '0')}-${new Date(selectedPeriod.year, previousPeriod.month, 0).getDate().toString().padStart(2, '0')}`;
 
+					// Build where conditions for journal type filter
+					const whereConditions = [
+						eq(journalEntryLine.accountId, account.id),
+						eq(journalEntry.status, 'POSTED'),
+						gte(journalEntry.date, startOfYear),
+						lte(journalEntry.date, endOfPrevMonth)
+					];
+
+					// Add journal type filter
+					if (journalType === 'commitment') {
+						whereConditions.push(sql`${journalEntry.number} NOT LIKE 'b%'`);
+					} else if (journalType === 'breakdown') {
+						whereConditions.push(sql`${journalEntry.number} LIKE 'b%'`);
+					}
+
 					const cumulativeBalances = await db
 						.select({
 							totalDebit: sql<number>`COALESCE(SUM(${journalEntryLine.debitAmount}), 0)`,
@@ -136,14 +152,7 @@ export const load: PageServerLoad = async (event) => {
 						})
 						.from(journalEntryLine)
 						.innerJoin(journalEntry, eq(journalEntryLine.journalEntryId, journalEntry.id))
-						.where(
-							and(
-								eq(journalEntryLine.accountId, account.id),
-								eq(journalEntry.status, 'POSTED'),
-								gte(journalEntry.date, startOfYear),
-								lte(journalEntry.date, endOfPrevMonth)
-							)
-						);
+						.where(and(...whereConditions));
 
 					const totalCumulativeDebit = Number(cumulativeBalances[0]?.totalDebit || 0);
 					const totalCumulativeCredit = Number(cumulativeBalances[0]?.totalCredit || 0);
@@ -166,6 +175,21 @@ export const load: PageServerLoad = async (event) => {
 			const startOfCurrentMonth = `${selectedPeriod.year}-${selectedPeriod.month.toString().padStart(2, '0')}-01`;
 			const endOfCurrentMonth = `${selectedPeriod.year}-${selectedPeriod.month.toString().padStart(2, '0')}-${new Date(selectedPeriod.year, selectedPeriod.month, 0).getDate().toString().padStart(2, '0')}`;
 
+			// Build where conditions for current period with journal type filter
+			const currentWhereConditions = [
+				eq(journalEntryLine.accountId, account.id),
+				eq(journalEntry.status, 'POSTED'),
+				gte(journalEntry.date, startOfCurrentMonth),
+				lte(journalEntry.date, endOfCurrentMonth)
+			];
+
+			// Add journal type filter
+			if (journalType === 'commitment') {
+				currentWhereConditions.push(sql`${journalEntry.number} NOT LIKE 'b%'`);
+			} else if (journalType === 'breakdown') {
+				currentWhereConditions.push(sql`${journalEntry.number} LIKE 'b%'`);
+			}
+
 			const currentBalances = await db
 				.select({
 					totalDebit: sql<number>`COALESCE(SUM(${journalEntryLine.debitAmount}), 0)`,
@@ -173,14 +197,7 @@ export const load: PageServerLoad = async (event) => {
 				})
 				.from(journalEntryLine)
 				.innerJoin(journalEntry, eq(journalEntryLine.journalEntryId, journalEntry.id))
-				.where(
-					and(
-						eq(journalEntryLine.accountId, account.id),
-						eq(journalEntry.status, 'POSTED'),
-						gte(journalEntry.date, startOfCurrentMonth),
-						lte(journalEntry.date, endOfCurrentMonth)
-					)
-				);
+				.where(and(...currentWhereConditions));
 
 			const currentDebit = Number(currentBalances[0]?.totalDebit || 0);
 			const currentCredit = Number(currentBalances[0]?.totalCredit || 0);
@@ -292,6 +309,10 @@ export const load: PageServerLoad = async (event) => {
 		periods,
 		selectedPeriod,
 		accounts: filteredAccountBalances,
-		totals
+		totals,
+		filters: {
+			periodId,
+			journalType
+		}
 	};
 };

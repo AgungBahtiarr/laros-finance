@@ -12,28 +12,27 @@
 	let { data } = $props<{ data: PageData }>();
 
 	let selectedPeriodId = $state(data.selectedPeriod?.id);
+	let journalType = $state(data.filters?.journalType || 'all');
 
 	if (browser) {
 		const searchParams = new URLSearchParams(window.location.search);
 		selectedPeriodId = parseInt(searchParams.get('periodId') || data.selectedPeriod?.id);
+		journalType = searchParams.get('journalType') || 'all';
 	}
 
 	$effect(() => {
 		if (browser) {
 			const params = new URLSearchParams();
 			if (selectedPeriodId) params.set('periodId', selectedPeriodId.toString());
+			if (journalType && journalType !== 'all') params.set('journalType', journalType);
 			goto(`?${params.toString()}`, { replaceState: true });
 		}
 	});
-    const lastDayOfMonth = new Date(
-        data.selectedPeriod.year,
-        data.selectedPeriod.month,
-        0
-    ).getDate();
+	const lastDayOfMonth = new Date(data.selectedPeriod.year, data.selectedPeriod.month, 0).getDate();
 
 	const dateRange = $derived({
 		start: `${data.selectedPeriod.year}-${data.selectedPeriod.month.toString().padStart(2, '0')}-01`,
-        end: `${data.selectedPeriod.year}-${data.selectedPeriod.month.toString().padStart(2, '0')}-${lastDayOfMonth.toString().padStart(2, '0')}`
+		end: `${data.selectedPeriod.year}-${data.selectedPeriod.month.toString().padStart(2, '0')}-${lastDayOfMonth.toString().padStart(2, '0')}`
 	});
 
 	async function handlePdfExport() {
@@ -50,7 +49,16 @@
 
 <div class="flex flex-col gap-6">
 	<div class="flex items-center justify-between">
-		<h1 class="text-2xl font-bold">Neraca (Balance Sheet)</h1>
+		<div>
+			<h1 class="text-2xl font-bold">Neraca (Balance Sheet)</h1>
+			{#if journalType && journalType !== 'all'}
+				<div class="mt-2">
+					<div class="badge badge-info">
+						Filter: {journalType === 'commitment' ? 'Hanya Komitmen' : 'Hanya Breakdown'}
+					</div>
+				</div>
+			{/if}
+		</div>
 		<div class="flex gap-2">
 			<button class="btn btn-primary" onclick={handleExcelExport}>
 				<svg
@@ -90,19 +98,36 @@
 	</div>
 
 	<div class="print:hidden">
-		<div class="form-control w-full max-w-xs">
-			<label class="label" for="period-select">
-				<span class="label-text">Fiscal Period</span>
-			</label>
-			<select
-				id="period-select"
-				class="select select-bordered w-full"
-				bind:value={selectedPeriodId}
-			>
-				{#each data.periods as period}
-					<option value={period.id}>{period.name}</option>
-				{/each}
-			</select>
+		<div class="flex gap-4">
+			<div class="form-control w-full max-w-xs">
+				<label class="label" for="period-select">
+					<span class="label-text">Fiscal Period</span>
+				</label>
+				<select
+					id="period-select"
+					class="select select-bordered w-full"
+					bind:value={selectedPeriodId}
+				>
+					{#each data.periods as period}
+						<option value={period.id}>{period.name}</option>
+					{/each}
+				</select>
+			</div>
+
+			<div class="form-control w-full max-w-xs">
+				<label class="label" for="journal-type-select">
+					<span class="label-text">Journal Type</span>
+				</label>
+				<select
+					id="journal-type-select"
+					class="select select-bordered w-full"
+					bind:value={journalType}
+				>
+					<option value="all">Semua Journal</option>
+					<option value="commitment">Hanya Komitmen</option>
+					<option value="breakdown">Hanya Breakdown</option>
+				</select>
+			</div>
 		</div>
 	</div>
 
@@ -130,7 +155,9 @@
 						{/each}
 					{:else}
 						<tr>
-							<td colspan={2} class="text-center text-gray-500">No current assets found for the selected period</td>
+							<td colspan={2} class="text-center text-gray-500"
+								>No current assets found for the selected period</td
+							>
 						</tr>
 					{/if}
 					<!-- Aktiva Tetap -->
@@ -146,7 +173,9 @@
 						{/each}
 					{:else}
 						<tr>
-							<td colspan={2} class="text-center text-gray-500">No fixed assets found for the selected period</td>
+							<td colspan={2} class="text-center text-gray-500"
+								>No fixed assets found for the selected period</td
+							>
 						</tr>
 					{/if}
 					<!-- Aktiva Lainnya -->
@@ -162,7 +191,9 @@
 						{/each}
 					{:else}
 						<tr>
-							<td colspan={2} class="text-center text-gray-500">No other assets found for the selected period</td>
+							<td colspan={2} class="text-center text-gray-500"
+								>No other assets found for the selected period</td
+							>
 						</tr>
 					{/if}
 					<tr class="font-bold">
@@ -196,7 +227,9 @@
 						{/each}
 					{:else}
 						<tr>
-							<td colspan={2} class="text-center text-gray-500">No current liabilities found for the selected period</td>
+							<td colspan={2} class="text-center text-gray-500"
+								>No current liabilities found for the selected period</td
+							>
 						</tr>
 					{/if}
 					<!-- Hutang Jangka Panjang -->
@@ -212,7 +245,9 @@
 						{/each}
 					{:else}
 						<tr>
-							<td colspan={2} class="text-center text-gray-500">No long-term liabilities found for the selected period</td>
+							<td colspan={2} class="text-center text-gray-500"
+								>No long-term liabilities found for the selected period</td
+							>
 						</tr>
 					{/if}
 					<!-- Modal (Equity) -->
@@ -228,7 +263,9 @@
 						{/each}
 					{:else}
 						<tr>
-							<td colspan={2} class="text-center text-gray-500">No equity found for the selected period</td>
+							<td colspan={2} class="text-center text-gray-500"
+								>No equity found for the selected period</td
+							>
 						</tr>
 					{/if}
 					<tr>

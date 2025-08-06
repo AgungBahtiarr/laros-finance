@@ -7,6 +7,7 @@ export const load: PageServerLoad = async (event) => {
 	const { db } = event.locals;
 	const searchParams = event.url.searchParams;
 	const periodId = searchParams.get('periodId');
+	const journalType = searchParams.get('journalType') || 'all';
 
 	// Get all fiscal periods for dropdown
 	const periods = await db.query.fiscalPeriod.findMany({
@@ -33,7 +34,8 @@ export const load: PageServerLoad = async (event) => {
 
 	const filters = {
 		dateRange: { start: startDate, end: endDate },
-		showPercentages
+		showPercentages,
+		journalType: journalType as 'all' | 'commitment' | 'breakdown'
 	};
 
 	try {
@@ -79,7 +81,11 @@ export const load: PageServerLoad = async (event) => {
 			pendapatanBiayaLainLain: pendapatanBiayaLainLain || [],
 			revenueTotals,
 			expenseTotals,
-			netIncome
+			netIncome,
+			filters: {
+				periodId,
+				journalType
+			}
 		};
 	} catch (error) {
 		console.error('Error loading profit and loss data:', error);
@@ -95,7 +101,11 @@ export const load: PageServerLoad = async (event) => {
 			pendapatanBiayaLainLain: [],
 			revenueTotals: { debit: 0, credit: 0, balance: 0 },
 			expenseTotals: { debit: 0, credit: 0, balance: 0 },
-			netIncome: 0
+			netIncome: 0,
+			filters: {
+				periodId,
+				journalType
+			}
 		};
 	}
 };

@@ -19,6 +19,7 @@
 	});
 
 	let selectedAccounts = $state(data.selectedAccounts);
+	let journalType = $state(data.filters?.journalType || 'all');
 	let selectedAccountDetails = $derived(
 		data.accounts.filter((account) => selectedAccounts.includes(account.id))
 	);
@@ -45,10 +46,12 @@
 			const startDate = searchParams.get('startDate');
 			const endDate = searchParams.get('endDate');
 			const accounts = searchParams.get('accounts');
+			const journalTypeParam = searchParams.get('journalType');
 
 			if (startDate) dateRange.start = startDate;
 			if (endDate) dateRange.end = endDate;
 			if (accounts) selectedAccounts = accounts.split(',').map(Number);
+			if (journalTypeParam) journalType = journalTypeParam;
 		}
 		isInitialized = true;
 	});
@@ -82,6 +85,9 @@
 			if (selectedAccounts.length > 0) {
 				params.set('accounts', selectedAccounts.join(','));
 			}
+			if (journalType && journalType !== 'all') {
+				params.set('journalType', journalType);
+			}
 
 			clearTimeout(updateTimeout);
 			updateTimeout = setTimeout(async () => {
@@ -97,6 +103,7 @@
 		if (isInitialized) {
 			const { start, end } = dateRange;
 			const accounts = selectedAccounts;
+			const jType = journalType;
 			updateURL();
 		}
 	});
@@ -168,7 +175,16 @@
 
 <div class="flex flex-col gap-6">
 	<div class="flex items-center justify-between">
-		<h1 class="text-2xl font-bold">General Ledger Summary</h1>
+		<div>
+			<h1 class="text-2xl font-bold">General Ledger Summary</h1>
+			{#if journalType && journalType !== 'all'}
+				<div class="mt-2">
+					<div class="badge badge-info">
+						Filter: {journalType === 'commitment' ? 'Hanya Komitmen' : 'Hanya Breakdown'}
+					</div>
+				</div>
+			{/if}
+		</div>
 		<div class="flex gap-2">
 			<button class="btn btn-primary" onclick={handleExcelExport}>
 				<svg
@@ -208,7 +224,25 @@
 	</div>
 
 	<div class="space-y-4 print:hidden">
-		<ReportFilters {dateRange} onchange={handleDateRangeChange} />
+		<div class="flex gap-4">
+			<div class="flex-1">
+				<ReportFilters {dateRange} onchange={handleDateRangeChange} />
+			</div>
+			<div class="form-control w-full max-w-xs">
+				<label class="label" for="journal-type-select">
+					<span class="label-text">Journal Type</span>
+				</label>
+				<select
+					id="journal-type-select"
+					class="select select-bordered w-full"
+					bind:value={journalType}
+				>
+					<option value="all">Semua Journal</option>
+					<option value="commitment">Hanya Komitmen</option>
+					<option value="breakdown">Hanya Breakdown</option>
+				</select>
+			</div>
+		</div>
 
 		<div class="form-control w-full">
 			<label class="label" for="account-search">

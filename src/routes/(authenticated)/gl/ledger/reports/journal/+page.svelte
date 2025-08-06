@@ -13,6 +13,8 @@
 		end: new Date().toISOString().split('T')[0]
 	});
 
+	let journalType = $state(data.filters?.journalType || 'all');
+
 	// Initialize values from URL params on client-side only
 	if (browser) {
 		const searchParams = new URLSearchParams(window.location.search);
@@ -20,6 +22,7 @@
 			start: searchParams.get('startDate') || dateRange.start,
 			end: searchParams.get('endDate') || dateRange.end
 		};
+		journalType = searchParams.get('journalType') || 'all';
 	}
 
 	$effect(() => {
@@ -27,6 +30,9 @@
 			const params = new URLSearchParams();
 			params.set('startDate', dateRange.start);
 			params.set('endDate', dateRange.end);
+			if (journalType && journalType !== 'all') {
+				params.set('journalType', journalType);
+			}
 			goto(`?${params.toString()}`, { replaceState: true });
 		}
 	});
@@ -56,7 +62,20 @@
 
 <div class="flex flex-col gap-6">
 	<div class="flex items-center justify-between">
-		<h1 class="text-2xl font-bold">Journal Report</h1>
+		<div>
+			<h1 class="text-2xl font-bold">Journal Report</h1>
+			{#if journalType && journalType !== 'all'}
+				<div class="mt-2">
+					<div class="badge badge-info">
+						Filter: {journalType === 'commitment'
+							? 'Hanya Komitmen'
+							: journalType === 'breakdown'
+								? 'Hanya Breakdown'
+								: 'Journal Berpasangan'}
+					</div>
+				</div>
+			{/if}
+		</div>
 		<div class="flex gap-2">
 			<button class="btn btn-primary" onclick={handleExcelExport}>
 				<svg
@@ -79,7 +98,26 @@
 	</div>
 
 	<div class="print:hidden">
-		<ReportFilters {dateRange} />
+		<div class="flex gap-4">
+			<div class="flex-1">
+				<ReportFilters {dateRange} />
+			</div>
+			<div class="form-control w-full max-w-xs">
+				<label class="label" for="journal-type-select">
+					<span class="label-text">Journal Type</span>
+				</label>
+				<select
+					id="journal-type-select"
+					class="select select-bordered w-full"
+					bind:value={journalType}
+				>
+					<option value="all">Semua Journal</option>
+					<option value="commitment">Hanya Komitmen</option>
+					<option value="breakdown">Hanya Breakdown</option>
+					<option value="paired">Journal Berpasangan</option>
+				</select>
+			</div>
+		</div>
 	</div>
 
 	<div class="overflow-x-auto">
@@ -87,7 +125,16 @@
 			<div class="border-base-300 bg-base-100 mb-6 rounded-lg border p-4 shadow-sm">
 				<div class="mb-4 flex items-start justify-between">
 					<div>
-						<h3 class="text-lg font-semibold">Journal #{entry.number}</h3>
+						<div class="flex items-center gap-2">
+							<h3 class="text-lg font-semibold">Journal #{entry.number}</h3>
+							{#if entry.number.startsWith('b')}
+								<div class="badge badge-info badge-sm">Breakdown</div>
+							{:else if data.entries.some((e) => e.number === 'b' + entry.number)}
+								<div class="badge badge-success badge-sm">Komitmen (Has Pair)</div>
+							{:else}
+								<div class="badge badge-primary badge-sm">Komitmen</div>
+							{/if}
+						</div>
 						<p class="text-base-content/70 text-sm">{formatDate(entry.date)}</p>
 						{#if entry.reference}
 							<p class="text-base-content/70 text-sm">Ref: {entry.reference}</p>
@@ -143,22 +190,46 @@
 
 		<div class="border-base-300 bg-base-100 mt-8 rounded-lg border p-4 shadow-sm">
 			<h3 class="mb-4 text-lg font-semibold">Report Summary</h3>
-			<table class="table w-full">
-				<thead>
-					<tr>
-						<th>Period</th>
-						<th class="text-right">Total Debit</th>
-						<th class="text-right">Total Credit</th>
-					</tr>
-				</thead>
-				<tbody>
-					<tr class="text-lg font-bold">
-						<td>{formatDate(dateRange.start)} - {formatDate(dateRange.end)}</td>
-						<td class="text-right">{formatCurrencyWithDecimals(data.totals.debit)}</td>
-						<td class="text-right">{formatCurrencyWithDecimals(data.totals.credit)}</td>
-					</tr>
-				</tbody>
-			</table>
+			<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+				<table class="table w-full">
+					<thead>
+						<tr>
+							<th>Period</th>
+							<th class="text-right">Total Debit</th>
+							<th class="text-right">Total Credit</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr class="text-lg font-bold">
+							<td>{formatDate(dateRange.start)} - {formatDate(dateRange.end)}</td>
+							<td class="text-right">{formatCurrencyWithDecimals(data.totals.debit)}</td>
+							<td class="text-right">{formatCurrencyWithDecimals(data.totals.credit)}</td>
+						</tr>
+					</tbody>
+				</table>
+
+				{#if journalType === 'paired'}
+					<div class="stats stats-vertical lg:stats-horizontal">
+						<div class="stat">
+							<div class="stat-title">Total Journals</div>
+							<div class="stat-value text-sm">{data.entries.length}</div>
+							<div class="stat-desc">Paired journals only</div>
+						</div>
+						<div class="stat">
+							<div class="stat-title">Breakdown Journals</div>
+							<div class="stat-value text-info text-sm">
+								{data.entries.filter((e) => e.number.startsWith('b')).length}
+							</div>
+						</div>
+						<div class="stat">
+							<div class="stat-title">Commitment Journals</div>
+							<div class="stat-value text-success text-sm">
+								{data.entries.filter((e) => !e.number.startsWith('b')).length}
+							</div>
+						</div>
+					</div>
+				{/if}
+			</div>
 		</div>
 	</div>
 </div>

@@ -39,16 +39,22 @@
 		selectedPeriod: { id: number; name: string; month: number; year: number };
 		accounts: TrialBalanceAccount[];
 		totals: TrialBalanceTotals;
+		filters?: {
+			periodId: string | null;
+			journalType: string;
+		};
 	}
 
 	let { data } = $props<{ data: TrialBalanceData }>();
 
 	let selectedPeriodId = $state(data.selectedPeriod?.id);
+	let journalType = $state(data.filters?.journalType || 'all');
 
 	// Initialize state from URL params
 	if (browser) {
 		const searchParams = new URLSearchParams(window.location.search);
 		selectedPeriodId = parseInt(searchParams.get('periodId') || data.selectedPeriod?.id);
+		journalType = searchParams.get('journalType') || 'all';
 	}
 
 	// Update URL when filters change
@@ -56,6 +62,7 @@
 		if (browser) {
 			const params = new URLSearchParams();
 			if (selectedPeriodId) params.set('periodId', selectedPeriodId.toString());
+			if (journalType && journalType !== 'all') params.set('journalType', journalType);
 			goto(`?${params.toString()}`, { replaceState: true });
 		}
 	});
@@ -123,7 +130,16 @@
 
 <div class="flex flex-col gap-6">
 	<div class="flex items-center justify-between">
-		<h1 class="text-2xl font-bold">Trial Balance</h1>
+		<div>
+			<h1 class="text-2xl font-bold">Trial Balance</h1>
+			{#if journalType && journalType !== 'all'}
+				<div class="mt-2">
+					<div class="badge badge-info">
+						Filter: {journalType === 'commitment' ? 'Hanya Komitmen' : 'Hanya Breakdown'}
+					</div>
+				</div>
+			{/if}
+		</div>
 		<div class="flex gap-2">
 			<button class="btn btn-primary" onclick={() => handleExport('excel')}>
 				<svg
@@ -163,19 +179,36 @@
 	</div>
 
 	<div class="print:hidden">
-		<div class="form-control w-full max-w-xs">
-			<label class="label" for="period-select">
-				<span class="label-text">Fiscal Period</span>
-			</label>
-			<select
-				id="period-select"
-				class="select select-bordered w-full"
-				bind:value={selectedPeriodId}
-			>
-				{#each data.periods as period}
-					<option value={period.id}>{period.name}</option>
-				{/each}
-			</select>
+		<div class="flex gap-4">
+			<div class="form-control w-full max-w-xs">
+				<label class="label" for="period-select">
+					<span class="label-text">Fiscal Period</span>
+				</label>
+				<select
+					id="period-select"
+					class="select select-bordered w-full"
+					bind:value={selectedPeriodId}
+				>
+					{#each data.periods as period}
+						<option value={period.id}>{period.name}</option>
+					{/each}
+				</select>
+			</div>
+
+			<div class="form-control w-full max-w-xs">
+				<label class="label" for="journal-type-select">
+					<span class="label-text">Journal Type</span>
+				</label>
+				<select
+					id="journal-type-select"
+					class="select select-bordered w-full"
+					bind:value={journalType}
+				>
+					<option value="all">Semua Journal</option>
+					<option value="commitment">Hanya Komitmen</option>
+					<option value="breakdown">Hanya Breakdown</option>
+				</select>
+			</div>
 		</div>
 	</div>
 

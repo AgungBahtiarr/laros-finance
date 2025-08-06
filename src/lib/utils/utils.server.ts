@@ -8,46 +8,14 @@ import {
 	journalEntryLine,
 	fiscalPeriod
 } from '$lib/server/db/schema';
-
-export interface AccountBalance {
-	id: number;
-	code: string;
-	name: string;
-	type: string;
-	level: number;
-	debit: number;
-	credit: number;
-	balance: number;
-	groupCode?: string;
-	groupName?: string;
-	parentId?: number;
-	balanceType?: string;
-	previousDebit?: number;
-	previousCredit?: number;
-	currentDebit?: number;
-	currentCredit?: number;
-	isDebit?: boolean;
-}
-
-export interface DateRange {
-	start: string;
-	end: string;
-}
-
-export interface ReportFilters {
-	dateRange: DateRange;
-	showPercentages?: boolean;
-	compareWithPrevious?: boolean;
-	selectedAccounts?: string[];
-	includeSubAccounts?: boolean;
-}
+import type { ReportFilters, AccountBalance } from './types';
 
 export async function getAccountBalances(
 	event: RequestEvent,
 	filters: ReportFilters
 ): Promise<AccountBalance[]> {
 	const { db } = event.locals;
-	const { dateRange } = filters;
+	const { dateRange, journalType } = filters;
 
 	// Get all active accounts with their details
 	const accounts = await db
@@ -68,6 +36,21 @@ export async function getAccountBalances(
 		.where(eq(chartOfAccount.isActive, true))
 		.orderBy(asc(chartOfAccount.code));
 
+	// Build where conditions for journal entries
+	const whereConditions = [
+		gte(journalEntry.date, dateRange.start),
+		lte(journalEntry.date, dateRange.end),
+		eq(journalEntry.status, 'POSTED')
+	];
+
+	// Add journal type filter
+	if (journalType === 'commitment') {
+		whereConditions.push(sql`${journalEntry.number} NOT LIKE 'b%'`);
+	} else if (journalType === 'breakdown') {
+		whereConditions.push(sql`${journalEntry.number} LIKE 'b%'`);
+	}
+	// For 'all', no additional filter needed
+
 	// Get account balances from journal entries within the date range
 	const balances = await db
 		.select({
@@ -77,13 +60,7 @@ export async function getAccountBalances(
 		})
 		.from(journalEntryLine)
 		.innerJoin(journalEntry, eq(journalEntryLine.journalEntryId, journalEntry.id))
-		.where(
-			and(
-				gte(journalEntry.date, dateRange.start),
-				lte(journalEntry.date, dateRange.end),
-				eq(journalEntry.status, 'POSTED')
-			)
-		)
+		.where(and(...whereConditions))
 		.groupBy(journalEntryLine.accountId);
 
 	// Create a map for easy lookup

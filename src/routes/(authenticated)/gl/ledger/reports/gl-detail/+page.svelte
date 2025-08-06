@@ -17,6 +17,7 @@
 	});
 
 	let selectedAccountId = $state(data.selectedAccountId || '');
+	let journalType = $state(data.filters?.journalType || 'all');
 
 	// Initialize from URL params only once on mount
 	onMount(() => {
@@ -25,10 +26,12 @@
 			const startDate = searchParams.get('startDate');
 			const endDate = searchParams.get('endDate');
 			const accountId = searchParams.get('accountId');
+			const journalTypeParam = searchParams.get('journalType');
 
 			if (startDate) dateRange.start = startDate;
 			if (endDate) dateRange.end = endDate;
 			if (accountId) selectedAccountId = accountId;
+			if (journalTypeParam) journalType = journalTypeParam;
 		}
 		isInitialized = true;
 	});
@@ -48,6 +51,9 @@
 				params.set('accountId', selectedAccountId);
 			} else {
 				params.delete('accountId');
+			}
+			if (journalType && journalType !== 'all') {
+				params.set('journalType', journalType);
 			}
 
 			clearTimeout(updateTimeout);
@@ -146,7 +152,16 @@
 <div class="flex flex-col gap-4">
 	<div class="print:hidden">
 		<div class="flex items-center justify-between">
-			<h1 class="text-2xl font-bold">General Ledger Detail</h1>
+			<div>
+				<h1 class="text-2xl font-bold">General Ledger Detail</h1>
+				{#if journalType && journalType !== 'all'}
+					<div class="mt-2">
+						<div class="badge badge-info">
+							Filter: {journalType === 'commitment' ? 'Hanya Komitmen' : 'Hanya Breakdown'}
+						</div>
+					</div>
+				{/if}
+			</div>
 			<div class="flex gap-2">
 				<button class="btn btn-primary" onclick={handleExcelExport}> Export to Excel </button>
 				<button class="btn btn-primary" onclick={handlePdfExport}> Export to PDF </button>
@@ -155,7 +170,25 @@
 	</div>
 
 	<div class="space-y-4 print:hidden">
-		<ReportFilters {dateRange} onchange={handleDateRangeChange} />
+		<div class="flex gap-4">
+			<div class="flex-1">
+				<ReportFilters {dateRange} onchange={handleDateRangeChange} />
+			</div>
+			<div class="form-control w-full max-w-xs">
+				<label class="label" for="journal-type-select">
+					<span class="label-text">Journal Type</span>
+				</label>
+				<select
+					id="journal-type-select"
+					class="select select-bordered w-full"
+					bind:value={journalType}
+				>
+					<option value="all">Semua Journal</option>
+					<option value="commitment">Hanya Komitmen</option>
+					<option value="breakdown">Hanya Breakdown</option>
+				</select>
+			</div>
+		</div>
 		<div class="form-control w-full max-w-xs">
 			<label for="account-select" class="label">
 				<span class="label-text">Filter Akun</span>
