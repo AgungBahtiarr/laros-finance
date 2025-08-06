@@ -331,6 +331,92 @@ export const actions: Actions = {
 							);
 						}
 					}
+
+					const isResellerTransaction = journalLines.some(
+						(line) => line.accountId === 115 && line.creditAmount > 0
+					);
+
+					if (isResellerTransaction) {
+						const komBagiHasil = totalCredit;
+						const pendapatan = komBagiHasil * 1.5;
+						const pendapatanRetail = pendapatan / 1.11;
+						const ppnKeluaran = pendapatanRetail * 0.11;
+						const biayaAdmin = pendapatanRetail * 0.01;
+						const kurangBayarBhpUso = pendapatanRetail * 0.0175 - komBagiHasil * 0.0175;
+
+						const bagiHasil =
+							pendapatan - komBagiHasil - ppnKeluaran - kurangBayarBhpUso - biayaAdmin;
+						const pphDuaSatu = bagiHasil * 0.01;
+						const piutangUsaha =
+							komBagiHasil + ppnKeluaran + kurangBayarBhpUso + pphDuaSatu + biayaAdmin;
+
+						const result2 = await tx
+							.insert(journalEntry)
+							.values({
+								number: 'b' + entry.number,
+								date: entry.date,
+								description: entry.description,
+								reference: entry.reference,
+								fiscalPeriodId: period.id,
+								status: 'POSTED', // Auto post the journal entry
+								totalDebit: piutangUsaha + bagiHasil,
+								totalCredit: pendapatanRetail + ppnKeluaran + pphDuaSatu,
+								createdBy: locals.user.id,
+								postedAt: new Date(), // Set posted date
+								postedBy: locals.user.id // Set posted by
+							})
+							.returning({ id: journalEntry.id });
+
+						const journalLine2 = [
+							{
+								accountId: 94,
+								description: 'Piutang Usaha',
+								debitAmount: piutangUsaha,
+								creditAmount: 0,
+								lineNumber: 1
+							},
+							{
+								accountId: 46,
+								description: 'Beban Gaji Pegawai',
+								debitAmount: bagiHasil,
+								creditAmount: 0,
+								lineNumber: 2
+							},
+							{
+								accountId: 115,
+								description: 'Pendapatan Retail',
+								debitAmount: 0, // Total Laba Kotor di sisi DEBIT
+								creditAmount: pendapatanRetail,
+								lineNumber: 3
+							},
+							{
+								accountId: 30,
+								description: 'PPN Keluaran',
+								debitAmount: 0,
+								creditAmount: ppnKeluaran,
+								lineNumber: 4
+							},
+							{
+								accountId: 28,
+								description: 'PPH Pasal 21',
+								debitAmount: 0,
+								creditAmount: pphDuaSatu,
+								lineNumber: 5
+							}
+						];
+
+						const journalEntryId2 = result2[0].id;
+						for (const line2 of journalLine2) {
+							await tx.insert(journalEntryLine).values({
+								journalEntryId: journalEntryId2,
+								accountId: line2.accountId,
+								description: line2.description,
+								debitAmount: line2.debitAmount,
+								creditAmount: line2.creditAmount,
+								lineNumber: line2.lineNumber
+							});
+						}
+					}
 				}
 				console.log('[Import] Database transaction committed.');
 			});
