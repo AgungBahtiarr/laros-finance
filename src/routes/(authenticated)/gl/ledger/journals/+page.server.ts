@@ -35,6 +35,53 @@ async function generateNextJournalNumber(inputDate: string) {
 	}
 }
 
+const getPPH = (bagiHasil) => {
+	if (bagiHasil <= 5400000) return 0;
+	if (bagiHasil <= 5650000) return 0.0025;
+	if (bagiHasil <= 5950000) return 0.005;
+	if (bagiHasil <= 6300000) return 0.0075;
+	if (bagiHasil <= 6750000) return 0.01;
+	if (bagiHasil <= 7500000) return 0.0125;
+	if (bagiHasil <= 8550000) return 0.015;
+	if (bagiHasil <= 9650000) return 0.0175;
+	if (bagiHasil <= 10050000) return 0.02;
+	if (bagiHasil <= 10350000) return 0.0225;
+	if (bagiHasil <= 10700000) return 0.025;
+	if (bagiHasil <= 11050000) return 0.03;
+	if (bagiHasil <= 11600000) return 0.035;
+	if (bagiHasil <= 12500000) return 0.04;
+	if (bagiHasil <= 13750000) return 0.05;
+	if (bagiHasil <= 15100000) return 0.06;
+	if (bagiHasil <= 16950000) return 0.07;
+	if (bagiHasil <= 19750000) return 0.08;
+	if (bagiHasil <= 24150000) return 0.09;
+	if (bagiHasil <= 26450000) return 0.1;
+	if (bagiHasil <= 28000000) return 0.11;
+	if (bagiHasil <= 30050000) return 0.12;
+	if (bagiHasil <= 32400000) return 0.13;
+	if (bagiHasil <= 35400000) return 0.14;
+	if (bagiHasil <= 39100000) return 0.15;
+	if (bagiHasil <= 43850000) return 0.16;
+	if (bagiHasil <= 47800000) return 0.17;
+	if (bagiHasil <= 51400000) return 0.18;
+	if (bagiHasil <= 56300000) return 0.19;
+	if (bagiHasil <= 62200000) return 0.2;
+	if (bagiHasil <= 68600000) return 0.21;
+	if (bagiHasil <= 77500000) return 0.22;
+	if (bagiHasil <= 89000000) return 0.23;
+	if (bagiHasil <= 103000000) return 0.24;
+	if (bagiHasil <= 125000000) return 0.25;
+	if (bagiHasil <= 157000000) return 0.26;
+	if (bagiHasil <= 206000000) return 0.27;
+	if (bagiHasil <= 337000000) return 0.28;
+	if (bagiHasil <= 454000000) return 0.29;
+	if (bagiHasil <= 550000000) return 0.3;
+	if (bagiHasil <= 695000000) return 0.31;
+	if (bagiHasil <= 910000000) return 0.32;
+	if (bagiHasil <= 1400000000) return 0.33;
+	return 0.34;
+};
+
 export const load: PageServerLoad = async ({ url, locals }) => {
 	try {
 		// Get filter parameters from URL
@@ -409,68 +456,21 @@ export const actions: Actions = {
 						}
 					}
 
-					const getPPH = (bagiHasil) => {
-						if (bagiHasil <= 5400000) return 0;
-						if (bagiHasil <= 5650000) return 0.0025;
-						if (bagiHasil <= 5950000) return 0.005;
-						if (bagiHasil <= 6300000) return 0.0075;
-						if (bagiHasil <= 6750000) return 0.01;
-						if (bagiHasil <= 7500000) return 0.0125;
-						if (bagiHasil <= 8550000) return 0.015;
-						if (bagiHasil <= 9650000) return 0.0175;
-						if (bagiHasil <= 10050000) return 0.02;
-						if (bagiHasil <= 10350000) return 0.0225;
-						if (bagiHasil <= 10700000) return 0.025;
-						if (bagiHasil <= 11050000) return 0.03;
-						if (bagiHasil <= 11600000) return 0.035;
-						if (bagiHasil <= 12500000) return 0.04;
-						if (bagiHasil <= 13750000) return 0.05;
-						if (bagiHasil <= 15100000) return 0.06;
-						if (bagiHasil <= 16950000) return 0.07;
-						if (bagiHasil <= 19750000) return 0.08;
-						if (bagiHasil <= 24150000) return 0.09;
-						if (bagiHasil <= 26450000) return 0.1;
-						if (bagiHasil <= 28000000) return 0.11;
-						if (bagiHasil <= 30050000) return 0.12;
-						if (bagiHasil <= 32400000) return 0.13;
-						if (bagiHasil <= 35400000) return 0.14;
-						if (bagiHasil <= 39100000) return 0.15;
-						if (bagiHasil <= 43850000) return 0.16;
-						if (bagiHasil <= 47800000) return 0.17;
-						if (bagiHasil <= 51400000) return 0.18;
-						if (bagiHasil <= 56300000) return 0.19;
-						if (bagiHasil <= 62200000) return 0.2;
-						if (bagiHasil <= 68600000) return 0.21;
-						if (bagiHasil <= 77500000) return 0.22;
-						if (bagiHasil <= 89000000) return 0.23;
-						if (bagiHasil <= 103000000) return 0.24;
-						if (bagiHasil <= 125000000) return 0.25;
-						if (bagiHasil <= 157000000) return 0.26;
-						if (bagiHasil <= 206000000) return 0.27;
-						if (bagiHasil <= 337000000) return 0.28;
-						if (bagiHasil <= 454000000) return 0.29;
-						if (bagiHasil <= 550000000) return 0.3;
-						if (bagiHasil <= 695000000) return 0.31;
-						if (bagiHasil <= 910000000) return 0.32;
-						if (bagiHasil <= 1400000000) return 0.33;
-						return 0.34;
-					};
-
 					const isResellerTransaction = journalLines.some(
 						(line) => line.accountId === 115 && line.creditAmount > 0
 					);
 
 					if (isResellerTransaction) {
-						// const rawPendapatanRetail =
-						// 	journalLines.find((line) => line.accountId === 115)?.creditAmount || 0;
+						const rawPPH = journalLines.find((line) => line.accountId === 28)?.creditAmount || 0;
 
 						// Raw dari input
-						const rawPendapatanRetail = totalCredit;
-						const rawPendaptan = rawPendapatanRetail;
-						const rawKomBagiHasil = rawPendaptan / 1.5;
+						const rawPendapatanRetail = totalCredit - rawPPH;
+						const rawPendapatan = rawPendapatanRetail;
+						const rawKomBagiHasil = rawPendapatan / 1.5;
 
 						// setelah pengecilan
 						const komBagiHasil = rawKomBagiHasil / 1.5;
+						console.log(komBagiHasil);
 
 						const dpp = komBagiHasil * 1.5;
 
@@ -489,9 +489,8 @@ export const actions: Actions = {
 						const biayaAdmin = dpp * 0.01;
 
 						const bagiHasil = dpp - komBagiHasil - kurangBayarBhpUso - biayaAdmin;
-						const pph21 = bagiHasil * getPPH(bagiHasil);
 
-						console.log(pph21);
+						const pph21 = bagiHasil * getPPH(bagiHasil);
 
 						// kurang pph
 						const piutangUsaha = komBagiHasil + ppn + kurangBayarBhpUso + biayaAdmin + pph21;
@@ -735,19 +734,40 @@ export const actions: Actions = {
 			);
 
 			if (isResellerTransaction) {
-				const komBagiHasil = totalCredit;
-				const pendapatan = komBagiHasil * 1.5;
-				console.log('pendapatan', komBagiHasil * 1.5);
-				const pendapatanRetail = pendapatan / 1.11;
-				console.log('pendapatan retail', pendapatan / 1.11);
-				const ppnKeluaran = pendapatanRetail * 0.11;
-				const biayaAdmin = pendapatanRetail * 0.01;
-				const kurangBayarBhpUso = pendapatanRetail * 0.0175 - komBagiHasil * 0.0175;
+				const rawPPH = journalLines.find((line) => line.accountId === 28)?.creditAmount || 0;
 
-				const bagiHasil = pendapatan - komBagiHasil - ppnKeluaran - kurangBayarBhpUso - biayaAdmin;
-				const pphDuaSatu = bagiHasil * 0.01;
-				const piutangUsaha =
-					komBagiHasil + ppnKeluaran + kurangBayarBhpUso + pphDuaSatu + biayaAdmin;
+				// Raw dari input
+				const rawPendapatanRetail = totalCredit - rawPPH;
+				const rawPendapatan = rawPendapatanRetail;
+				const rawKomBagiHasil = rawPendapatan / 1.5;
+
+				// setelah pengecilan
+				const komBagiHasil = rawKomBagiHasil / 1.5;
+
+				const dpp = komBagiHasil * 1.5;
+
+				const dppLain = (dpp * 11) / 12;
+
+				const ppn = dppLain * 0.12;
+
+				const pendapatan = dpp + ppn;
+
+				const bhpUsoPendapatan = dpp * 0.0175;
+
+				const bhpUsoKomitmen = komBagiHasil * 0.0175;
+
+				const kurangBayarBhpUso = bhpUsoPendapatan - bhpUsoKomitmen;
+
+				const biayaAdmin = dpp * 0.01;
+
+				const bagiHasil = dpp - komBagiHasil - kurangBayarBhpUso - biayaAdmin;
+
+				const pph21 = bagiHasil * getPPH(bagiHasil);
+
+				console.log(pph21);
+
+				// kurang pph
+				const piutangUsaha = komBagiHasil + ppn + kurangBayarBhpUso + biayaAdmin + pph21;
 
 				const result2 = await db
 					.insert(journalEntry)
@@ -759,7 +779,7 @@ export const actions: Actions = {
 						fiscalPeriodId,
 						status: 'POSTED', // Auto post the journal entry
 						totalDebit: piutangUsaha + bagiHasil,
-						totalCredit: pendapatanRetail + ppnKeluaran + pphDuaSatu,
+						totalCredit: dpp + ppn + pph21,
 						createdBy: locals.user.id,
 						postedAt: new Date(), // Set posted date
 						postedBy: locals.user.id // Set posted by
@@ -785,21 +805,21 @@ export const actions: Actions = {
 						accountId: 115,
 						description: 'Pendapatan Retail',
 						debitAmount: 0, // Total Laba Kotor di sisi DEBIT
-						creditAmount: pendapatanRetail,
+						creditAmount: dpp,
 						lineNumber: 3
 					},
 					{
 						accountId: 30,
 						description: 'PPN Keluaran',
 						debitAmount: 0,
-						creditAmount: ppnKeluaran,
+						creditAmount: ppn,
 						lineNumber: 4
 					},
 					{
 						accountId: 28,
 						description: 'PPH Pasal 21',
 						debitAmount: 0,
-						creditAmount: pphDuaSatu,
+						creditAmount: pph21,
 						lineNumber: 5
 					}
 				];
