@@ -57,7 +57,7 @@
 			{/if}
 		</div>
 		<div class="flex gap-2">
-			<button class="btn btn-primary" on:click={() => handleExport('excel')}>
+			<button class="btn btn-primary" onclick={() => handleExport('excel')}>
 				<svg
 					xmlns="http://www.w3.org/2000/svg"
 					class="mr-2 h-5 w-5"
@@ -74,7 +74,7 @@
 				</svg>
 				Export to Excel
 			</button>
-			<button class="btn btn-primary" on:click={() => handleExport('pdf')}>
+			<button class="btn btn-primary" onclick={() => handleExport('pdf')}>
 				<svg
 					xmlns="http://www.w3.org/2000/svg"
 					class="mr-2 h-5 w-5"

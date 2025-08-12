@@ -81,7 +81,7 @@
 	}
 </script>
 
-<svelte:window on:click={handleClickOutside} />
+<svelte:window onclick={handleClickOutside} />
 
 <div class="dropdown dropdown-center w-full" data-open={isOpen} bind:this={rootElement}>
 	<div class="relative w-full">
