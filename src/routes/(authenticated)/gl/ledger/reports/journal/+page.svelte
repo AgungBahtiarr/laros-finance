@@ -71,7 +71,9 @@
 							? 'Hanya Komitmen'
 							: journalType === 'breakdown'
 								? 'Hanya Breakdown'
-								: 'Journal Berpasangan'}
+								: journalType === 'paired'
+									? 'Journal Berpasangan'
+									: 'Net Transactions'}
 					</div>
 				</div>
 			{/if}
@@ -115,6 +117,7 @@
 					<option value="commitment">Hanya Komitmen</option>
 					<option value="breakdown">Hanya Breakdown</option>
 					<option value="paired">Journal Berpasangan</option>
+					<option value="net">Net Transactions</option>
 				</select>
 			</div>
 		</div>

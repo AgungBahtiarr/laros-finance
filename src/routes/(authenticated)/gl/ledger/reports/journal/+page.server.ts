@@ -56,6 +56,34 @@ export const load: PageServerLoad = async (event) => {
 			// If no pairs found, return empty result
 			baseConditions.push(sql`1 = 0`);
 		}
+	} else if (journalType === 'net') {
+		// Net Transactions: Avoid double counting
+		const allJournalNumbers = await db
+			.select({ number: journalEntry.number })
+			.from(journalEntry)
+			.where(and(...baseConditions.slice(0, -1))); // Remove status condition for broader search
+
+		const journalsWithoutDoubleCount: string[] = [];
+
+		for (const journal of allJournalNumbers) {
+			const number = journal.number;
+			if (number.startsWith('b')) {
+				// Always include breakdown journals
+				journalsWithoutDoubleCount.push(number);
+			} else {
+				// Include commitment only if no breakdown pair exists
+				const hasBreakdownPair = allJournalNumbers.some((j) => j.number === 'b' + number);
+				if (!hasBreakdownPair) {
+					journalsWithoutDoubleCount.push(number);
+				}
+			}
+		}
+
+		if (journalsWithoutDoubleCount.length > 0) {
+			baseConditions.push(inArray(journalEntry.number, journalsWithoutDoubleCount));
+		} else {
+			baseConditions.push(sql`1 = 0`);
+		}
 	}
 
 	// Get journal entries for the selected period

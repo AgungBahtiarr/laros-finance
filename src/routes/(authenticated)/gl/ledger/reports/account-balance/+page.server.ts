@@ -1,6 +1,6 @@
 import type { PageServerLoad } from './$types';
 import { getAccountBalances } from '$lib/utils/utils.server';
-import { and, eq, gte, lte, sql } from 'drizzle-orm';
+import { and, eq, gte, lte, sql, inArray } from 'drizzle-orm';
 import {
 	fiscalPeriod,
 	journalEntry,
@@ -143,6 +143,37 @@ export const load: PageServerLoad = async (event) => {
 						whereConditions.push(sql`${journalEntry.number} NOT LIKE 'b%'`);
 					} else if (journalType === 'breakdown') {
 						whereConditions.push(sql`${journalEntry.number} LIKE 'b%'`);
+					} else if (journalType === 'net') {
+						// Net Transactions: Avoid double counting
+						const allJournals = await db
+							.select({ number: journalEntry.number })
+							.from(journalEntry)
+							.where(
+								and(
+									gte(journalEntry.date, startOfYear),
+									lte(journalEntry.date, endOfPrevMonth),
+									eq(journalEntry.status, 'POSTED')
+								)
+							);
+
+						const journalsWithoutDoubleCount: string[] = [];
+						for (const journal of allJournals) {
+							const number = journal.number;
+							if (number.startsWith('b')) {
+								journalsWithoutDoubleCount.push(number);
+							} else {
+								const hasBreakdownPair = allJournals.some((j) => j.number === 'b' + number);
+								if (!hasBreakdownPair) {
+									journalsWithoutDoubleCount.push(number);
+								}
+							}
+						}
+
+						if (journalsWithoutDoubleCount.length > 0) {
+							whereConditions.push(inArray(journalEntry.number, journalsWithoutDoubleCount));
+						} else {
+							whereConditions.push(sql`1 = 0`);
+						}
 					}
 
 					const cumulativeBalances = await db
@@ -188,6 +219,37 @@ export const load: PageServerLoad = async (event) => {
 				currentWhereConditions.push(sql`${journalEntry.number} NOT LIKE 'b%'`);
 			} else if (journalType === 'breakdown') {
 				currentWhereConditions.push(sql`${journalEntry.number} LIKE 'b%'`);
+			} else if (journalType === 'net') {
+				// Net Transactions: Avoid double counting
+				const allJournals = await db
+					.select({ number: journalEntry.number })
+					.from(journalEntry)
+					.where(
+						and(
+							gte(journalEntry.date, startOfCurrentMonth),
+							lte(journalEntry.date, endOfCurrentMonth),
+							eq(journalEntry.status, 'POSTED')
+						)
+					);
+
+				const journalsWithoutDoubleCount: string[] = [];
+				for (const journal of allJournals) {
+					const number = journal.number;
+					if (number.startsWith('b')) {
+						journalsWithoutDoubleCount.push(number);
+					} else {
+						const hasBreakdownPair = allJournals.some((j) => j.number === 'b' + number);
+						if (!hasBreakdownPair) {
+							journalsWithoutDoubleCount.push(number);
+						}
+					}
+				}
+
+				if (journalsWithoutDoubleCount.length > 0) {
+					currentWhereConditions.push(inArray(journalEntry.number, journalsWithoutDoubleCount));
+				} else {
+					currentWhereConditions.push(sql`1 = 0`);
+				}
 			}
 
 			const currentBalances = await db

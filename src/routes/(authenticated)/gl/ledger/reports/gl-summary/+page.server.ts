@@ -30,10 +30,44 @@ export const load: PageServerLoad = async (event) => {
 
 		// Build journal type filter
 		let journalTypeFilter = undefined;
+		let netJournalNumbers: string[] = [];
+
 		if (journalType === 'commitment') {
 			journalTypeFilter = sql`${journalEntry.number} NOT LIKE 'b%'`;
 		} else if (journalType === 'breakdown') {
 			journalTypeFilter = sql`${journalEntry.number} LIKE 'b%'`;
+		} else if (journalType === 'net') {
+			// Net Transactions: Avoid double counting
+			const allJournals = await db
+				.select({ number: journalEntry.number })
+				.from(journalEntry)
+				.where(
+					and(
+						gte(journalEntry.date, startDate),
+						lte(journalEntry.date, endDate),
+						eq(journalEntry.status, 'POSTED')
+					)
+				);
+
+			const journalsWithoutDoubleCount: string[] = [];
+			for (const journal of allJournals) {
+				const number = journal.number;
+				if (number.startsWith('b')) {
+					journalsWithoutDoubleCount.push(number);
+				} else {
+					const hasBreakdownPair = allJournals.some((j) => j.number === 'b' + number);
+					if (!hasBreakdownPair) {
+						journalsWithoutDoubleCount.push(number);
+					}
+				}
+			}
+
+			netJournalNumbers = journalsWithoutDoubleCount;
+			if (netJournalNumbers.length > 0) {
+				journalTypeFilter = inArray(journalEntry.number, netJournalNumbers);
+			} else {
+				journalTypeFilter = sql`1 = 0`;
+			}
 		}
 
 		// Get unique accounts with transactions

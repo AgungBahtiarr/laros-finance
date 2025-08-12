@@ -29,5 +29,5 @@ export interface ReportFilters {
 	compareWithPrevious?: boolean;
 	selectedAccounts?: string[];
 	includeSubAccounts?: boolean;
-	journalType?: 'all' | 'commitment' | 'breakdown';
+	journalType?: 'all' | 'commitment' | 'breakdown' | 'net';
 }

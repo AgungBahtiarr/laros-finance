@@ -35,7 +35,7 @@ export const load: PageServerLoad = async (event) => {
 	const filters = {
 		dateRange: { start: startDate, end: endDate },
 		showPercentages,
-		journalType: journalType as 'all' | 'commitment' | 'breakdown'
+		journalType: journalType as 'all' | 'commitment' | 'breakdown' | 'net'
 	};
 
 	try {

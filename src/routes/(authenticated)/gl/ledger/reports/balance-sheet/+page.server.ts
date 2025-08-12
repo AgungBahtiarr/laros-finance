@@ -58,7 +58,7 @@ export const load: PageServerLoad = async (event) => {
 
 	const filters = {
 		dateRange: { start: startDate, end: endDate },
-		journalType: journalType as 'all' | 'commitment' | 'breakdown'
+		journalType: journalType as 'all' | 'commitment' | 'breakdown' | 'net'
 	};
 
 	const { assets, liabilities, equity } = await getBalanceSheetAccounts(event, filters);

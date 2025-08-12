@@ -1,4 +1,4 @@
-import { and, eq, gte, lte, sql, sum, desc, asc } from 'drizzle-orm';
+import { and, eq, gte, lte, sql, sum, desc, asc, inArray } from 'drizzle-orm';
 import type { RequestEvent } from '@sveltejs/kit';
 import {
 	chartOfAccount,
@@ -48,6 +48,41 @@ export async function getAccountBalances(
 		whereConditions.push(sql`${journalEntry.number} NOT LIKE 'b%'`);
 	} else if (journalType === 'breakdown') {
 		whereConditions.push(sql`${journalEntry.number} LIKE 'b%'`);
+	} else if (journalType === 'net') {
+		// Net Transactions: Avoid double counting
+		// Show: commitment journals without pairs + breakdown journals
+		const allJournals = await db
+			.select({ number: journalEntry.number })
+			.from(journalEntry)
+			.where(
+				and(
+					gte(journalEntry.date, dateRange.start),
+					lte(journalEntry.date, dateRange.end),
+					eq(journalEntry.status, 'POSTED')
+				)
+			);
+
+		const journalsWithoutDoubleCount: string[] = [];
+
+		for (const journal of allJournals) {
+			const number = journal.number;
+			if (number.startsWith('b')) {
+				// Always include breakdown journals
+				journalsWithoutDoubleCount.push(number);
+			} else {
+				// Include commitment only if no breakdown pair exists
+				const hasBreakdownPair = allJournals.some((j) => j.number === 'b' + number);
+				if (!hasBreakdownPair) {
+					journalsWithoutDoubleCount.push(number);
+				}
+			}
+		}
+
+		if (journalsWithoutDoubleCount.length > 0) {
+			whereConditions.push(inArray(journalEntry.number, journalsWithoutDoubleCount));
+		} else {
+			whereConditions.push(sql`1 = 0`);
+		}
 	}
 	// For 'all', no additional filter needed
 

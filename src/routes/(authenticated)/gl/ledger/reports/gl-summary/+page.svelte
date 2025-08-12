@@ -180,7 +180,11 @@
 			{#if journalType && journalType !== 'all'}
 				<div class="mt-2">
 					<div class="badge badge-info">
-						Filter: {journalType === 'commitment' ? 'Hanya Komitmen' : 'Hanya Breakdown'}
+						Filter: {journalType === 'commitment'
+							? 'Hanya Komitmen'
+							: journalType === 'breakdown'
+								? 'Hanya Breakdown'
+								: 'Net Transactions'}
 					</div>
 				</div>
 			{/if}
@@ -240,6 +244,7 @@
 					<option value="all">Semua Journal</option>
 					<option value="commitment">Hanya Komitmen</option>
 					<option value="breakdown">Hanya Breakdown</option>
+					<option value="net">Net Transactions</option>
 				</select>
 			</div>
 		</div>

@@ -1,5 +1,5 @@
 import type { PageServerLoad } from './$types';
-import { and, eq, gte, lte, sql, desc } from 'drizzle-orm';
+import { and, eq, gte, lte, sql, desc, inArray } from 'drizzle-orm';
 import { chartOfAccount, journalEntry, journalEntryLine } from '$lib/server/db/schema';
 
 export const load: PageServerLoad = async (event) => {
@@ -31,6 +31,37 @@ export const load: PageServerLoad = async (event) => {
 			whereClauses.push(sql`${journalEntry.number} NOT LIKE 'b%'`);
 		} else if (journalType === 'breakdown') {
 			whereClauses.push(sql`${journalEntry.number} LIKE 'b%'`);
+		} else if (journalType === 'net') {
+			// Net Transactions: Avoid double counting
+			const allJournals = await db
+				.select({ number: journalEntry.number })
+				.from(journalEntry)
+				.where(
+					and(
+						gte(journalEntry.date, startDate),
+						lte(journalEntry.date, endDate),
+						eq(journalEntry.status, 'POSTED')
+					)
+				);
+
+			const journalsWithoutDoubleCount: string[] = [];
+			for (const journal of allJournals) {
+				const number = journal.number;
+				if (number.startsWith('b')) {
+					journalsWithoutDoubleCount.push(number);
+				} else {
+					const hasBreakdownPair = allJournals.some((j) => j.number === 'b' + number);
+					if (!hasBreakdownPair) {
+						journalsWithoutDoubleCount.push(number);
+					}
+				}
+			}
+
+			if (journalsWithoutDoubleCount.length > 0) {
+				whereClauses.push(inArray(journalEntry.number, journalsWithoutDoubleCount));
+			} else {
+				whereClauses.push(sql`1 = 0`);
+			}
 		}
 
 		// Get all transactions for all accounts up to the end date
