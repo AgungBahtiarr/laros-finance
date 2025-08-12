@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { browser } from '$app/environment';
-	import { formatCurrencyWithDecimals } from '$lib/utils/utils.client';
+	import { formatCurrencyWithParentheses } from '$lib/utils/utils.client';
 	import {
 		exportAccountBalanceToPdf,
 		exportAccountBalanceToExcel
@@ -235,15 +235,15 @@
 							<span class="font-mono">{account.code}</span> - {account.name}
 						</td>
 						<td>{account.type}</td>
-						<td class="text-right">{formatCurrencyWithDecimals(account.previousDebit)}</td>
-						<td class="text-right">{formatCurrencyWithDecimals(account.previousCredit)}</td>
-						<td class="text-right">{formatCurrencyWithDecimals(account.currentDebit)}</td>
-						<td class="text-right">{formatCurrencyWithDecimals(account.currentCredit)}</td>
+						<td class="text-right">{formatCurrencyWithParentheses(account.previousDebit)}</td>
+						<td class="text-right">{formatCurrencyWithParentheses(account.previousCredit)}</td>
+						<td class="text-right">{formatCurrencyWithParentheses(account.currentDebit)}</td>
+						<td class="text-right">{formatCurrencyWithParentheses(account.currentCredit)}</td>
 						<td class="text-right"
-							>{formatCurrencyWithDecimals(account.isDebit ? account.balance : 0)}</td
+							>{formatCurrencyWithParentheses(account.isDebit ? account.balance : 0)}</td
 						>
 						<td class="text-right"
-							>{formatCurrencyWithDecimals(!account.isDebit ? account.balance : 0)}</td
+							>{formatCurrencyWithParentheses(!account.isDebit ? account.balance : 0)}</td
 						>
 					</tr>
 				{/each}
@@ -251,12 +251,12 @@
 			<tfoot>
 				<tr class="font-bold">
 					<td colspan="2">Total</td>
-					<td class="text-right">{formatCurrencyWithDecimals(data.totals.previousDebit)}</td>
-					<td class="text-right">{formatCurrencyWithDecimals(data.totals.previousCredit)}</td>
-					<td class="text-right">{formatCurrencyWithDecimals(data.totals.currentDebit)}</td>
-					<td class="text-right">{formatCurrencyWithDecimals(data.totals.currentCredit)}</td>
-					<td class="text-right">{formatCurrencyWithDecimals(data.totals.balanceDebit)}</td>
-					<td class="text-right">{formatCurrencyWithDecimals(data.totals.balanceCredit)}</td>
+					<td class="text-right">{formatCurrencyWithParentheses(data.totals.previousDebit)}</td>
+					<td class="text-right">{formatCurrencyWithParentheses(data.totals.previousCredit)}</td>
+					<td class="text-right">{formatCurrencyWithParentheses(data.totals.currentDebit)}</td>
+					<td class="text-right">{formatCurrencyWithParentheses(data.totals.currentCredit)}</td>
+					<td class="text-right">{formatCurrencyWithParentheses(data.totals.balanceDebit)}</td>
+					<td class="text-right">{formatCurrencyWithParentheses(data.totals.balanceCredit)}</td>
 				</tr>
 			</tfoot>
 		</table>

@@ -2,7 +2,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { browser } from '$app/environment';
-	import { formatCurrencyWithDecimals } from '$lib/utils/utils.client';
+	import { formatCurrencyWithParentheses } from '$lib/utils/utils.client';
 	import {
 		exportBalanceSheetToPdf,
 		exportBalanceSheetToExcel
@@ -155,7 +155,7 @@
 						{#each data.aktivaLancar as asset}
 							<tr>
 								<td class="pl-{asset.level * 4}">{asset.name}</td>
-								<td class="text-right">{formatCurrencyWithDecimals(asset.balance || 0)}</td>
+								<td class="text-right">{formatCurrencyWithParentheses(asset.balance || 0)}</td>
 							</tr>
 						{/each}
 					{:else}
@@ -173,7 +173,7 @@
 						{#each data.aktivaTetap as asset}
 							<tr>
 								<td class="pl-{asset.level * 4}">{asset.name}</td>
-								<td class="text-right">{formatCurrencyWithDecimals(asset.balance || 0)}</td>
+								<td class="text-right">{formatCurrencyWithParentheses(asset.balance || 0)}</td>
 							</tr>
 						{/each}
 					{:else}
@@ -191,7 +191,7 @@
 						{#each data.aktivaLainnya as asset}
 							<tr>
 								<td class="pl-{asset.level * 4}">{asset.name}</td>
-								<td class="text-right">{formatCurrencyWithDecimals(asset.balance || 0)}</td>
+								<td class="text-right">{formatCurrencyWithParentheses(asset.balance || 0)}</td>
 							</tr>
 						{/each}
 					{:else}
@@ -203,7 +203,7 @@
 					{/if}
 					<tr class="font-bold">
 						<td>Total Aktiva</td>
-						<td class="text-right">{formatCurrencyWithDecimals(totalAktiva)}</td>
+						<td class="text-right">{formatCurrencyWithParentheses(totalAktiva)}</td>
 					</tr>
 				</tbody>
 			</table>
@@ -227,7 +227,7 @@
 						{#each data.hutangLancar as liability}
 							<tr>
 								<td class="pl-{liability.level * 4}">{liability.name}</td>
-								<td class="text-right">{formatCurrencyWithDecimals(liability.balance || 0)}</td>
+								<td class="text-right">{formatCurrencyWithParentheses(liability.balance || 0)}</td>
 							</tr>
 						{/each}
 					{:else}
@@ -245,7 +245,7 @@
 						{#each data.hutangJangkaPanjang as liability}
 							<tr>
 								<td class="pl-{liability.level * 4}">{liability.name}</td>
-								<td class="text-right">{formatCurrencyWithDecimals(liability.balance || 0)}</td>
+								<td class="text-right">{formatCurrencyWithParentheses(liability.balance || 0)}</td>
 							</tr>
 						{/each}
 					{:else}
@@ -263,7 +263,7 @@
 						{#each data.modal as eq}
 							<tr>
 								<td class="pl-{eq.level * 4}">{eq.name}</td>
-								<td class="text-right">{formatCurrencyWithDecimals(eq.balance || 0)}</td>
+								<td class="text-right">{formatCurrencyWithParentheses(eq.balance || 0)}</td>
 							</tr>
 						{/each}
 					{:else}
@@ -275,11 +275,11 @@
 					{/if}
 					<tr>
 						<td>Laba Rugi Berjalan</td>
-						<td class="text-right">{formatCurrencyWithDecimals(data.netIncome || 0)}</td>
+						<td class="text-right">{formatCurrencyWithParentheses(data.netIncome || 0)}</td>
 					</tr>
 					<tr class="font-bold">
 						<td>Total Pasiva</td>
-						<td class="text-right">{formatCurrencyWithDecimals(totalPasiva)}</td>
+						<td class="text-right">{formatCurrencyWithParentheses(totalPasiva)}</td>
 					</tr>
 				</tbody>
 			</table>

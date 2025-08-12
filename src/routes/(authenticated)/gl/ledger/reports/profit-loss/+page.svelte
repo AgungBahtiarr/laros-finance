@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { browser } from '$app/environment';
-	import { formatCurrencyWithDecimals } from '$lib/utils/utils.client';
+	import { formatCurrencyWithParentheses } from '$lib/utils/utils.client';
 	import { exportToPdf, exportToExcel } from '$lib/utils/exports/profitNLossExport';
 	import type { PageData } from './$types';
 
@@ -146,13 +146,13 @@
 					{#each data.pendapatan as item}
 						<tr>
 							<td class="pl-{item.level * 4}">{item.name}</td>
-							<td class="text-right">{formatCurrencyWithDecimals(item.balance || 0)}</td>
+							<td class="text-right">{formatCurrencyWithParentheses(item.balance || 0)}</td>
 						</tr>
 					{/each}
 					<tr class="font-bold">
 						<td>Total Pendapatan</td>
 						<td class="text-right"
-							>{formatCurrencyWithDecimals(
+							>{formatCurrencyWithParentheses(
 								data.pendapatan.reduce((sum, item) => sum + (item.balance || 0), 0)
 							)}</td
 						>
@@ -173,13 +173,13 @@
 					{#each data.biayaOperasional as item}
 						<tr>
 							<td class="pl-{item.level * 4}">{item.name}</td>
-							<td class="text-right">{formatCurrencyWithDecimals(item.balance || 0)}</td>
+							<td class="text-right">{formatCurrencyWithParentheses(item.balance || 0)}</td>
 						</tr>
 					{/each}
 					<tr class="font-bold">
 						<td>Total Biaya Operasional</td>
 						<td class="text-right"
-							>{formatCurrencyWithDecimals(
+							>{formatCurrencyWithParentheses(
 								data.biayaOperasional.reduce((sum, item) => sum + (item.balance || 0), 0)
 							)}</td
 						>
@@ -198,13 +198,13 @@
 					{#each data.biayaOperasionalLainnya as item}
 						<tr>
 							<td class="pl-{item.level * 4}">{item.name}</td>
-							<td class="text-right">{formatCurrencyWithDecimals(item.balance || 0)}</td>
+							<td class="text-right">{formatCurrencyWithParentheses(item.balance || 0)}</td>
 						</tr>
 					{/each}
 					<tr class="font-bold">
 						<td>Total Biaya Operasional Lainnya</td>
 						<td class="text-right"
-							>{formatCurrencyWithDecimals(
+							>{formatCurrencyWithParentheses(
 								data.biayaOperasionalLainnya.reduce((sum, item) => sum + (item.balance || 0), 0)
 							)}</td
 						>
@@ -223,13 +223,13 @@
 					{#each data.biayaAdministrasiUmum as item}
 						<tr>
 							<td class="pl-{item.level * 4}">{item.name}</td>
-							<td class="text-right">{formatCurrencyWithDecimals(item.balance || 0)}</td>
+							<td class="text-right">{formatCurrencyWithParentheses(item.balance || 0)}</td>
 						</tr>
 					{/each}
 					<tr class="font-bold">
 						<td>Total Biaya Administrasi & Umum</td>
 						<td class="text-right"
-							>{formatCurrencyWithDecimals(
+							>{formatCurrencyWithParentheses(
 								data.biayaAdministrasiUmum.reduce((sum, item) => sum + (item.balance || 0), 0)
 							)}</td
 						>
@@ -248,13 +248,13 @@
 					{#each data.pendapatanBiayaLainLain as item}
 						<tr>
 							<td class="pl-{item.level * 4}">{item.name}</td>
-							<td class="text-right">{formatCurrencyWithDecimals(item.balance || 0)}</td>
+							<td class="text-right">{formatCurrencyWithParentheses(item.balance || 0)}</td>
 						</tr>
 					{/each}
 					<tr class="font-bold">
 						<td>Total (Pendapatan) Biaya Lain-Lain</td>
 						<td class="text-right"
-							>{formatCurrencyWithDecimals(
+							>{formatCurrencyWithParentheses(
 								data.pendapatanBiayaLainLain.reduce((sum, item) => sum + (item.balance || 0), 0)
 							)}</td
 						>
@@ -267,7 +267,7 @@
 
 				<tr class="text-lg font-bold">
 					<td>Net Income</td>
-					<td class="text-right">{formatCurrencyWithDecimals(data.netIncome || 0)}</td>
+					<td class="text-right">{formatCurrencyWithParentheses(data.netIncome || 0)}</td>
 				</tr>
 			</tbody>
 		</table>

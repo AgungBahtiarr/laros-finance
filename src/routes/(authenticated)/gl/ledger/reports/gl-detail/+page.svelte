@@ -2,7 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { browser } from '$app/environment';
 	import ReportFilters from '$lib/components/ReportFilters.svelte';
-	import { formatCurrencyWithDecimals, formatDate } from '$lib/utils/utils.client';
+	import { formatCurrencyWithParentheses, formatDate } from '$lib/utils/utils.client';
 	import { onMount } from 'svelte';
 	import { exportGLDetailToPdf, exportGLDetailToExcel } from '$lib/utils/exports/glDetailExport';
 	import SearchAbleSelect from '$lib/components/SearchAbleSelect.svelte';
@@ -254,7 +254,7 @@
 						<tr class="bg-base-200 font-bold">
 							<td>{accountData.accountCode}</td>
 							<td colspan="4">{accountData.accountName}</td>
-							<td colspan="3">{formatCurrencyWithDecimals(accountData.openingBalance)}</td>
+							<td colspan="3">{formatCurrencyWithParentheses(accountData.openingBalance)}</td>
 						</tr>
 						{#each accountData.transactions as trx}
 							<tr>
@@ -263,16 +263,16 @@
 								<td>{trx.reffNumber}</td>
 								<td>{trx.note}</td>
 								<td>{trx.detailNote}</td>
-								<td class="text-right">{formatCurrencyWithDecimals(trx.debit)}</td>
-								<td class="text-right">{formatCurrencyWithDecimals(trx.credit)}</td>
-								<td class="text-right">{formatCurrencyWithDecimals(trx.balance)}</td>
+								<td class="text-right">{formatCurrencyWithParentheses(trx.debit)}</td>
+								<td class="text-right">{formatCurrencyWithParentheses(trx.credit)}</td>
+								<td class="text-right">{formatCurrencyWithParentheses(trx.balance)}</td>
 							</tr>
 						{/each}
 						<tr class="border-t-2 font-bold">
 							<td colspan="5" class="text-left">Total {accountData.accountCode}</td>
-							<td class="text-right">{formatCurrencyWithDecimals(accountData.totalDebit)}</td>
-							<td class="text-right">{formatCurrencyWithDecimals(accountData.totalCredit)}</td>
-							<td class="text-right">{formatCurrencyWithDecimals(accountData.endingBalance)}</td>
+							<td class="text-right">{formatCurrencyWithParentheses(accountData.totalDebit)}</td>
+							<td class="text-right">{formatCurrencyWithParentheses(accountData.totalCredit)}</td>
+							<td class="text-right">{formatCurrencyWithParentheses(accountData.endingBalance)}</td>
 						</tr>
 					{/each}
 				</tbody>

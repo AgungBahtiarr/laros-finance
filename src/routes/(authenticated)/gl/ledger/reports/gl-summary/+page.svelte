@@ -2,7 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { browser } from '$app/environment';
 	import ReportFilters from '$lib/components/ReportFilters.svelte';
-	import { formatCurrencyWithDecimals } from '$lib/utils/utils.client';
+	import { formatCurrencyWithParentheses } from '$lib/utils/utils.client';
 	import { onMount } from 'svelte';
 	import { exportGLSummaryToPdf, exportGLSummaryToExcel } from '$lib/utils/exports/glSummaryExport';
 
@@ -319,26 +319,26 @@
 						<tr>
 							<td class="font-mono">{row.accountCode}</td>
 							<td>{row.accountName}</td>
-							<td class="text-right">{formatCurrencyWithDecimals(row.beginningBalance)}</td>
-							<td class="text-right">{formatCurrencyWithDecimals(row.changeDebit)}</td>
-							<td class="text-right">{formatCurrencyWithDecimals(row.changeCredit)}</td>
+							<td class="text-right">{formatCurrencyWithParentheses(row.beginningBalance)}</td>
+							<td class="text-right">{formatCurrencyWithParentheses(row.changeDebit)}</td>
+							<td class="text-right">{formatCurrencyWithParentheses(row.changeCredit)}</td>
 							<td class="text-right">
 								<span
 									class={row.netChange > 0 ? 'text-success' : row.netChange < 0 ? 'text-error' : ''}
 								>
-									{formatCurrencyWithDecimals(row.netChange)}
+									{formatCurrencyWithParentheses(row.netChange)}
 								</span>
 							</td>
-							<td class="text-right">{formatCurrencyWithDecimals(row.endingBalance)}</td>
+							<td class="text-right">{formatCurrencyWithParentheses(row.endingBalance)}</td>
 						</tr>
 					{/each}
 				</tbody>
 				<tfoot>
 					<tr class="text-lg font-bold">
 						<td colspan="2">Total</td>
-						<td class="text-right">{formatCurrencyWithDecimals(data.totals.beginningBalance)}</td>
-						<td class="text-right">{formatCurrencyWithDecimals(data.totals.changeDebit)}</td>
-						<td class="text-right">{formatCurrencyWithDecimals(data.totals.changeCredit)}</td>
+						<td class="text-right">{formatCurrencyWithParentheses(data.totals.beginningBalance)}</td>
+						<td class="text-right">{formatCurrencyWithParentheses(data.totals.changeDebit)}</td>
+						<td class="text-right">{formatCurrencyWithParentheses(data.totals.changeCredit)}</td>
 						<td class="text-right">
 							<span
 								class={data.totals.netChange > 0
@@ -347,10 +347,10 @@
 										? 'text-error'
 										: ''}
 							>
-								{formatCurrencyWithDecimals(data.totals.netChange)}
+								{formatCurrencyWithParentheses(data.totals.netChange)}
 							</span>
 						</td>
-						<td class="text-right">{formatCurrencyWithDecimals(data.totals.endingBalance)}</td>
+						<td class="text-right">{formatCurrencyWithParentheses(data.totals.endingBalance)}</td>
 					</tr>
 				</tfoot>
 			</table>

@@ -20,6 +20,56 @@ export function formatCurrencyWithDecimals(amount: number | string | null | unde
 	}).format(num);
 }
 
+export function formatCurrencyWithParentheses(amount: number | string | null | undefined): string {
+	if (amount === null || amount === undefined) return '-';
+	const num = typeof amount === 'string' ? parseFloat(amount) : amount;
+
+	if (num < 0) {
+		// Format positive value and wrap with parentheses
+		const positiveFormatted = new Intl.NumberFormat('id-ID', {
+			style: 'currency',
+			currency: 'IDR',
+			minimumFractionDigits: 2,
+			maximumFractionDigits: 2
+		}).format(Math.abs(num));
+		return `(${positiveFormatted})`;
+	}
+
+	return new Intl.NumberFormat('id-ID', {
+		style: 'currency',
+		currency: 'IDR',
+		minimumFractionDigits: 2,
+		maximumFractionDigits: 2
+	}).format(num);
+}
+
+export function formatCurrencyAdvanced(
+	amount: number | string | null | undefined,
+	options?: { useParentheses?: boolean }
+): string {
+	if (amount === null || amount === undefined) return '-';
+	const num = typeof amount === 'string' ? parseFloat(amount) : amount;
+	const { useParentheses = false } = options || {};
+
+	if (num < 0 && useParentheses) {
+		// Format positive value and wrap with parentheses
+		const positiveFormatted = new Intl.NumberFormat('id-ID', {
+			style: 'currency',
+			currency: 'IDR',
+			minimumFractionDigits: 2,
+			maximumFractionDigits: 2
+		}).format(Math.abs(num));
+		return `(${positiveFormatted})`;
+	}
+
+	return new Intl.NumberFormat('id-ID', {
+		style: 'currency',
+		currency: 'IDR',
+		minimumFractionDigits: 2,
+		maximumFractionDigits: 2
+	}).format(num);
+}
+
 export function calculatePercentage(value: number, total: number): string {
 	if (total === 0) return '0%';
 	return `${((value / total) * 100).toFixed(2)}%`;
