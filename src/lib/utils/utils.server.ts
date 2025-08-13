@@ -148,6 +148,7 @@ export async function getRevenueExpenseAccounts(
 	revenues: AccountBalance[];
 	expenses: AccountBalance[];
 	pendapatan: AccountBalance[];
+	hargaPokok: AccountBalance[];
 	biayaOperasional: AccountBalance[];
 	biayaOperasionalLainnya: AccountBalance[];
 	biayaAdministrasiUmum: AccountBalance[];
@@ -177,6 +178,10 @@ export async function getRevenueExpenseAccounts(
 		.filter((account) => account.groupName === 'Pendapatan')
 		.sort((a, b) => a.code.localeCompare(b.code));
 
+	const hargaPokok = balances
+		.filter((account) => account.groupName === 'Harga Pokok (COGS/HPP)')
+		.sort((a, b) => a.code.localeCompare(b.code));
+
 	const biayaOperasional = balances
 		.filter((account) => account.groupName === 'Biaya Operasional')
 		.sort((a, b) => a.code.localeCompare(b.code));
@@ -197,6 +202,7 @@ export async function getRevenueExpenseAccounts(
 		revenues,
 		expenses,
 		pendapatan,
+		hargaPokok,
 		biayaOperasional,
 		biayaOperasionalLainnya,
 		biayaAdministrasiUmum,

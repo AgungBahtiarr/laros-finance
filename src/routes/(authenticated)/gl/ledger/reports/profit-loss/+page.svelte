@@ -145,12 +145,12 @@
 				{#if data.pendapatan && data.pendapatan.length > 0}
 					{#each data.pendapatan as item}
 						<tr>
-							<td class="pl-{item.level * 4}">{item.name}</td>
+							<td style="padding-left: {item.level * 1.5}rem">{item.name}</td>
 							<td class="text-right">{formatCurrencyWithParentheses(item.balance || 0)}</td>
 						</tr>
 					{/each}
 					<tr class="font-bold">
-						<td>Total Pendapatan</td>
+						<td>Total</td>
 						<td class="text-right"
 							>{formatCurrencyWithParentheses(
 								data.pendapatan.reduce((sum, item) => sum + (item.balance || 0), 0)
@@ -165,6 +165,31 @@
 					</tr>
 				{/if}
 
+				<!-- Harga Pokok (COGS/HPP) -->
+				<tr class="bg-base-200 font-bold">
+					<td colspan={2}>Harga Pokok (COGS/HPP)</td>
+				</tr>
+				{#if data.hargaPokok && data.hargaPokok.length > 0}
+					{#each data.hargaPokok as item}
+						<tr>
+							<td style="padding-left: {item.level * 1.5}rem">{item.name}</td>
+							<td class="text-right">{formatCurrencyWithParentheses(item.balance || 0)}</td>
+						</tr>
+					{/each}
+					<tr class="font-bold">
+						<td>Total</td>
+						<td class="text-right"
+							>{formatCurrencyWithParentheses(
+								data.hargaPokok.reduce((sum, item) => sum + (item.balance || 0), 0)
+							)}</td
+						>
+					</tr>
+				{:else}
+					<tr>
+						<td colspan={2} class="text-center text-gray-500">No data found</td>
+					</tr>
+				{/if}
+
 				<!-- Biaya Operasional -->
 				<tr class="bg-base-200 font-bold">
 					<td colspan={2}>Biaya Operasional</td>
@@ -172,12 +197,12 @@
 				{#if data.biayaOperasional && data.biayaOperasional.length > 0}
 					{#each data.biayaOperasional as item}
 						<tr>
-							<td class="pl-{item.level * 4}">{item.name}</td>
+							<td style="padding-left: {item.level * 1.5}rem">{item.name}</td>
 							<td class="text-right">{formatCurrencyWithParentheses(item.balance || 0)}</td>
 						</tr>
 					{/each}
 					<tr class="font-bold">
-						<td>Total Biaya Operasional</td>
+						<td>Total</td>
 						<td class="text-right"
 							>{formatCurrencyWithParentheses(
 								data.biayaOperasional.reduce((sum, item) => sum + (item.balance || 0), 0)
@@ -197,12 +222,12 @@
 				{#if data.biayaOperasionalLainnya && data.biayaOperasionalLainnya.length > 0}
 					{#each data.biayaOperasionalLainnya as item}
 						<tr>
-							<td class="pl-{item.level * 4}">{item.name}</td>
+							<td style="padding-left: {item.level * 1.5}rem">{item.name}</td>
 							<td class="text-right">{formatCurrencyWithParentheses(item.balance || 0)}</td>
 						</tr>
 					{/each}
 					<tr class="font-bold">
-						<td>Total Biaya Operasional Lainnya</td>
+						<td>Total</td>
 						<td class="text-right"
 							>{formatCurrencyWithParentheses(
 								data.biayaOperasionalLainnya.reduce((sum, item) => sum + (item.balance || 0), 0)
@@ -222,12 +247,12 @@
 				{#if data.biayaAdministrasiUmum && data.biayaAdministrasiUmum.length > 0}
 					{#each data.biayaAdministrasiUmum as item}
 						<tr>
-							<td class="pl-{item.level * 4}">{item.name}</td>
+							<td style="padding-left: {item.level * 1.5}rem">{item.name}</td>
 							<td class="text-right">{formatCurrencyWithParentheses(item.balance || 0)}</td>
 						</tr>
 					{/each}
 					<tr class="font-bold">
-						<td>Total Biaya Administrasi & Umum</td>
+						<td>Total</td>
 						<td class="text-right"
 							>{formatCurrencyWithParentheses(
 								data.biayaAdministrasiUmum.reduce((sum, item) => sum + (item.balance || 0), 0)
@@ -247,12 +272,12 @@
 				{#if data.pendapatanBiayaLainLain && data.pendapatanBiayaLainLain.length > 0}
 					{#each data.pendapatanBiayaLainLain as item}
 						<tr>
-							<td class="pl-{item.level * 4}">{item.name}</td>
+							<td style="padding-left: {item.level * 1.5}rem">{item.name}</td>
 							<td class="text-right">{formatCurrencyWithParentheses(item.balance || 0)}</td>
 						</tr>
 					{/each}
 					<tr class="font-bold">
-						<td>Total (Pendapatan) Biaya Lain-Lain</td>
+						<td>Total</td>
 						<td class="text-right"
 							>{formatCurrencyWithParentheses(
 								data.pendapatanBiayaLainLain.reduce((sum, item) => sum + (item.balance || 0), 0)
