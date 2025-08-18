@@ -70,47 +70,18 @@ function formatForPdf(amount: number): string {
     return num.toLocaleString('id-ID');
 }
 
-function getGroupedRows(
-	accounts: AccountBalance[],
-	showPercentages: boolean,
-	compareWithPrevious: boolean,
-	revenueTotal: number,
-	previousPeriod?: any
-): TableCell[][] {
-	const grouped = accounts.reduce((acc, account) => {
-		const groupName = account.groupName || 'Uncategorized';
-		if (!acc[groupName]) {
-			acc[groupName] = [];
+function getGroupedRows(accounts: AccountBalance[]): TableCell[][] {
+	const rows: TableCell[][] = [];
+
+	accounts.forEach((account) => {
+		if (account.balance !== 0) {
+			const row: TableCell[] = [
+				{ text: account.name, margin: [account.level * 10, 0, 0, 0] },
+				{ text: formatForPdf(account.balance || 0), alignment: 'right' }
+			];
+			rows.push(row);
 		}
-		acc[groupName].push(account);
-		return acc;
-	}, {} as Record<string, AccountBalance[]>);
-
-	let rows: TableCell[][] = [];
-
-	for (const groupName in grouped) {
-		rows.push([
-			{ text: groupName, bold: true, margin: [5, 5, 0, 5], colSpan: getColumnCount(showPercentages, compareWithPrevious), fillColor: '#f5f5f5' },
-			...Array(getColumnCount(showPercentages, compareWithPrevious) - 1).fill({})
-		]);
-
-		let groupTotal = 0;
-		grouped[groupName].forEach(account => {
-			if (account.balance !== 0) {
-				const row: TableCell[] = [
-					{ text: account.name, margin: [account.level * 10, 0, 0, 0] },
-					{ text: formatForPdf(account.balance || 0), alignment: 'right' }
-				];
-				rows.push(row);
-				groupTotal += account.balance || 0;
-			}
-		});
-
-		rows.push([
-			{ text: `Total ${groupName}`, bold: true, alignment: 'right' },
-			{ text: formatForPdf(groupTotal), alignment: 'right', bold: true }
-		]);
-	}
+	});
 
 	return rows;
 }
@@ -152,7 +123,7 @@ export async function exportToPdf(
 		{ title: '(Pendapatan) Biaya Lain-Lain', data: data.pendapatanBiayaLainLain },
 	];
 
-	sections.forEach(section => {
+	sections.forEach((section) => {
 		if (section.data && section.data.length > 0) {
 			tableBody.push([
 				{
@@ -163,7 +134,21 @@ export async function exportToPdf(
 				},
 				...Array(getColumnCount(showPercentages, compareWithPrevious) - 1).fill({})
 			]);
-			tableBody.push(...getGroupedRows(section.data, showPercentages, compareWithPrevious, data.revenueTotals.balance, data.previousPeriod));
+
+			const accountRows = getGroupedRows(section.data);
+			tableBody.push(...accountRows);
+
+			const sectionTotal = section.data.reduce((sum, acc) => sum + (acc.balance || 0), 0);
+			const totalRow: TableCell[] = [
+				{ text: `Total ${section.title}`, bold: true },
+				{ text: formatForPdf(sectionTotal), alignment: 'right', bold: true }
+			];
+
+			const colCount = getColumnCount(showPercentages, compareWithPrevious);
+			while (totalRow.length < colCount) {
+				totalRow.push({ text: '' });
+			}
+			tableBody.push(totalRow);
 		}
 	});
 
@@ -241,7 +226,7 @@ export async function exportToExcel(
 	wsData.push([`Periode: ${dateRange.start} sampai ${dateRange.end}`]);
 	wsData.push([]);
 
-	const headers = ['Akun', 'Periode Sekarang'];
+	const headers = ['Account', 'Current Periode'];
 	wsData.push(headers);
 
 	const sections = [
@@ -298,8 +283,8 @@ function getColumnCount(showPercentages: boolean, compareWithPrevious: boolean):
 
 function getTableHeaders(showPercentages: boolean, compareWithPrevious: boolean): TableCell[] {
 	const headers: TableCell[] = [
-		{ text: 'Akun', bold: true },
-		{ text: 'Periode Sekarang', alignment: 'right', bold: true }
+		{ text: 'Account', bold: true },
+		{ text: 'Current Periode', alignment: 'right', bold: true }
 	];
 	if (showPercentages) headers.push({ text: '% dari Pendapatan', alignment: 'right', bold: true });
 	if (compareWithPrevious) {
