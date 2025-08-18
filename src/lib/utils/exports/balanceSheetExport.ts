@@ -473,6 +473,27 @@ function calculateChange(current: number, previous: number): { value: number; di
 	};
 }
 
+function formatForPdf(amount: number): string {
+	if (amount === null || amount === undefined) return '-';
+	const num = Number(amount);
+	if (num < 0) {
+		return `(${Math.abs(num).toLocaleString('id-ID')})`;
+	}
+	return num.toLocaleString('id-ID');
+}
+
+function calculateChangeForPdf(
+	current: number,
+	previous: number
+): { value: number; display: string } {
+	const change = current - previous;
+	const percentChange = previous !== 0 ? (change / Math.abs(previous)) * 100 : 0;
+	return {
+		value: change,
+		display: `${formatForPdf(change)} (${percentChange.toFixed(2)}%)`
+	};
+}
+
 function getAssetRows(
 	assets: AccountBalance[],
 	data: BalanceSheetData,
@@ -483,7 +504,7 @@ function getAssetRows(
 	return assets.map((asset) => {
 		const row: TableCell[] = [
 			{ text: asset.name, margin: [asset.level * 10, 0, 0, 0] },
-			{ text: formatCurrency(asset.balance || 0), alignment: 'right' }
+			{ text: formatForPdf(asset.balance || 0), alignment: 'right' }
 		];
 
 		if (showPercentages) {
@@ -496,7 +517,7 @@ function getAssetRows(
 		if (compareWithPrevious && data.previousPeriod) {
 			const prevAsset = data.previousPeriod[type]?.find((a) => a.id === asset.id);
 			row.push({
-				text: prevAsset ? formatCurrency(prevAsset.balance || 0) : '-',
+				text: prevAsset ? formatForPdf(prevAsset.balance || 0) : '-',
 				alignment: 'right'
 			});
 
@@ -509,7 +530,7 @@ function getAssetRows(
 			}
 
 			if (prevAsset) {
-				const change = calculateChange(asset.balance || 0, prevAsset.balance || 0);
+				const change = calculateChangeForPdf(asset.balance || 0, prevAsset.balance || 0);
 				row.push({
 					text: change.display,
 					alignment: 'right',
@@ -534,7 +555,7 @@ function getLiabilityRows(
 	return liabilities.map((liability) => {
 		const row: TableCell[] = [
 			{ text: liability.name, margin: [liability.level * 10, 0, 0, 0] },
-			{ text: formatCurrency(liability.balance || 0), alignment: 'right' }
+			{ text: formatForPdf(liability.balance || 0), alignment: 'right' }
 		];
 
 		if (showPercentages) {
@@ -547,7 +568,7 @@ function getLiabilityRows(
 		if (compareWithPrevious && data.previousPeriod) {
 			const prevLiability = data.previousPeriod[type]?.find((l) => l.id === liability.id);
 			row.push({
-				text: prevLiability ? formatCurrency(prevLiability.balance || 0) : '-',
+				text: prevLiability ? formatForPdf(prevLiability.balance || 0) : '-',
 				alignment: 'right'
 			});
 
@@ -560,7 +581,7 @@ function getLiabilityRows(
 			}
 
 			if (prevLiability) {
-				const change = calculateChange(liability.balance || 0, prevLiability.balance || 0);
+				const change = calculateChangeForPdf(liability.balance || 0, prevLiability.balance || 0);
 				row.push({
 					text: change.display,
 					alignment: 'right',
@@ -584,7 +605,7 @@ function getEquityRows(
 	return equity.map((item) => {
 		const row: TableCell[] = [
 			{ text: item.name, margin: [item.level * 10, 0, 0, 0] },
-			{ text: formatCurrency(item.balance || 0), alignment: 'right' }
+			{ text: formatForPdf(item.balance || 0), alignment: 'right' }
 		];
 
 		if (showPercentages) {
@@ -597,7 +618,7 @@ function getEquityRows(
 		if (compareWithPrevious && data.previousPeriod) {
 			const prevEquity = data.previousPeriod.modal?.find((e) => e.id === item.id);
 			row.push({
-				text: prevEquity ? formatCurrency(prevEquity.balance || 0) : '-',
+				text: prevEquity ? formatForPdf(prevEquity.balance || 0) : '-',
 				alignment: 'right'
 			});
 
@@ -610,7 +631,7 @@ function getEquityRows(
 			}
 
 			if (prevEquity) {
-				const change = calculateChange(item.balance || 0, prevEquity.balance || 0);
+				const change = calculateChangeForPdf(item.balance || 0, prevEquity.balance || 0);
 				row.push({
 					text: change.display,
 					alignment: 'right',
@@ -632,7 +653,7 @@ function getTotalAssetsRow(
 ): TableCell[] {
 	const row: TableCell[] = [
 		{ text: 'Total Aktiva (Total Assets)', style: 'total', bold: true },
-		{ text: formatCurrency(data.totalAktiva.balance), alignment: 'right', style: 'total' }
+		{ text: formatForPdf(data.totalAktiva.balance), alignment: 'right', style: 'total' }
 	];
 
 	if (showPercentages) {
@@ -646,13 +667,13 @@ function getTotalAssetsRow(
 			...data.previousPeriod.aktivaLainnya
 		].reduce((sum, a) => sum + (a.balance || 0), 0);
 
-		row.push({ text: formatCurrency(prevTotal), alignment: 'right', style: 'total' });
+		row.push({ text: formatForPdf(prevTotal), alignment: 'right', style: 'total' });
 
 		if (showPercentages) {
 			row.push({ text: '100%', alignment: 'right', style: 'total' });
 		}
 
-		const change = calculateChange(data.totalAktiva.balance, prevTotal);
+		const change = calculateChangeForPdf(data.totalAktiva.balance, prevTotal);
 		row.push({
 			text: change.display,
 			alignment: 'right',
@@ -671,7 +692,7 @@ function getTotalPasivaRow(
 ): TableCell[] {
 	const row: TableCell[] = [
 		{ text: 'Total Pasiva (Total Liabilities & Equity)', style: 'total', bold: true },
-		{ text: formatCurrency(data.totalPasiva.balance), alignment: 'right', style: 'total' }
+		{ text: formatForPdf(data.totalPasiva.balance), alignment: 'right', style: 'total' }
 	];
 
 	if (showPercentages) {
@@ -685,13 +706,13 @@ function getTotalPasivaRow(
 			...data.previousPeriod.modal
 		].reduce((sum, p) => sum + (p.balance || 0), 0);
 
-		row.push({ text: formatCurrency(prevTotal), alignment: 'right', style: 'total' });
+		row.push({ text: formatForPdf(prevTotal), alignment: 'right', style: 'total' });
 
 		if (showPercentages) {
 			row.push({ text: '100%', alignment: 'right', style: 'total' });
 		}
 
-		const change = calculateChange(data.totalPasiva.balance, prevTotal);
+		const change = calculateChangeForPdf(data.totalPasiva.balance, prevTotal);
 		row.push({
 			text: change.display,
 			alignment: 'right',
