@@ -46,6 +46,16 @@ interface GLSummaryData {
 	};
 }
 
+function formatForPdf(amount: number): string {
+	if (amount === null || amount === undefined) return '-';
+	const num = Number(amount);
+	if (num === 0) return '0';
+	if (num < 0) {
+		return `(${Math.abs(num).toLocaleString('id-ID')})`;
+	}
+	return num.toLocaleString('id-ID');
+}
+
 export async function exportGLSummaryToPdf(
 	data: GLSummaryData,
 	dateRange: { start: string; end: string }
@@ -70,6 +80,7 @@ export async function exportGLSummaryToPdf(
 	}
 
 	const docDefinition: TDocumentDefinitions = {
+		pageOrientation: 'landscape',
 		content: [
 			{ text: 'General Ledger Summary', style: 'header' },
 			{
@@ -85,7 +96,7 @@ export async function exportGLSummaryToPdf(
 			{
 				table: {
 					headerRows: 1,
-					widths: ['*', '*', 'auto', 'auto', 'auto', 'auto', 'auto'],
+					widths: ['auto', '*', 'auto', 'auto', 'auto', 'auto', 'auto'],
 					body: [
 						// Headers
 						[
@@ -101,38 +112,38 @@ export async function exportGLSummaryToPdf(
 						...data.summaryData.map((account) => [
 							{ text: account.accountCode },
 							{ text: account.accountName },
-							{ text: formatCurrency(account.beginningBalance), alignment: 'right' },
-							{ text: formatCurrency(account.changeDebit), alignment: 'right' },
-							{ text: formatCurrency(account.changeCredit), alignment: 'right' },
+							{ text: formatForPdf(account.beginningBalance), alignment: 'right' },
+							{ text: formatForPdf(account.changeDebit), alignment: 'right' },
+							{ text: formatForPdf(account.changeCredit), alignment: 'right' },
 							{
-								text: formatCurrency(account.netChange),
+								text: formatForPdf(account.netChange),
 								alignment: 'right',
 								fillColor:
 									account.netChange > 0 ? '#e6ffe6' : account.netChange < 0 ? '#ffe6e6' : undefined
 							},
-							{ text: formatCurrency(account.endingBalance), alignment: 'right' }
+							{ text: formatForPdf(account.endingBalance), alignment: 'right' }
 						]),
 						// Total row
 						[
 							{ text: 'Total', colSpan: 2, bold: true },
 							{},
 							{
-								text: formatCurrency(data.totals.beginningBalance),
+								text: formatForPdf(data.totals.beginningBalance),
 								alignment: 'right',
 								bold: true
 							},
 							{
-								text: formatCurrency(data.totals.changeDebit),
+								text: formatForPdf(data.totals.changeDebit),
 								alignment: 'right',
 								bold: true
 							},
 							{
-								text: formatCurrency(data.totals.changeCredit),
+								text: formatForPdf(data.totals.changeCredit),
 								alignment: 'right',
 								bold: true
 							},
 							{
-								text: formatCurrency(data.totals.netChange),
+								text: formatForPdf(data.totals.netChange),
 								alignment: 'right',
 								bold: true,
 								fillColor:
@@ -143,7 +154,7 @@ export async function exportGLSummaryToPdf(
 											: undefined
 							},
 							{
-								text: formatCurrency(data.totals.endingBalance),
+								text: formatForPdf(data.totals.endingBalance),
 								alignment: 'right',
 								bold: true
 							}
@@ -165,7 +176,7 @@ export async function exportGLSummaryToPdf(
 			}
 		},
 		defaultStyle: {
-			fontSize: 10
+			fontSize: 8
 		}
 	};
 
