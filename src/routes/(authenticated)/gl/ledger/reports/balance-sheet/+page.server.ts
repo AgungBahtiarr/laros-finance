@@ -69,42 +69,100 @@ export const load: PageServerLoad = async (event) => {
 		expenses.reduce((sum, acc) => sum + acc.balance, 0);
 
 	// Kategorisasi Aktiva
-	const aktivaLancar = assets.filter(
-		(acc) =>
-			acc.groupName === 'Aktiva Lancar' ||
-			acc.name.toLowerCase().includes('kas') ||
-			acc.name.toLowerCase().includes('bank') ||
-			acc.name.toLowerCase().includes('piutang') ||
-			acc.name.toLowerCase().includes('persediaan')
-	);
+	const aktivaLancar: AccountBalance[] = [];
+	const aktivaTetap: AccountBalance[] = [];
+	const akumulasiPenyusutan: AccountBalance[] = [];
+	const aktivaLainnya: AccountBalance[] = [];
 
-	const aktivaTetap = assets.filter(
-		(acc) =>
-			acc.groupName === 'Aktiva Tetap' ||
-			acc.name.toLowerCase().includes('tanah') ||
-			acc.name.toLowerCase().includes('bangunan') ||
-			acc.name.toLowerCase().includes('kendaraan') ||
-			acc.name.toLowerCase().includes('peralatan')
-	);
+	assets.forEach((acc) => {
+		// Prioritize groupName for categorization
+		switch (acc.groupName) {
+			case 'Aktiva Lancar':
+				aktivaLancar.push(acc);
+				break;
+			case 'Aktiva Tetap':
+				aktivaTetap.push(acc);
+				break;
+			case 'Akumulasi Penyusutan':
+				akumulasiPenyusutan.push(acc);
+				break;
+			case 'Aktiva Lain-Lain':
+				aktivaLainnya.push(acc);
+				break;
+			default:
+				// Fallback for accounts without a groupName or with an unexpected one.
+				const name = acc.name.toLowerCase();
+				if (
+					name.includes('kas') ||
+					name.includes('bank') ||
+					name.includes('piutang') ||
+					name.includes('persediaan')
+				) {
+					aktivaLancar.push(acc);
+				} else if (
+					name.includes('tanah') ||
+					name.includes('bangunan') ||
+					name.includes('kendaraan') ||
+					name.includes('peralatan')
+				) {
+					// Exception for 'Uang Jaminan Kendaraan' which should be in 'Aktiva Lainnya'
+					if (name.includes('uang jaminan')) {
+						aktivaLainnya.push(acc);
+					} else {
+						aktivaTetap.push(acc);
+					}
+				} else {
+					aktivaLainnya.push(acc); // Default catch-all
+				}
+				break;
+		}
+	});
 
-	const aktivaLainnya = assets.filter(
-		(acc) =>
-			acc.groupName === 'Aktiva Lain-Lain' ||
-			(!aktivaLancar.find((a) => a.id === acc.id) && !aktivaTetap.find((a) => a.id === acc.id))
+	// Isolate special accounts from liabilities
+	const pendapatanDiterimaDiMuka = liabilities.find(
+		(acc) => acc.name.toLowerCase() === 'pendapatan diterima dimuka'
+	);
+	const otherLiabilities = liabilities.filter(
+		(acc) => acc.name.toLowerCase() !== 'pendapatan diterima dimuka'
 	);
 
 	// Kategorisasi Pasiva
-	const hutangLancar = liabilities.filter(
-		(acc) =>
-			acc.groupName === 'Hutang Lancar' ||
-			acc.name.toLowerCase().includes('hutang dagang') ||
-			acc.name.toLowerCase().includes('hutang usaha') ||
-			acc.name.toLowerCase().includes('hutang pajak')
-	);
+	const hutangLancar: AccountBalance[] = [];
+	const biayaYMHDB: AccountBalance[] = [];
+	const pajakYMHDB: AccountBalance[] = [];
+	const hutangJangkaPanjang: AccountBalance[] = [];
 
-	const hutangJangkaPanjang = liabilities.filter(
-		(acc) => acc.groupName === 'Hutang Jangka Panjang' || !hutangLancar.find((h) => h.id === acc.id)
-	);
+	otherLiabilities.forEach((acc) => {
+		switch (acc.groupName) {
+			case 'Hutang Lancar':
+				hutangLancar.push(acc);
+				break;
+			case 'Biaya Yang Masih Harus Dibayar':
+				biayaYMHDB.push(acc);
+				break;
+			case 'Pajak Yang Masih Harus Dibayar':
+				pajakYMHDB.push(acc);
+				break;
+			case 'Hutang Jangka Panjang':
+				hutangJangkaPanjang.push(acc);
+				break;
+			default:
+				// Fallback for safety. Some equity accounts might be miscategorized as liabilities upstream.
+				// We will ignore them here to prevent duplication, as they are handled correctly in the 'equity' array.
+				const name = acc.name.toLowerCase();
+				if (
+					name.includes('modal') ||
+					name.includes('laba') ||
+					name.includes('ikhtisar')
+				) {
+					// Ignore equity-related accounts found in the liabilities list.
+				} else {
+					// For other unknown liabilities, assume they are current liabilities.
+					hutangLancar.push(acc);
+				}
+				break;
+		}
+	});
 
 	// Calculate subtotals
 	const totalAktivaLancar = {
@@ -113,49 +171,47 @@ export const load: PageServerLoad = async (event) => {
 	const totalAktivaTetap = {
 		balance: aktivaTetap.reduce((sum, acc) => sum + acc.balance, 0)
 	};
+	const totalAkumulasiPenyusutan = {
+		balance: akumulasiPenyusutan.reduce((sum, acc) => sum + acc.balance, 0)
+	};
 	const totalAktivaLainnya = {
 		balance: aktivaLainnya.reduce((sum, acc) => sum + acc.balance, 0)
 	};
 	const totalHutangLancar = {
 		balance: hutangLancar.reduce((sum, acc) => sum + acc.balance, 0)
 	};
+	const totalBiayaYMHDB = { balance: biayaYMHDB.reduce((sum, acc) => sum + acc.balance, 0) };
+	const totalPajakYMHDB = { balance: pajakYMHDB.reduce((sum, acc) => sum + acc.balance, 0) };
 	const totalHutangJangkaPanjang = {
 		balance: hutangJangkaPanjang.reduce((sum, acc) => sum + acc.balance, 0)
 	};
+
+	// Filter out Laba Rugi from equity accounts to prevent double counting
+	const modalAccounts = equity.filter((acc) => !acc.name.toLowerCase().includes('laba (rugi) berjalan'));
 	const totalModal = {
-		balance: equity.reduce((sum, acc) => sum + acc.balance, 0)
+		balance: modalAccounts.reduce((sum, acc) => sum + acc.balance, 0)
 	};
 
 	// Calculate totals
+	const allAssets = [...aktivaLancar, ...aktivaTetap, ...akumulasiPenyusutan, ...aktivaLainnya];
 	const totalAktiva = {
-		debit: [...aktivaLancar, ...aktivaTetap, ...aktivaLainnya].reduce(
-			(sum, acc) => sum + acc.debit,
-			0
-		),
-		credit: [...aktivaLancar, ...aktivaTetap, ...aktivaLainnya].reduce(
-			(sum, acc) => sum + acc.credit,
-			0
-		),
-		balance: [...aktivaLancar, ...aktivaTetap, ...aktivaLainnya].reduce(
-			(sum, acc) => sum + acc.balance,
-			0
-		)
+		debit: allAssets.reduce((sum, acc) => sum + acc.debit, 0),
+		credit: allAssets.reduce((sum, acc) => sum + acc.credit, 0),
+		balance: allAssets.reduce((sum, acc) => sum + acc.balance, 0)
 	};
 
+	const allPasivaAccounts = [
+		...hutangLancar,
+		...biayaYMHDB,
+		...pajakYMHDB,
+		...hutangJangkaPanjang,
+		...(pendapatanDiterimaDiMuka ? [pendapatanDiterimaDiMuka] : []),
+		...modalAccounts
+	];
 	const totalPasiva = {
-		debit: [...hutangLancar, ...hutangJangkaPanjang, ...equity].reduce(
-			(sum, acc) => sum + acc.debit,
-			0
-		),
-		credit: [...hutangLancar, ...hutangJangkaPanjang, ...equity].reduce(
-			(sum, acc) => sum + acc.credit,
-			0
-		),
-		balance:
-			[...hutangLancar, ...hutangJangkaPanjang, ...equity].reduce(
-				(sum, acc) => sum + acc.balance,
-				0
-			) + netIncome
+		debit: allPasivaAccounts.reduce((sum, acc) => sum + acc.debit, 0),
+		credit: allPasivaAccounts.reduce((sum, acc) => sum + acc.credit, 0),
+		balance: allPasivaAccounts.reduce((sum, acc) => sum + acc.balance, 0) + netIncome
 	};
 
 	return {
@@ -163,15 +219,22 @@ export const load: PageServerLoad = async (event) => {
 		totalAktivaLancar,
 		aktivaTetap,
 		totalAktivaTetap,
+		akumulasiPenyusutan,
+		totalAkumulasiPenyusutan,
 		aktivaLainnya,
 		totalAktivaLainnya,
 		totalAktiva,
 		hutangLancar,
 		totalHutangLancar,
+		biayaYMHDB,
+		totalBiayaYMHDB,
+		pajakYMHDB,
+		totalPajakYMHDB,
 		hutangJangkaPanjang,
 		totalHutangJangkaPanjang,
-		modal: equity,
+		modal: modalAccounts,
 		totalModal,
+		pendapatanDiterimaDiMuka,
 		totalPasiva,
 		netIncome,
 		periods,

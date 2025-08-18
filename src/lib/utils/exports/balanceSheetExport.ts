@@ -39,6 +39,8 @@ interface BalanceSheetData {
 	totalAktivaLancar: { balance: number };
 	aktivaTetap: AccountBalance[];
 	totalAktivaTetap: { balance: number };
+	akumulasiPenyusutan: AccountBalance[];
+	totalAkumulasiPenyusutan: { balance: number };
 	aktivaLainnya: AccountBalance[];
 	totalAktivaLainnya: { balance: number };
 	totalAktiva: {
@@ -48,10 +50,15 @@ interface BalanceSheetData {
 	};
 	hutangLancar: AccountBalance[];
 	totalHutangLancar: { balance: number };
+	biayaYMHDB: AccountBalance[];
+	totalBiayaYMHDB: { balance: number };
+	pajakYMHDB: AccountBalance[];
+	totalPajakYMHDB: { balance: number };
 	hutangJangkaPanjang: AccountBalance[];
 	totalHutangJangkaPanjang: { balance: number };
 	modal: AccountBalance[];
 	totalModal: { balance: number };
+	netIncome: number;
 	totalPasiva: {
 		debit: number;
 		credit: number;
@@ -60,6 +67,7 @@ interface BalanceSheetData {
 	previousPeriod?: {
 		aktivaLancar: AccountBalance[];
 		aktivaTetap: AccountBalance[];
+		akumulasiPenyusutan: AccountBalance[];
 		aktivaLainnya: AccountBalance[];
 		hutangLancar: AccountBalance[];
 		hutangJangkaPanjang: AccountBalance[];
@@ -101,6 +109,123 @@ export async function exportBalanceSheetToPdf(
 			checkPdfMake();
 		});
 	}
+
+	const pasivaRows: TableCell[][] = [
+		// Current Liabilities
+		[
+			{
+				text: 'Hutang Lancar (Current Liabilities)',
+				style: 'sectionHeader',
+				margin: [10, 2, 0, 2],
+				colSpan: getColumnCount(showPercentages, compareWithPrevious),
+				fillColor: '#f5f5f5'
+			},
+			...Array(getColumnCount(showPercentages, compareWithPrevious) - 1).fill({})
+		],
+		...getLiabilityRows(
+			data.hutangLancar,
+			data,
+			'hutangLancar',
+			showPercentages,
+			compareWithPrevious
+		),
+		getSubTotalRow(
+			'Total Hutang Lancar',
+			data.totalHutangLancar.balance,
+			showPercentages,
+			compareWithPrevious
+		),
+		// Accrued Expenses
+		[
+			{
+				text: 'Biaya Yang Masih Harus Dibayar',
+				style: 'sectionHeader',
+				margin: [10, 2, 0, 2],
+				colSpan: getColumnCount(showPercentages, compareWithPrevious),
+				fillColor: '#f5f5f5'
+			},
+			...Array(getColumnCount(showPercentages, compareWithPrevious) - 1).fill({})
+		],
+		...getLiabilityRows(data.biayaYMHDB, data, 'biayaYMHDB', showPercentages, compareWithPrevious),
+		getSubTotalRow(
+			'Total Biaya YMH Dibayar',
+			data.totalBiayaYMHDB.balance,
+			showPercentages,
+			compareWithPrevious
+		),
+		// Accrued Taxes
+		[
+			{
+				text: 'Pajak Yang Masih Harus Dibayar',
+				style: 'sectionHeader',
+				margin: [10, 2, 0, 2],
+				colSpan: getColumnCount(showPercentages, compareWithPrevious),
+				fillColor: '#f5f5f5'
+			},
+			...Array(getColumnCount(showPercentages, compareWithPrevious) - 1).fill({})
+		],
+		...getLiabilityRows(data.pajakYMHDB, data, 'pajakYMHDB', showPercentages, compareWithPrevious),
+		getSubTotalRow(
+			'Total Pajak YMH Dibayar',
+			data.totalPajakYMHDB.balance,
+			showPercentages,
+			compareWithPrevious
+		),
+		// Long-term Liabilities
+		[
+			{
+				text: 'Hutang Jangka Panjang (Long-term Liabilities)',
+				style: 'sectionHeader',
+				margin: [10, 2, 0, 2],
+				colSpan: getColumnCount(showPercentages, compareWithPrevious),
+				fillColor: '#f5f5f5'
+			},
+			...Array(getColumnCount(showPercentages, compareWithPrevious) - 1).fill({})
+		],
+		...getLiabilityRows(
+			data.hutangJangkaPanjang,
+			data,
+			'hutangJangkaPanjang',
+			showPercentages,
+			compareWithPrevious
+		),
+		getSubTotalRow(
+			'Total Hutang Jangka Panjang',
+			data.totalHutangJangkaPanjang.balance,
+			showPercentages,
+			compareWithPrevious
+		),
+		// Equity
+		[
+			{
+				text: 'Modal (Equity)',
+				style: 'sectionHeader',
+				margin: [10, 2, 0, 2],
+				colSpan: getColumnCount(showPercentages, compareWithPrevious),
+				fillColor: '#f5f5f5'
+			},
+			...Array(getColumnCount(showPercentages, compareWithPrevious) - 1).fill({})
+		],
+		...getEquityRows(data.modal, data, showPercentages, compareWithPrevious),
+		getSubTotalRow('Total Modal', data.totalModal.balance, showPercentages, compareWithPrevious)
+	];
+
+    pasivaRows.push(
+        getStandaloneRow(
+            'Pendapatan diterima dimuka',
+            showPercentages,
+            compareWithPrevious
+        )
+    );
+
+	pasivaRows.push(
+		getStandaloneRow(
+			'Laba (Rugi) Berjalan',
+			data.netIncome,
+			showPercentages,
+			compareWithPrevious
+		)
+	);
 
 	const body: TableCell[][] = [
 		getTableHeaders(showPercentages, compareWithPrevious),
@@ -150,6 +275,30 @@ export async function exportBalanceSheetToPdf(
 			showPercentages,
 			compareWithPrevious
 		),
+		// Accumulation Depreciation
+		[
+			{
+				text: 'Akumulasi Penyusutan',
+				style: 'sectionHeader',
+				margin: [10, 2, 0, 2],
+				colSpan: getColumnCount(showPercentages, compareWithPrevious),
+				fillColor: '#f5f5f5'
+			},
+			...Array(getColumnCount(showPercentages, compareWithPrevious) - 1).fill({})
+		],
+		...getAssetRows(
+			data.akumulasiPenyusutan,
+			data,
+			'akumulasiPenyusutan',
+			showPercentages,
+			compareWithPrevious
+		),
+		getSubTotalRow(
+			'Total Akumulasi Penyusutan',
+			data.totalAkumulasiPenyusutan.balance,
+			showPercentages,
+			compareWithPrevious
+		),
 		// Other Assets
 		[
 			{
@@ -186,67 +335,7 @@ export async function exportBalanceSheetToPdf(
 			},
 			...Array(getColumnCount(showPercentages, compareWithPrevious) - 1).fill({})
 		],
-		// Current Liabilities
-		[
-			{
-				text: 'Hutang Lancar (Current Liabilities)',
-				style: 'sectionHeader',
-				margin: [10, 2, 0, 2],
-				colSpan: getColumnCount(showPercentages, compareWithPrevious),
-				fillColor: '#f5f5f5'
-			},
-			...Array(getColumnCount(showPercentages, compareWithPrevious) - 1).fill({})
-		],
-		...getLiabilityRows(
-			data.hutangLancar,
-			data,
-			'hutangLancar',
-			showPercentages,
-			compareWithPrevious
-		),
-		getSubTotalRow(
-			'Total Hutang Lancar',
-			data.totalHutangLancar.balance,
-			showPercentages,
-			compareWithPrevious
-		),
-		// Long-term Liabilities
-		[
-			{
-				text: 'Hutang Jangka Panjang (Long-term Liabilities)',
-				style: 'sectionHeader',
-				margin: [10, 2, 0, 2],
-				colSpan: getColumnCount(showPercentages, compareWithPrevious),
-				fillColor: '#f5f5f5'
-			},
-			...Array(getColumnCount(showPercentages, compareWithPrevious) - 1).fill({})
-		],
-		...getLiabilityRows(
-			data.hutangJangkaPanjang,
-			data,
-			'hutangJangkaPanjang',
-			showPercentages,
-			compareWithPrevious
-		),
-		getSubTotalRow(
-			'Total Hutang Jangka Panjang',
-			data.totalHutangJangkaPanjang.balance,
-			showPercentages,
-			compareWithPrevious
-		),
-		// Equity
-		[
-			{
-				text: 'Modal (Equity)',
-				style: 'sectionHeader',
-				margin: [10, 2, 0, 2],
-				colSpan: getColumnCount(showPercentages, compareWithPrevious),
-				fillColor: '#f5f5f5'
-			},
-			...Array(getColumnCount(showPercentages, compareWithPrevious) - 1).fill({})
-		],
-		...getEquityRows(data.modal, data, showPercentages, compareWithPrevious),
-		getSubTotalRow('Total Modal', data.totalModal.balance, showPercentages, compareWithPrevious),
+		...pasivaRows,
 		// Total Liabilities and Equity
 		getTotalPasivaRow(data, showPercentages, compareWithPrevious)
 	];
@@ -368,6 +457,22 @@ export async function exportBalanceSheetToExcel(
 	);
 	wsData.push(['      ' + 'Total Aktiva Tetap', formatCurrency(data.totalAktivaTetap.balance)]);
 
+	// Akumulasi Penyusutan
+	wsData.push(['    ' + 'Akumulasi Penyusutan']);
+	addAccountsToWorksheet(
+		wsData,
+		data.akumulasiPenyusutan,
+		data.totalAktiva.balance,
+		'akumulasiPenyusutan',
+		data,
+		showPercentages,
+		compareWithPrevious
+	);
+	wsData.push([
+		'      ' + 'Total Akumulasi Penyusutan',
+		formatCurrency(data.totalAkumulasiPenyusutan.balance)
+	]);
+
 	// Other Assets
 	wsData.push(['    ' + 'Aktiva Lainnya (Other Assets)']);
 	addAccountsToWorksheet(
@@ -414,6 +519,38 @@ export async function exportBalanceSheetToExcel(
 		formatCurrency(data.totalHutangLancar.balance)
 	]);
 
+	// Accrued Expenses
+	wsData.push(['    ' + 'Biaya Yang Masih Harus Dibayar']);
+	addAccountsToWorksheet(
+		wsData,
+		data.biayaYMHDB,
+		data.totalPasiva.balance,
+		'biayaYMHDB',
+		data,
+		showPercentages,
+		compareWithPrevious
+	);
+	wsData.push([
+		'      ' + 'Total Biaya Yang Masih Harus Dibayar',
+		formatCurrency(data.totalBiayaYMHDB.balance)
+	]);
+
+	// Accrued Taxes
+	wsData.push(['    ' + 'Pajak Yang Masih Harus Dibayar']);
+	addAccountsToWorksheet(
+		wsData,
+		data.pajakYMHDB,
+		data.totalPasiva.balance,
+		'pajakYMHDB',
+		data,
+		showPercentages,
+		compareWithPrevious
+	);
+	wsData.push([
+		'      ' + 'Total Pajak Yang Masih Harus Dibayar',
+		formatCurrency(data.totalPajakYMHDB.balance)
+	]);
+
 	// Long-term Liabilities
 	wsData.push(['    ' + 'Hutang Jangka Panjang (Long-term Liabilities)']);
 	addAccountsToWorksheet(
@@ -443,6 +580,8 @@ export async function exportBalanceSheetToExcel(
 	);
 	wsData.push(['      ' + 'Total Modal', formatCurrency(data.totalModal.balance)]);
 
+	wsData.push(['    ' + 'Laba (Rugi) Berjalan', formatCurrency(data.netIncome)]);
+
 	// Total Liabilities and Equity
 	addTotalToWorksheet(
 		wsData,
@@ -464,11 +603,11 @@ export async function exportBalanceSheetToExcel(
 	ws['!cols'] = [
 		{ wch: 40 }, // Account name
 		{ wch: 15 }, // Balance
-		...(showPercentages ? [{ wch: 12 }] : []), // % of Total
+		...(showPercentages ? [{ wch: 12 }] : []),
 		...(compareWithPrevious
 			? [
 					{ wch: 15 }, // Previous Period
-					...(showPercentages ? [{ wch: 12 }] : []), // Previous % of Total
+					...(showPercentages ? [{ wch: 12 }] : []),
 					{ wch: 20 } // Change
 			  ]
 			: [])
@@ -553,6 +692,24 @@ function calculateChangeForPdf(
 	};
 }
 
+function getStandaloneRow(
+	label: string,
+	total: number,
+	showPercentages: boolean,
+	compareWithPrevious: boolean
+): TableCell[] {
+	const row: TableCell[] = [
+		{ text: label, bold: true, margin: [10, 2, 0, 2] },
+		{ text: formatForPdf(total), alignment: 'right', bold: true }
+	];
+
+	const colCount = getColumnCount(showPercentages, compareWithPrevious);
+	while (row.length < colCount) {
+		row.push({ text: '' });
+	}
+	return row;
+}
+
 function getSubTotalRow(
 	label: string,
 	total: number,
@@ -574,7 +731,7 @@ function getSubTotalRow(
 function getAssetRows(
 	assets: AccountBalance[],
 	data: BalanceSheetData,
-	type: 'aktivaLancar' | 'aktivaTetap' | 'aktivaLainnya',
+	type: 'aktivaLancar' | 'aktivaTetap' | 'akumulasiPenyusutan' | 'aktivaLainnya',
 	showPercentages: boolean,
 	compareWithPrevious: boolean
 ): TableCell[][] {
@@ -625,7 +782,7 @@ function getAssetRows(
 function getLiabilityRows(
 	liabilities: AccountBalance[],
 	data: BalanceSheetData,
-	type: 'hutangLancar' | 'hutangJangkaPanjang',
+	type: 'hutangLancar' | 'hutangJangkaPanjang' | 'biayaYMHDB' | 'pajakYMHDB',
 	showPercentages: boolean,
 	compareWithPrevious: boolean
 ): TableCell[][] {

@@ -54,7 +54,7 @@
 			{#if journalType && journalType !== 'all'}
 				<div class="mt-2">
 					<div class="badge badge-info">
-						Filter: {journalType === 'commitment'
+						{journalType === 'commitment'
 							? 'Hanya Komitmen'
 							: journalType === 'breakdown'
 								? 'Hanya Breakdown'
@@ -195,6 +195,30 @@
 							>
 						</tr>
 					{/if}
+					<!-- Akumulasi Penyusutan -->
+					<tr class="bg-base-200 font-bold">
+						<td class="pl-4" colspan={2}>Akumulasi Penyusutan</td>
+					</tr>
+					{#if data.akumulasiPenyusutan && data.akumulasiPenyusutan.length > 0}
+						{#each data.akumulasiPenyusutan as asset}
+							<tr>
+								<td class="pl-6">{asset.name}</td>
+								<td class="text-right">{formatCurrencyWithParentheses(asset.balance || 0)}</td>
+							</tr>
+						{/each}
+						<tr class="font-semibold">
+							<td class="pl-6">Total Akumulasi Penyusutan</td>
+							<td class="text-right">
+								{formatCurrencyWithParentheses(data.totalAkumulasiPenyusutan.balance || 0)}
+							</td>
+						</tr>
+					{:else}
+						<tr>
+							<td colspan={2} class="text-center text-gray-500"
+								>No accumulated depreciation found for the selected period</td
+							>
+						</tr>
+					{/if}
 					<!-- Aktiva Lainnya -->
 					<tr class="bg-base-200 font-bold">
 						<td class="pl-4" colspan={2}>Aktiva Lainnya (Other Assets)</td>
@@ -263,6 +287,54 @@
 							>
 						</tr>
 					{/if}
+					<!-- Biaya YMH Dibayar -->
+					<tr class="bg-base-200 font-bold">
+						<td class="pl-4" colspan={2}>Biaya Yang Masih Harus Dibayar</td>
+					</tr>
+					{#if data.biayaYMHDB && data.biayaYMHDB.length > 0}
+						{#each data.biayaYMHDB as liability}
+							<tr>
+								<td class="pl-6">{liability.name}</td>
+								<td class="text-right"
+									>{formatCurrencyWithParentheses(liability.balance || 0)}</td
+								>
+							</tr>
+						{/each}
+						<tr class="font-semibold">
+							<td class="pl-6">Total Biaya Yang Masih Harus Dibayar</td>
+							<td class="text-right">
+								{formatCurrencyWithParentheses(data.totalBiayaYMHDB.balance || 0)}
+							</td>
+						</tr>
+					{:else}
+						<tr>
+							<td colspan={2} class="text-center text-gray-500">No accrued expenses found</td>
+						</tr>
+					{/if}
+					<!-- Pajak YMH Dibayar -->
+					<tr class="bg-base-200 font-bold">
+						<td class="pl-4" colspan={2}>Pajak Yang Masih Harus Dibayar</td>
+					</tr>
+					{#if data.pajakYMHDB && data.pajakYMHDB.length > 0}
+						{#each data.pajakYMHDB as liability}
+							<tr>
+								<td class="pl-6">{liability.name}</td>
+								<td class="text-right"
+									>{formatCurrencyWithParentheses(liability.balance || 0)}</td
+								>
+							</tr>
+						{/each}
+						<tr class="font-semibold">
+							<td class="pl-6">Total Pajak Yang Masih Harus Dibayar</td>
+							<td class="text-right">
+								{formatCurrencyWithParentheses(data.totalPajakYMHDB.balance || 0)}
+							</td>
+						</tr>
+					{:else}
+						<tr>
+							<td colspan={2} class="text-center text-gray-500">No accrued taxes found</td>
+						</tr>
+					{/if}
 					<!-- Hutang Jangka Panjang -->
 					<tr class="bg-base-200 font-bold">
 						<td class="pl-4" colspan={2}>Hutang Jangka Panjang (Long-term Liabilities)</td>
@@ -279,7 +351,9 @@
 						<tr class="font-semibold">
 							<td class="pl-6">Total Hutang Jangka Panjang</td>
 							<td class="text-right">
-								{formatCurrencyWithParentheses(data.totalHutangJangkaPanjang.balance || 0)}
+								{formatCurrencyWithParentheses(
+									data.totalHutangJangkaPanjang.balance || 0
+								)}
 							</td>
 						</tr>
 					{:else}
@@ -313,8 +387,11 @@
 							>
 						</tr>
 					{/if}
-					<tr>
-						<td class="pl-6">Laba Rugi Berjalan</td>
+						<tr class="font-bold">
+							<td class="pl-4">Pendapatan diterima dimuka</td>
+						</tr>
+					<tr class="font-bold">
+						<td class="pl-4">Laba (Rugi) Berjalan</td>
 						<td class="text-right">{formatCurrencyWithParentheses(data.netIncome || 0)}</td>
 					</tr>
 					<tr class="font-bold">
