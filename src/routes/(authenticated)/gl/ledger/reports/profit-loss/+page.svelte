@@ -2,7 +2,6 @@
 	import { goto } from '$app/navigation';
 	import { browser } from '$app/environment';
 	import { formatCurrencyWithParentheses } from '$lib/utils/utils.client';
-	import { exportToPdf, exportToExcel } from '$lib/utils/exports/profitNLossExport';
 	import type { PageData } from './$types';
 
 	let { data } = $props<{ data: PageData }>();
@@ -26,6 +25,9 @@
 	});
 
 	async function handleExport(type: 'pdf' | 'excel') {
+		const { exportToPdf, exportToExcel } = await import(
+			'$lib/utils/exports/profitNLossExport'
+		);
 		const lastDayOfMonth = new Date(data.selectedPeriod.year, data.selectedPeriod.month, 0).getDate();
 		const dateRange = {
 			start: `${data.selectedPeriod.year}-${data.selectedPeriod.month.toString().padStart(2, '0')}-01`,

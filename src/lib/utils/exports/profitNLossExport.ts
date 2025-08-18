@@ -1,7 +1,6 @@
 import type { TDocumentDefinitions } from 'pdfmake/interfaces';
 import type * as pdfMakeType from 'pdfmake/build/pdfmake';
 import type { WorkBook } from 'xlsx';
-import { formatCurrency } from '../utils.client';
 import { browser } from '$app/environment';
 
 // Dynamically import pdfmake and fonts only in browser
@@ -31,14 +30,19 @@ interface AccountBalance {
 	id: number;
 	debit: number;
 	credit: number;
+	groupName?: string;
 }
 
 interface ProfitLossData {
-	revenues: AccountBalance[];
-	expenses: AccountBalance[];
-	revenueTotals: { balance: number; debit: number; credit: number };
-	expenseTotals: { balance: number; debit: number; credit: number };
+	pendapatan: AccountBalance[];
+	hargaPokok: AccountBalance[];
+	biayaOperasional: AccountBalance[];
+	biayaOperasionalLainnya: AccountBalance[];
+	biayaAdministrasiUmum: AccountBalance[];
+	pendapatanBiayaLainLain: AccountBalance[];
 	netIncome: number;
+	revenueTotals: { balance: number };
+	expenseTotals: { balance: number };
 	previousPeriod?: {
 		revenues: AccountBalance[];
 		expenses: AccountBalance[];
@@ -53,6 +57,7 @@ interface TableCell {
 	style?: string;
 	fillColor?: string;
 	bold?: boolean;
+	colSpan?: number;
 }
 
 function formatForPdf(amount: number): string {
@@ -65,13 +70,49 @@ function formatForPdf(amount: number): string {
     return num.toLocaleString('id-ID');
 }
 
-function calculateChangePdf(current: number, previous: number): { value: number; display: string } {
-	const change = current - previous;
-	const percentChange = previous !== 0 ? (change / Math.abs(previous)) * 100 : 0;
-	return {
-		value: change,
-		display: `${formatForPdf(change)} (${percentChange.toFixed(2)}%)`
-	};
+function getGroupedRows(
+	accounts: AccountBalance[],
+	showPercentages: boolean,
+	compareWithPrevious: boolean,
+	revenueTotal: number,
+	previousPeriod?: any
+): TableCell[][] {
+	const grouped = accounts.reduce((acc, account) => {
+		const groupName = account.groupName || 'Uncategorized';
+		if (!acc[groupName]) {
+			acc[groupName] = [];
+		}
+		acc[groupName].push(account);
+		return acc;
+	}, {} as Record<string, AccountBalance[]>);
+
+	let rows: TableCell[][] = [];
+
+	for (const groupName in grouped) {
+		rows.push([
+			{ text: groupName, bold: true, margin: [5, 5, 0, 5], colSpan: getColumnCount(showPercentages, compareWithPrevious), fillColor: '#f5f5f5' },
+			...Array(getColumnCount(showPercentages, compareWithPrevious) - 1).fill({})
+		]);
+
+		let groupTotal = 0;
+		grouped[groupName].forEach(account => {
+			if (account.balance !== 0) {
+				const row: TableCell[] = [
+					{ text: account.name, margin: [account.level * 10, 0, 0, 0] },
+					{ text: formatForPdf(account.balance || 0), alignment: 'right' }
+				];
+				rows.push(row);
+				groupTotal += account.balance || 0;
+			}
+		});
+
+		rows.push([
+			{ text: `Total ${groupName}`, bold: true, alignment: 'right' },
+			{ text: formatForPdf(groupTotal), alignment: 'right', bold: true }
+		]);
+	}
+
+	return rows;
 }
 
 export async function exportToPdf(
@@ -85,7 +126,6 @@ export async function exportToPdf(
 		return;
 	}
 
-	// Wait for pdfMake to be loaded
 	if (!pdfMake) {
 		await new Promise<void>((resolve) => {
 			const checkPdfMake = () => {
@@ -99,6 +139,37 @@ export async function exportToPdf(
 		});
 	}
 
+	const tableBody: TableCell[][] = [
+		getTableHeaders(showPercentages, compareWithPrevious),
+	];
+
+	const sections = [
+		{ title: 'Pendapatan', data: data.pendapatan },
+		{ title: 'Harga Pokok (COGS/HPP)', data: data.hargaPokok },
+		{ title: 'Biaya Operasional', data: data.biayaOperasional },
+		{ title: 'Biaya Operasional Lainnya', data: data.biayaOperasionalLainnya },
+		{ title: 'Biaya Administrasi & Umum', data: data.biayaAdministrasiUmum },
+		{ title: '(Pendapatan) Biaya Lain-Lain', data: data.pendapatanBiayaLainLain },
+	];
+
+	sections.forEach(section => {
+		if (section.data && section.data.length > 0) {
+			tableBody.push([
+				{
+					text: section.title,
+					style: 'sectionHeader',
+					colSpan: getColumnCount(showPercentages, compareWithPrevious),
+					fillColor: '#f0f0f0'
+				},
+				...Array(getColumnCount(showPercentages, compareWithPrevious) - 1).fill({})
+			]);
+			tableBody.push(...getGroupedRows(section.data, showPercentages, compareWithPrevious, data.revenueTotals.balance, data.previousPeriod));
+		}
+	});
+
+	tableBody.push(getNetIncomeRow(data, showPercentages, compareWithPrevious));
+
+
 	const docDefinition: TDocumentDefinitions = {
 		content: [
 			{ text: 'Laporan Laba Rugi', style: 'header' },
@@ -111,33 +182,7 @@ export async function exportToPdf(
 				table: {
 					headerRows: 1,
 					widths: getColumnWidths(showPercentages, compareWithPrevious),
-					body: [
-						getTableHeaders(showPercentages, compareWithPrevious),
-						// Revenue Section
-						[
-							{
-								text: 'Pendapatan',
-								style: 'sectionHeader',
-								colSpan: getColumnCount(showPercentages, compareWithPrevious),
-								fillColor: '#f0f0f0'
-							}
-						],
-						...getRevenueRows(data, showPercentages, compareWithPrevious),
-						getRevenueTotalRow(data, showPercentages, compareWithPrevious),
-						// Expense Section
-						[
-							{
-								text: 'Beban',
-								style: 'sectionHeader',
-								colSpan: getColumnCount(showPercentages, compareWithPrevious),
-								fillColor: '#f0f0f0'
-							}
-						],
-						...getExpenseRows(data, showPercentages, compareWithPrevious),
-						getExpenseTotalRow(data, showPercentages, compareWithPrevious),
-						// Net Income
-						getNetIncomeRow(data, showPercentages, compareWithPrevious)
-					]
+					body: tableBody
 				}
 			}
 		],
@@ -168,7 +213,7 @@ export async function exportToPdf(
 }
 
 export async function exportToExcel(
-	data: ProfitLossData,
+	data: any, // Using any because the structure is now different
 	dateRange: { start: string; end: string },
 	showPercentages: boolean,
 	compareWithPrevious: boolean
@@ -178,7 +223,6 @@ export async function exportToExcel(
 		return;
 	}
 
-	// Wait for XLSX to be loaded
 	if (!XLSX) {
 		await new Promise<void>((resolve) => {
 			const checkXLSX = () => {
@@ -192,172 +236,42 @@ export async function exportToExcel(
 		});
 	}
 
-	// Prepare the worksheet data
-	const wsData = [];
+	const wsData: (string | number)[][] = [];
+	wsData.push(['Laporan Laba Rugi']);
+	wsData.push([`Periode: ${dateRange.start} sampai ${dateRange.end}`]);
+	wsData.push([]);
 
-	// Add title and date range
-	wsData.push(['Profit & Loss Statement']);
-	wsData.push([`Period: ${dateRange.start} to ${dateRange.end}`]);
-	wsData.push([]); // Empty row for spacing
-
-	// Add headers
-	const headers = ['Account', 'Current Period'];
-	if (showPercentages) headers.push('% of Revenue');
-	if (compareWithPrevious) {
-		headers.push('Previous Period');
-		if (showPercentages) headers.push('% of Revenue');
-		headers.push('Change');
-	}
+	const headers = ['Akun', 'Periode Sekarang'];
 	wsData.push(headers);
 
-	// Add Revenues section
-	wsData.push(['Revenues']); // Section header
-	if (data.revenues && data.revenues.length > 0) {
-		data.revenues.forEach((revenue) => {
-			const row = ['  '.repeat(revenue.level) + revenue.name, formatCurrency(revenue.balance || 0)];
-			if (showPercentages) {
-				row.push(calculatePercentage(revenue.balance || 0, data.revenueTotals.balance || 0));
-			}
-			if (compareWithPrevious && data.previousPeriod) {
-				const prevRevenue = data.previousPeriod.revenues.find((r) => r.id === revenue.id);
-				row.push(prevRevenue ? formatCurrency(prevRevenue.balance || 0) : '-');
-				if (showPercentages) {
-					const prevTotal = data.previousPeriod.revenues.reduce(
-						(sum, r) => sum + (r.balance || 0),
-						0
-					);
-					row.push(prevRevenue ? calculatePercentage(prevRevenue.balance || 0, prevTotal) : '-');
-				}
-				if (prevRevenue) {
-					const change = calculateChange(revenue.balance || 0, prevRevenue.balance || 0);
-					row.push(change.display);
-				} else {
-					row.push('-');
-				}
-			}
-			wsData.push(row);
-		});
-	} else {
-		wsData.push(['No revenue data found']);
-	}
-
-	// Add Revenue Total
-	const revenueTotalRow = ['Total Revenues', formatCurrency(data.revenueTotals.balance || 0)];
-	if (showPercentages) {
-		revenueTotalRow.push('100%');
-	}
-	if (compareWithPrevious && data.previousPeriod) {
-		const prevTotal = data.previousPeriod.revenues.reduce((sum, r) => sum + (r.balance || 0), 0);
-		revenueTotalRow.push(formatCurrency(prevTotal));
-		if (showPercentages) {
-			revenueTotalRow.push('100%');
-		}
-		const change = calculateChange(data.revenueTotals.balance || 0, prevTotal);
-		revenueTotalRow.push(change.display);
-	}
-	wsData.push(revenueTotalRow);
-	wsData.push([]); // Empty row for spacing
-
-	// Add Expenses section
-	wsData.push(['Expenses']); // Section header
-	if (data.expenses && data.expenses.length > 0) {
-		data.expenses.forEach((expense) => {
-			const row = ['  '.repeat(expense.level) + expense.name, formatCurrency(expense.balance || 0)];
-			if (showPercentages) {
-				row.push(calculatePercentage(expense.balance || 0, data.revenueTotals.balance || 0));
-			}
-			if (compareWithPrevious && data.previousPeriod) {
-				const prevExpense = data.previousPeriod.expenses.find((e) => e.id === expense.id);
-				row.push(prevExpense ? formatCurrency(prevExpense.balance || 0) : '-');
-				if (showPercentages) {
-					const prevTotal = data.previousPeriod.revenues.reduce(
-						(sum, r) => sum + (r.balance || 0),
-						0
-					);
-					row.push(prevExpense ? calculatePercentage(prevExpense.balance || 0, prevTotal) : '-');
-				}
-				if (prevExpense) {
-					const change = calculateChange(expense.balance || 0, prevExpense.balance || 0);
-					row.push(change.display);
-				} else {
-					row.push('-');
-				}
-			}
-			wsData.push(row);
-		});
-	} else {
-		wsData.push(['No expense data found']);
-	}
-
-	// Add Expense Total
-	const expenseTotalRow = ['Total Expenses', formatCurrency(data.expenseTotals.balance || 0)];
-	if (showPercentages) {
-		expenseTotalRow.push(
-			calculatePercentage(data.expenseTotals.balance || 0, data.revenueTotals.balance || 0)
-		);
-	}
-	if (compareWithPrevious && data.previousPeriod) {
-		const prevTotal = data.previousPeriod.expenses.reduce((sum, e) => sum + (e.balance || 0), 0);
-		expenseTotalRow.push(formatCurrency(prevTotal));
-		if (showPercentages) {
-			const prevRevenueTotal = data.previousPeriod.revenues.reduce(
-				(sum, r) => sum + (r.balance || 0),
-				0
-			);
-			expenseTotalRow.push(calculatePercentage(prevTotal, prevRevenueTotal));
-		}
-		const change = calculateChange(data.expenseTotals.balance || 0, prevTotal);
-		expenseTotalRow.push(change.display);
-	}
-	wsData.push(expenseTotalRow);
-	wsData.push([]); // Empty row for spacing
-
-	// Add Net Income
-	const netIncomeRow = ['Net Income', formatCurrency(data.netIncome)];
-	if (showPercentages) {
-		netIncomeRow.push(calculatePercentage(data.netIncome, data.revenueTotals.balance || 0));
-	}
-	if (compareWithPrevious && data.previousPeriod) {
-		netIncomeRow.push(formatCurrency(data.previousPeriod.netIncome));
-		if (showPercentages) {
-			const prevRevenueTotal = data.previousPeriod.revenues.reduce(
-				(sum, r) => sum + (r.balance || 0),
-				0
-			);
-			netIncomeRow.push(calculatePercentage(data.previousPeriod.netIncome, prevRevenueTotal));
-		}
-		const change = calculateChange(data.netIncome, data.previousPeriod.netIncome);
-		netIncomeRow.push(change.display);
-	}
-	wsData.push(netIncomeRow);
-
-	// Create worksheet
-	const ws = XLSX.utils.aoa_to_sheet(wsData);
-
-	// Add styling
-	const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
-	const maxCol = range.e.c;
-
-	// Set column widths
-	ws['!cols'] = [
-		{ wch: 40 }, // Account name
-		{ wch: 15 }, // Current Period
-		...(showPercentages ? [{ wch: 12 }] : []), // % of Revenue
-		...(compareWithPrevious
-			? [
-					{ wch: 15 }, // Previous Period
-					...(showPercentages ? [{ wch: 12 }] : []), // Previous % of Revenue
-					{ wch: 20 } // Change
-				]
-			: [])
+	const sections = [
+		{ title: 'Pendapatan', data: data.pendapatan },
+		{ title: 'Harga Pokok (COGS/HPP)', data: data.hargaPokok },
+		{ title: 'Biaya Operasional', data: data.biayaOperasional },
+		{ title: 'Biaya Operasional Lainnya', data: data.biayaOperasionalLainnya },
+		{ title: 'Biaya Administrasi & Umum', data: data.biayaAdministrasiUmum },
+		{ title: '(Pendapatan) Biaya Lain-Lain', data: data.pendapatanBiayaLainLain },
 	];
 
-	// Create workbook and add worksheet
-	const wb = XLSX.utils.book_new();
-	XLSX.utils.book_append_sheet(wb, ws, 'Profit & Loss');
+	sections.forEach(section => {
+		if (section.data && section.data.length > 0) {
+			wsData.push([section.title]);
+			let sectionTotal = 0;
+			section.data.forEach((item: AccountBalance) => {
+				wsData.push([' '.repeat(item.level) + item.name, formatCurrency(item.balance || 0)]);
+				sectionTotal += item.balance || 0;
+			});
+			wsData.push([`Total ${section.title}`, formatCurrency(sectionTotal)]);
+			wsData.push([]);
+		}
+	});
 
-	// Save the file
-	XLSX.writeFile(wb, 'profit-loss-report.xlsx');
+	wsData.push(['Laba Bersih', formatCurrency(data.netIncome || 0)]);
+
+	const ws = XLSX.utils.aoa_to_sheet(wsData);
+	const wb = XLSX.utils.book_new();
+	XLSX.utils.book_append_sheet(wb, ws, 'Laba Rugi');
+	XLSX.writeFile(wb, 'laporan-laba-rugi.xlsx');
 }
 
 // Helper functions
@@ -396,193 +310,6 @@ function getTableHeaders(showPercentages: boolean, compareWithPrevious: boolean)
 	return headers;
 }
 
-function getRevenueRows(
-	data: ProfitLossData,
-	showPercentages: boolean,
-	compareWithPrevious: boolean
-): TableCell[][] {
-	return data.revenues.filter(revenue => revenue.balance !== 0).map((revenue) => {
-		const row: TableCell[] = [
-			{ text: revenue.name, margin: [revenue.level * 10, 0, 0, 0] },
-			{ text: formatForPdf(revenue.balance || 0), alignment: 'right' }
-		];
-
-		if (showPercentages) {
-			row.push({
-				text: calculatePercentage(revenue.balance || 0, data.revenueTotals.balance || 0),
-				alignment: 'right'
-			});
-		}
-
-		if (compareWithPrevious && data.previousPeriod) {
-			const prevRevenue = data.previousPeriod.revenues.find((r) => r.id === revenue.id);
-			row.push({
-				text: prevRevenue ? formatForPdf(prevRevenue.balance || 0) : '-',
-				alignment: 'right'
-			});
-
-			if (showPercentages) {
-				row.push({
-					text: prevRevenue
-						? calculatePercentage(
-								prevRevenue.balance || 0,
-								data.previousPeriod.revenues.reduce((sum, r) => sum + (r.balance || 0), 0) || 0
-							)
-						: '-',
-					alignment: 'right'
-				});
-			}
-
-			if (prevRevenue) {
-				const change = calculateChangePdf(revenue.balance || 0, prevRevenue.balance || 0);
-				row.push({
-					text: change.display,
-					alignment: 'right',
-					fillColor: change.value > 0 ? '#e6ffe6' : change.value < 0 ? '#ffe6e6' : undefined
-				});
-			} else {
-				row.push({ text: '-', alignment: 'right' });
-			}
-		}
-
-		return row;
-	});
-}
-
-function getExpenseRows(
-	data: ProfitLossData,
-	showPercentages: boolean,
-	compareWithPrevious: boolean
-): TableCell[][] {
-	return data.expenses.filter(expense => expense.balance !== 0).map((expense) => {
-		const row: TableCell[] = [
-			{ text: expense.name, margin: [expense.level * 10, 0, 0, 0] },
-			{ text: formatForPdf(expense.balance || 0), alignment: 'right' }
-		];
-
-		if (showPercentages) {
-			row.push({
-				text: calculatePercentage(expense.balance || 0, data.revenueTotals.balance || 0),
-				alignment: 'right'
-			});
-		}
-
-		if (compareWithPrevious && data.previousPeriod) {
-			const prevExpense = data.previousPeriod.expenses.find((e) => e.id === expense.id);
-			row.push({
-				text: prevExpense ? formatForPdf(prevExpense.balance || 0) : '-',
-				alignment: 'right'
-			});
-
-			if (showPercentages) {
-				row.push({
-					text: prevExpense
-						? calculatePercentage(
-								prevExpense.balance || 0,
-								data.previousPeriod.revenues.reduce((sum, r) => sum + (r.balance || 0), 0) || 0
-							)
-						: '-',
-					alignment: 'right'
-				});
-			}
-
-			if (prevExpense) {
-				const change = calculateChangePdf(expense.balance || 0, prevExpense.balance || 0);
-				row.push({
-					text: change.display,
-					alignment: 'right',
-					fillColor: change.value > 0 ? '#e6ffe6' : change.value < 0 ? '#ffe6e6' : undefined
-				});
-			} else {
-				row.push({ text: '-', alignment: 'right' });
-			}
-		}
-
-		return row;
-	});
-}
-
-function getRevenueTotalRow(
-	data: ProfitLossData,
-	showPercentages: boolean,
-	compareWithPrevious: boolean
-): TableCell[] {
-	const row: TableCell[] = [
-		{ text: 'Total Pendapatan', style: 'total', bold: true },
-		{ text: formatForPdf(data.revenueTotals.balance || 0), alignment: 'right', style: 'total' }
-	];
-
-	if (showPercentages) {
-		row.push({ text: '100%', alignment: 'right', style: 'total' });
-	}
-
-	if (compareWithPrevious && data.previousPeriod) {
-		const prevTotal =
-			data.previousPeriod.revenues.reduce((sum, r) => sum + (r.balance || 0), 0) || 0;
-		row.push({ text: formatForPdf(prevTotal), alignment: 'right', style: 'total' });
-
-		if (showPercentages) {
-			row.push({ text: '100%', alignment: 'right', style: 'total' });
-		}
-
-		const change = calculateChangePdf(data.revenueTotals.balance || 0, prevTotal);
-		row.push({
-			text: change.display,
-			alignment: 'right',
-			style: 'total',
-			fillColor: change.value > 0 ? '#e6ffe6' : change.value < 0 ? '#ffe6e6' : undefined
-		});
-	}
-
-	return row;
-}
-
-function getExpenseTotalRow(
-	data: ProfitLossData,
-	showPercentages: boolean,
-	compareWithPrevious: boolean
-): TableCell[] {
-	const row: TableCell[] = [
-		{ text: 'Total Beban', style: 'total', bold: true },
-		{ text: formatForPdf(data.expenseTotals.balance || 0), alignment: 'right', style: 'total' }
-	];
-
-	if (showPercentages) {
-		row.push({
-			text: calculatePercentage(data.expenseTotals.balance || 0, data.revenueTotals.balance || 0),
-			alignment: 'right',
-			style: 'total'
-		});
-	}
-
-	if (compareWithPrevious && data.previousPeriod) {
-		const prevTotal =
-			data.previousPeriod.expenses.reduce((sum, e) => sum + (e.balance || 0), 0) || 0;
-		row.push({ text: formatForPdf(prevTotal), alignment: 'right', style: 'total' });
-
-		if (showPercentages) {
-			row.push({
-				text: calculatePercentage(
-					prevTotal,
-					data.previousPeriod.revenues.reduce((sum, r) => sum + (r.balance || 0), 0) || 0
-				),
-				alignment: 'right',
-				style: 'total'
-			});
-		}
-
-		const change = calculateChangePdf(data.expenseTotals.balance || 0, prevTotal);
-		row.push({
-			text: change.display,
-			alignment: 'right',
-			style: 'total',
-			fillColor: change.value > 0 ? '#e6ffe6' : change.value < 0 ? '#ffe6e6' : undefined
-		});
-	}
-
-	return row;
-}
-
 function getNetIncomeRow(
 	data: ProfitLossData,
 	showPercentages: boolean,
@@ -593,54 +320,27 @@ function getNetIncomeRow(
 		{ text: formatForPdf(data.netIncome), alignment: 'right', style: 'total' }
 	];
 
+	// Placeholder for future implementation of percentages and comparison
 	if (showPercentages) {
-		row.push({
-			text: calculatePercentage(data.netIncome, data.revenueTotals.balance || 0),
-			alignment: 'right',
-			style: 'total'
-		});
+		row.push({ text: '', alignment: 'right', style: 'total' });
 	}
-
-	if (compareWithPrevious && data.previousPeriod) {
-		row.push({
-			text: formatForPdf(data.previousPeriod.netIncome),
-			alignment: 'right',
-			style: 'total'
-		});
-
+	if (compareWithPrevious) {
+		row.push({ text: '', alignment: 'right', style: 'total' });
 		if (showPercentages) {
-			row.push({
-				text: calculatePercentage(
-					data.previousPeriod.netIncome,
-					data.previousPeriod.revenues.reduce((sum, r) => sum + (r.balance || 0), 0) || 0
-				),
-				alignment: 'right',
-				style: 'total'
-			});
+			row.push({ text: '', alignment: 'right', style: 'total' });
 		}
-
-		const change = calculateChangePdf(data.netIncome, data.previousPeriod.netIncome);
-		row.push({
-			text: change.display,
-			alignment: 'right',
-			style: 'total',
-			fillColor: change.value > 0 ? '#e6ffe6' : change.value < 0 ? '#ffe6e6' : undefined
-		});
+		row.push({ text: '', alignment: 'right', style: 'total' });
 	}
 
 	return row;
 }
 
-function calculatePercentage(value: number, total: number): string {
-	if (!total) return '0.00%';
-	return ((value / total) * 100).toFixed(2) + '%';
-}
-
-function calculateChange(current: number, previous: number): { value: number; display: string } {
-	const change = current - previous;
-	const percentChange = previous !== 0 ? (change / Math.abs(previous)) * 100 : 0;
-	return {
-		value: change,
-		display: `${formatCurrency(change)} (${percentChange.toFixed(2)}%)`
-	};
+function formatCurrency(amount: number): string {
+    if (amount === null || amount === undefined) return '-';
+    const num = Number(amount);
+    if (num === 0) return '0';
+    if (num < 0) {
+        return `(${Math.abs(num).toLocaleString('id-ID')})`;
+    }
+    return num.toLocaleString('id-ID');
 }
