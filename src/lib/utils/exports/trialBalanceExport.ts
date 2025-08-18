@@ -64,13 +64,13 @@ function formatCurrency2(value: number) {
 }
 
 function formatForPdf(amount: number): string {
-    if (amount === null || amount === undefined) return '-';
-    const num = Number(amount);
-    if (num === 0) return '0';
-    if (num < 0) {
-        return `(${Math.abs(num).toLocaleString('id-ID')})`;
-    }
-    return num.toLocaleString('id-ID');
+	if (amount === null || amount === undefined) return '-';
+	const num = Number(amount);
+	if (num === 0) return '0';
+	if (num < 0) {
+		return `(${Math.abs(num).toLocaleString('id-ID')})`;
+	}
+	return num.toLocaleString('id-ID');
 }
 
 export async function exportTrialBalanceToPdf(
@@ -120,11 +120,12 @@ export async function exportTrialBalanceToPdf(
 			{
 				table: {
 					headerRows: 1,
-					widths: ['*', 80, 80, 80, 80, 80, 80],
+					widths: ['auto', '*', 80, 80, 80, 80, 80, 80],
 					body: [
 						// Headers
 						[
 							{ text: 'Account', bold: true },
+							{ text: 'Name', bold: true },
 							{ text: 'Previous Debit', alignment: 'right', bold: true },
 							{ text: 'Previous Credit', alignment: 'right', bold: true },
 							{ text: 'Current Debit', alignment: 'right', bold: true },
@@ -134,25 +135,25 @@ export async function exportTrialBalanceToPdf(
 						],
 						// Account rows
 						...data.accounts.map((account) => [
-							{ text: `${account.code} - ${account.name}` },
+							{ text: account.code },
+							{ text: account.name },
 							{ text: formatForPdf(account.previousDebit || 0), alignment: 'right' },
 							{ text: formatForPdf(account.previousCredit || 0), alignment: 'right' },
 							{ text: formatForPdf(account.debit), alignment: 'right' },
 							{ text: formatForPdf(account.credit), alignment: 'right' },
 							{
 								text: formatForPdf(account.isDebit ? account.balance || 0 : 0),
-								alignment: 'right',
-								fillColor: account.isDebit ? '#e6ffe6' : undefined
+								alignment: 'right'
 							},
 							{
 								text: formatForPdf(!account.isDebit ? account.balance || 0 : 0),
-								alignment: 'right',
-								fillColor: !account.isDebit ? '#ffe6e6' : undefined
+								alignment: 'right'
 							}
 						]),
 						// Total row
 						[
-							{ text: 'Total', style: 'total', bold: true },
+							{ text: 'Total', style: 'total', bold: true, colSpan: 2 },
+							{},
 							{
 								text: formatForPdf(data.totals.previousDebit || 0),
 								alignment: 'right',
@@ -271,6 +272,7 @@ export async function exportTrialBalanceToExcel(
 	// Add headers
 	wsData.push([
 		'Account',
+		'Name',
 		'Previous Debit',
 		'Previous Credit',
 		'Current Debit',
@@ -282,7 +284,8 @@ export async function exportTrialBalanceToExcel(
 	// Add account rows
 	data.accounts.forEach((account) => {
 		wsData.push([
-			`${account.code} - ${account.name}`,
+			account.code,
+			account.name,
 			formatCurrency2(account.previousDebit || 0),
 			formatCurrency2(account.previousCredit || 0),
 			formatCurrency2(account.debit),
@@ -295,6 +298,7 @@ export async function exportTrialBalanceToExcel(
 	// Add total row
 	wsData.push([
 		'Total',
+		'',
 		formatCurrency2(data.totals.previousDebit || 0),
 		formatCurrency2(data.totals.previousCredit || 0),
 		formatCurrency2(data.totals.debit),
@@ -312,7 +316,8 @@ export async function exportTrialBalanceToExcel(
 
 	// Set column widths
 	ws['!cols'] = [
-		{ wch: 50 }, // Account name
+		{ wch: 15 }, // Account
+		{ wch: 40 }, // Name
 		{ wch: 18 }, // Previous Debit
 		{ wch: 18 }, // Previous Credit
 		{ wch: 18 }, // Current Debit

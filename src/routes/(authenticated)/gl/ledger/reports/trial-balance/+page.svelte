@@ -222,7 +222,7 @@
 			<thead>
 				<tr>
 					<th>Account</th>
-					<th>Type</th>
+					<th>Name</th>
 					<th class="text-right">Previous Debit</th>
 					<th class="text-right">Previous Credit</th>
 					<th class="text-right">Current Debit</th>
@@ -234,10 +234,10 @@
 			<tbody>
 				{#each sortedAccounts as account}
 					<tr>
-						<td class="pl-{account.level * 4}">
-							<span class="font-mono">{account.code}</span> - {account.name}
+						<td>
+							<span class="font-mono">{account.code}</span>
 						</td>
-						<td>{account.type}</td>
+						<td>{account.name}</td>
 						<td class="text-right">{formatCurrencyWithParentheses(account.previousDebit)}</td>
 						<td class="text-right">{formatCurrencyWithParentheses(account.previousCredit)}</td>
 						<td class="text-right">{formatCurrencyWithParentheses(account.currentDebit)}</td>

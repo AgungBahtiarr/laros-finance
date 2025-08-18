@@ -56,13 +56,15 @@ function formatCurrency2(value: number) {
 }
 
 function formatForPdf(amount: number): string {
-    if (amount === null || amount === undefined) return '-';
-    const num = Number(amount);
-    if (num === 0) return '0';
-    if (num < 0) {
-        return `(${Math.abs(num).toLocaleString('id-ID')})`;
-    }
-    return num.toLocaleString('id-ID');
+	if (amount === null || amount === undefined)
+		return '-';
+	const num = Number(amount);
+	if (num === 0)
+		return '0';
+	if (num < 0) {
+		return `(${Math.abs(num).toLocaleString('id-ID')})`;
+	}
+	return num.toLocaleString('id-ID');
 }
 
 export async function exportAccountBalanceToPdf(
@@ -113,10 +115,11 @@ export async function exportAccountBalanceToPdf(
 			{
 				table: {
 					headerRows: 1,
-					widths: ['*', 60, 80, 80, 80, 80, 80, 80],
+					widths: ['auto', '*', 60, 80, 80, 80, 80, 80, 80],
 					body: [
 						[
 							{ text: 'Account', bold: true },
+							{ text: 'Name', bold: true },
 							{ text: 'Type', bold: true },
 							{ text: 'Previous Debit', alignment: 'right', bold: true },
 							{ text: 'Previous Credit', alignment: 'right', bold: true },
@@ -126,7 +129,8 @@ export async function exportAccountBalanceToPdf(
 							{ text: 'Balance Credit', alignment: 'right', bold: true }
 						],
 						...data.accounts.map((account) => [
-							{ text: `${account.code} - ${account.name}` },
+							{ text: account.code },
+							{ text: account.name },
 							{ text: account.type },
 							{ text: formatForPdf(account.previousDebit), alignment: 'right' },
 							{ text: formatForPdf(account.previousCredit), alignment: 'right' },
@@ -134,17 +138,16 @@ export async function exportAccountBalanceToPdf(
 							{ text: formatForPdf(account.credit), alignment: 'right' },
 							{
 								text: formatForPdf(account.isDebit ? account.balance : 0),
-								alignment: 'right',
-								fillColor: account.isDebit ? '#e6ffe6' : undefined
+								alignment: 'right'
 							},
 							{
 								text: formatForPdf(!account.isDebit ? account.balance : 0),
-								alignment: 'right',
-								fillColor: !account.isDebit ? '#ffe6e6' : undefined
+								alignment: 'right'
 							}
 						]),
 						[
-							{ text: 'Total', style: 'total', bold: true },
+							{ text: 'Total', style: 'total', bold: true, colSpan: 3 },
+							{},
 							{},
 							{
 								text: formatForPdf(data.totals.previousDebit),
@@ -256,6 +259,7 @@ export async function exportAccountBalanceToExcel(
 	wsData.push([]);
 	wsData.push([
 		'Account',
+		'Name',
 		'Type',
 		'Previous Debit',
 		'Previous Credit',
@@ -266,7 +270,8 @@ export async function exportAccountBalanceToExcel(
 	]);
 	data.accounts.forEach((account) => {
 		wsData.push([
-			`${account.code} - ${account.name}`,
+			account.code,
+			account.name,
 			account.type,
 			formatCurrency2(account.previousDebit),
 			formatCurrency2(account.previousCredit),
@@ -279,6 +284,7 @@ export async function exportAccountBalanceToExcel(
 	wsData.push([
 		'Total',
 		'',
+		'',
 		formatCurrency2(data.totals.previousDebit),
 		formatCurrency2(data.totals.previousCredit),
 		formatCurrency2(data.totals.debit),
@@ -289,7 +295,8 @@ export async function exportAccountBalanceToExcel(
 
 	const ws = XLSX.utils.aoa_to_sheet(wsData);
 	ws['!cols'] = [
-		{ wch: 50 }, // Account name
+		{ wch: 15 }, // Account
+		{ wch: 40 }, // Name
 		{ wch: 15 }, // Type
 		{ wch: 18 }, // Previous Debit
 		{ wch: 18 }, // Previous Credit
