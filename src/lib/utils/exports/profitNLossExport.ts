@@ -55,6 +55,25 @@ interface TableCell {
 	bold?: boolean;
 }
 
+function formatForPdf(amount: number): string {
+    if (amount === null || amount === undefined) return '-';
+    const num = Number(amount);
+    if (num === 0) return '0';
+    if (num < 0) {
+        return `(${Math.abs(num).toLocaleString('id-ID')})`;
+    }
+    return num.toLocaleString('id-ID');
+}
+
+function calculateChangePdf(current: number, previous: number): { value: number; display: string } {
+	const change = current - previous;
+	const percentChange = previous !== 0 ? (change / Math.abs(previous)) * 100 : 0;
+	return {
+		value: change,
+		display: `${formatForPdf(change)} (${percentChange.toFixed(2)}%)`
+	};
+}
+
 export async function exportToPdf(
 	data: ProfitLossData,
 	dateRange: { start: string; end: string },
@@ -82,9 +101,9 @@ export async function exportToPdf(
 
 	const docDefinition: TDocumentDefinitions = {
 		content: [
-			{ text: 'Profit & Loss Statement', style: 'header' },
+			{ text: 'Laporan Laba Rugi', style: 'header' },
 			{
-				text: `Period: ${dateRange.start} to ${dateRange.end}`,
+				text: `Periode: ${dateRange.start} sampai ${dateRange.end}`,
 				style: 'subheader',
 				margin: [0, 0, 0, 10]
 			},
@@ -97,7 +116,7 @@ export async function exportToPdf(
 						// Revenue Section
 						[
 							{
-								text: 'Revenues',
+								text: 'Pendapatan',
 								style: 'sectionHeader',
 								colSpan: getColumnCount(showPercentages, compareWithPrevious),
 								fillColor: '#f0f0f0'
@@ -108,7 +127,7 @@ export async function exportToPdf(
 						// Expense Section
 						[
 							{
-								text: 'Expenses',
+								text: 'Beban',
 								style: 'sectionHeader',
 								colSpan: getColumnCount(showPercentages, compareWithPrevious),
 								fillColor: '#f0f0f0'
@@ -145,7 +164,7 @@ export async function exportToPdf(
 		}
 	};
 
-	pdfMake.createPdf(docDefinition).download('profit-loss-report.pdf');
+	pdfMake.createPdf(docDefinition).download('laporan-laba-rugi.pdf');
 }
 
 export async function exportToExcel(
@@ -364,15 +383,15 @@ function getColumnCount(showPercentages: boolean, compareWithPrevious: boolean):
 }
 
 function getTableHeaders(showPercentages: boolean, compareWithPrevious: boolean): TableCell[] {
-	const headers = [
-		{ text: 'Account', bold: true },
-		{ text: 'Current Period', alignment: 'right', bold: true }
+	const headers: TableCell[] = [
+		{ text: 'Akun', bold: true },
+		{ text: 'Periode Sekarang', alignment: 'right', bold: true }
 	];
-	if (showPercentages) headers.push({ text: '% of Revenue', alignment: 'right', bold: true });
+	if (showPercentages) headers.push({ text: '% dari Pendapatan', alignment: 'right', bold: true });
 	if (compareWithPrevious) {
-		headers.push({ text: 'Previous Period', alignment: 'right', bold: true });
-		if (showPercentages) headers.push({ text: '% of Revenue', alignment: 'right', bold: true });
-		headers.push({ text: 'Change', alignment: 'right', bold: true });
+		headers.push({ text: 'Periode Sebelumnya', alignment: 'right', bold: true });
+		if (showPercentages) headers.push({ text: '% dari Pendapatan', alignment: 'right', bold: true });
+		headers.push({ text: 'Perubahan', alignment: 'right', bold: true });
 	}
 	return headers;
 }
@@ -382,10 +401,10 @@ function getRevenueRows(
 	showPercentages: boolean,
 	compareWithPrevious: boolean
 ): TableCell[][] {
-	return data.revenues.map((revenue) => {
+	return data.revenues.filter(revenue => revenue.balance !== 0).map((revenue) => {
 		const row: TableCell[] = [
 			{ text: revenue.name, margin: [revenue.level * 10, 0, 0, 0] },
-			{ text: formatCurrency(revenue.balance || 0), alignment: 'right' }
+			{ text: formatForPdf(revenue.balance || 0), alignment: 'right' }
 		];
 
 		if (showPercentages) {
@@ -398,7 +417,7 @@ function getRevenueRows(
 		if (compareWithPrevious && data.previousPeriod) {
 			const prevRevenue = data.previousPeriod.revenues.find((r) => r.id === revenue.id);
 			row.push({
-				text: prevRevenue ? formatCurrency(prevRevenue.balance || 0) : '-',
+				text: prevRevenue ? formatForPdf(prevRevenue.balance || 0) : '-',
 				alignment: 'right'
 			});
 
@@ -415,7 +434,7 @@ function getRevenueRows(
 			}
 
 			if (prevRevenue) {
-				const change = calculateChange(revenue.balance || 0, prevRevenue.balance || 0);
+				const change = calculateChangePdf(revenue.balance || 0, prevRevenue.balance || 0);
 				row.push({
 					text: change.display,
 					alignment: 'right',
@@ -435,10 +454,10 @@ function getExpenseRows(
 	showPercentages: boolean,
 	compareWithPrevious: boolean
 ): TableCell[][] {
-	return data.expenses.map((expense) => {
+	return data.expenses.filter(expense => expense.balance !== 0).map((expense) => {
 		const row: TableCell[] = [
 			{ text: expense.name, margin: [expense.level * 10, 0, 0, 0] },
-			{ text: formatCurrency(expense.balance || 0), alignment: 'right' }
+			{ text: formatForPdf(expense.balance || 0), alignment: 'right' }
 		];
 
 		if (showPercentages) {
@@ -451,7 +470,7 @@ function getExpenseRows(
 		if (compareWithPrevious && data.previousPeriod) {
 			const prevExpense = data.previousPeriod.expenses.find((e) => e.id === expense.id);
 			row.push({
-				text: prevExpense ? formatCurrency(prevExpense.balance || 0) : '-',
+				text: prevExpense ? formatForPdf(prevExpense.balance || 0) : '-',
 				alignment: 'right'
 			});
 
@@ -468,7 +487,7 @@ function getExpenseRows(
 			}
 
 			if (prevExpense) {
-				const change = calculateChange(expense.balance || 0, prevExpense.balance || 0);
+				const change = calculateChangePdf(expense.balance || 0, prevExpense.balance || 0);
 				row.push({
 					text: change.display,
 					alignment: 'right',
@@ -489,8 +508,8 @@ function getRevenueTotalRow(
 	compareWithPrevious: boolean
 ): TableCell[] {
 	const row: TableCell[] = [
-		{ text: 'Total Revenues', style: 'total', bold: true },
-		{ text: formatCurrency(data.revenueTotals.balance || 0), alignment: 'right', style: 'total' }
+		{ text: 'Total Pendapatan', style: 'total', bold: true },
+		{ text: formatForPdf(data.revenueTotals.balance || 0), alignment: 'right', style: 'total' }
 	];
 
 	if (showPercentages) {
@@ -500,13 +519,13 @@ function getRevenueTotalRow(
 	if (compareWithPrevious && data.previousPeriod) {
 		const prevTotal =
 			data.previousPeriod.revenues.reduce((sum, r) => sum + (r.balance || 0), 0) || 0;
-		row.push({ text: formatCurrency(prevTotal), alignment: 'right', style: 'total' });
+		row.push({ text: formatForPdf(prevTotal), alignment: 'right', style: 'total' });
 
 		if (showPercentages) {
 			row.push({ text: '100%', alignment: 'right', style: 'total' });
 		}
 
-		const change = calculateChange(data.revenueTotals.balance || 0, prevTotal);
+		const change = calculateChangePdf(data.revenueTotals.balance || 0, prevTotal);
 		row.push({
 			text: change.display,
 			alignment: 'right',
@@ -524,8 +543,8 @@ function getExpenseTotalRow(
 	compareWithPrevious: boolean
 ): TableCell[] {
 	const row: TableCell[] = [
-		{ text: 'Total Expenses', style: 'total', bold: true },
-		{ text: formatCurrency(data.expenseTotals.balance || 0), alignment: 'right', style: 'total' }
+		{ text: 'Total Beban', style: 'total', bold: true },
+		{ text: formatForPdf(data.expenseTotals.balance || 0), alignment: 'right', style: 'total' }
 	];
 
 	if (showPercentages) {
@@ -539,7 +558,7 @@ function getExpenseTotalRow(
 	if (compareWithPrevious && data.previousPeriod) {
 		const prevTotal =
 			data.previousPeriod.expenses.reduce((sum, e) => sum + (e.balance || 0), 0) || 0;
-		row.push({ text: formatCurrency(prevTotal), alignment: 'right', style: 'total' });
+		row.push({ text: formatForPdf(prevTotal), alignment: 'right', style: 'total' });
 
 		if (showPercentages) {
 			row.push({
@@ -552,7 +571,7 @@ function getExpenseTotalRow(
 			});
 		}
 
-		const change = calculateChange(data.expenseTotals.balance || 0, prevTotal);
+		const change = calculateChangePdf(data.expenseTotals.balance || 0, prevTotal);
 		row.push({
 			text: change.display,
 			alignment: 'right',
@@ -570,8 +589,8 @@ function getNetIncomeRow(
 	compareWithPrevious: boolean
 ): TableCell[] {
 	const row: TableCell[] = [
-		{ text: 'Net Income', style: 'total', bold: true },
-		{ text: formatCurrency(data.netIncome), alignment: 'right', style: 'total' }
+		{ text: 'Laba Bersih', style: 'total', bold: true },
+		{ text: formatForPdf(data.netIncome), alignment: 'right', style: 'total' }
 	];
 
 	if (showPercentages) {
@@ -584,7 +603,7 @@ function getNetIncomeRow(
 
 	if (compareWithPrevious && data.previousPeriod) {
 		row.push({
-			text: formatCurrency(data.previousPeriod.netIncome),
+			text: formatForPdf(data.previousPeriod.netIncome),
 			alignment: 'right',
 			style: 'total'
 		});
@@ -600,7 +619,7 @@ function getNetIncomeRow(
 			});
 		}
 
-		const change = calculateChange(data.netIncome, data.previousPeriod.netIncome);
+		const change = calculateChangePdf(data.netIncome, data.previousPeriod.netIncome);
 		row.push({
 			text: change.display,
 			alignment: 'right',
