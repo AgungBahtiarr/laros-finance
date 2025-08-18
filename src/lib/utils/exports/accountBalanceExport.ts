@@ -1,7 +1,6 @@
 import type { TDocumentDefinitions } from 'pdfmake/interfaces';
 import type * as pdfMakeType from 'pdfmake/build/pdfmake';
 import type { WorkBook } from 'xlsx';
-import { formatCurrency } from '../utils.client';
 import { browser } from '$app/environment';
 
 // Dynamically import pdfmake and fonts only in browser
@@ -54,6 +53,16 @@ interface AccountBalanceData {
 // Helper untuk format angka dengan dua desimal, ribuan titik, desimal koma
 function formatCurrency2(value: number) {
 	return value.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function formatForPdf(amount: number): string {
+    if (amount === null || amount === undefined) return '-';
+    const num = Number(amount);
+    if (num === 0) return '0';
+    if (num < 0) {
+        return `(${Math.abs(num).toLocaleString('id-ID')})`;
+    }
+    return num.toLocaleString('id-ID');
 }
 
 export async function exportAccountBalanceToPdf(
@@ -119,17 +128,17 @@ export async function exportAccountBalanceToPdf(
 						...data.accounts.map((account) => [
 							{ text: `${account.code} - ${account.name}` },
 							{ text: account.type },
-							{ text: formatCurrency2(account.previousDebit), alignment: 'right' },
-							{ text: formatCurrency2(account.previousCredit), alignment: 'right' },
-							{ text: formatCurrency2(account.debit), alignment: 'right' },
-							{ text: formatCurrency2(account.credit), alignment: 'right' },
+							{ text: formatForPdf(account.previousDebit), alignment: 'right' },
+							{ text: formatForPdf(account.previousCredit), alignment: 'right' },
+							{ text: formatForPdf(account.debit), alignment: 'right' },
+							{ text: formatForPdf(account.credit), alignment: 'right' },
 							{
-								text: formatCurrency2(account.isDebit ? account.balance : 0),
+								text: formatForPdf(account.isDebit ? account.balance : 0),
 								alignment: 'right',
 								fillColor: account.isDebit ? '#e6ffe6' : undefined
 							},
 							{
-								text: formatCurrency2(!account.isDebit ? account.balance : 0),
+								text: formatForPdf(!account.isDebit ? account.balance : 0),
 								alignment: 'right',
 								fillColor: !account.isDebit ? '#ffe6e6' : undefined
 							}
@@ -138,37 +147,37 @@ export async function exportAccountBalanceToPdf(
 							{ text: 'Total', style: 'total', bold: true },
 							{},
 							{
-								text: formatCurrency2(data.totals.previousDebit),
+								text: formatForPdf(data.totals.previousDebit),
 								alignment: 'right',
 								style: 'total',
 								bold: true
 							},
 							{
-								text: formatCurrency2(data.totals.previousCredit),
+								text: formatForPdf(data.totals.previousCredit),
 								alignment: 'right',
 								style: 'total',
 								bold: true
 							},
 							{
-								text: formatCurrency2(data.totals.debit),
+								text: formatForPdf(data.totals.debit),
 								alignment: 'right',
 								style: 'total',
 								bold: true
 							},
 							{
-								text: formatCurrency2(data.totals.credit),
+								text: formatForPdf(data.totals.credit),
 								alignment: 'right',
 								style: 'total',
 								bold: true
 							},
 							{
-								text: formatCurrency2(data.totals.balanceDebit),
+								text: formatForPdf(data.totals.balanceDebit),
 								alignment: 'right',
 								style: 'total',
 								bold: true
 							},
 							{
-								text: formatCurrency2(data.totals.balanceCredit),
+								text: formatForPdf(data.totals.balanceCredit),
 								alignment: 'right',
 								style: 'total',
 								bold: true
@@ -200,7 +209,7 @@ export async function exportAccountBalanceToPdf(
 			}
 		},
 		defaultStyle: {
-			fontSize: 10
+			fontSize: 8
 		}
 	};
 

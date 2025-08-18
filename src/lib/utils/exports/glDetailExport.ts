@@ -1,7 +1,7 @@
 import type { TDocumentDefinitions } from 'pdfmake/interfaces';
 import type * as pdfMakeType from 'pdfmake/build/pdfmake';
 import type { WorkBook } from 'xlsx';
-import { formatCurrency, formatDate } from '../utils.client';
+import { formatDate } from '../utils.client';
 import { browser } from '$app/environment';
 
 // Dynamically import pdfmake and fonts only in browser
@@ -48,6 +48,24 @@ interface GLDetailData {
 		balance: number;
 	};
 	selectedAccounts?: number[];
+}
+
+function formatForPdf(amount: number): string {
+    if (amount === null || amount === undefined) return '-';
+    const num = Number(amount);
+    if (num === 0) return '0';
+    if (num < 0) {
+        return `(${Math.abs(num).toLocaleString('id-ID')})`;
+    }
+    return num.toLocaleString('id-ID');
+}
+
+function formatDateForPdf(dateString: string): string {
+    const date = new Date(dateString);
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}-${month}-${year}`;
 }
 
 export async function exportGLDetailToPdf(
@@ -140,26 +158,26 @@ export async function exportGLDetailToPdf(
 					],
 					// Opening balance row
 					[
-						{ text: formatDate(group.transactions[0].date), style: 'openingBalance' },
+						{ text: formatDateForPdf(group.transactions[0].date), style: 'openingBalance' },
 						{ text: 'Opening Balance', style: 'openingBalance' },
 						{ text: '', style: 'openingBalance' },
 						{ text: '', style: 'openingBalance' },
 						{ text: '', style: 'openingBalance' },
 						{
-							text: formatCurrency(group.transactions[0].openingBalance),
+							text: formatForPdf(group.transactions[0].openingBalance),
 							alignment: 'right',
 							style: 'openingBalance'
 						}
 					],
 					// Transaction rows
 					...group.transactions.map((row) => [
-						{ text: formatDate(row.date) },
-						{ text: `${row.journalNumber}${row.detailNote ? ' - ' + row.detailNote : ''}` },
+						{ text: formatDateForPdf(row.date) },
+						{ text: row.journalNumber },
 						{ text: row.reffNumber || '' },
-						{ text: formatCurrency(row.debit), alignment: 'right' },
-						{ text: formatCurrency(row.credit), alignment: 'right' },
+						{ text: formatForPdf(row.debit), alignment: 'right' },
+						{ text: formatForPdf(row.credit), alignment: 'right' },
 						{
-							text: formatCurrency(row.balance),
+							text: formatForPdf(row.balance),
 							alignment: 'right',
 							fillColor: row.balance > 0 ? '#e6ffe6' : row.balance < 0 ? '#ffe6e6' : undefined
 						}
@@ -170,17 +188,17 @@ export async function exportGLDetailToPdf(
 						{},
 						{},
 						{
-							text: formatCurrency(group.transactions.reduce((sum, row) => sum + row.debit, 0)),
+							text: formatForPdf(group.transactions.reduce((sum, row) => sum + row.debit, 0)),
 							alignment: 'right',
 							bold: true
 						},
 						{
-							text: formatCurrency(group.transactions.reduce((sum, row) => sum + row.credit, 0)),
+							text: formatForPdf(group.transactions.reduce((sum, row) => sum + row.credit, 0)),
 							alignment: 'right',
 							bold: true
 						},
 						{
-							text: formatCurrency(group.transactions[group.transactions.length - 1].balance),
+							text: formatForPdf(group.transactions[group.transactions.length - 1].balance),
 							alignment: 'right',
 							bold: true,
 							fillColor:
@@ -210,17 +228,17 @@ export async function exportGLDetailToPdf(
 				[
 					{ text: 'Grand Total', bold: true },
 					{
-						text: formatCurrency(totals.debit),
+						text: formatForPdf(totals.debit),
 						alignment: 'right',
 						bold: true
 					},
 					{
-						text: formatCurrency(totals.credit),
+						text: formatForPdf(totals.credit),
 						alignment: 'right',
 						bold: true
 					},
 					{
-						text: formatCurrency(totals.balance),
+						text: formatForPdf(totals.balance),
 						alignment: 'right',
 						bold: true,
 						fillColor: totals.balance > 0 ? '#e6ffe6' : totals.balance < 0 ? '#ffe6e6' : undefined
@@ -232,6 +250,7 @@ export async function exportGLDetailToPdf(
 	});
 
 	const docDefinition: TDocumentDefinitions = {
+		pageOrientation: 'landscape',
 		content,
 		styles: {
 			header: {
@@ -255,7 +274,7 @@ export async function exportGLDetailToPdf(
 			}
 		},
 		defaultStyle: {
-			fontSize: 10
+			fontSize: 8
 		}
 	};
 
