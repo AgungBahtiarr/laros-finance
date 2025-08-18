@@ -106,6 +106,26 @@ export const load: PageServerLoad = async (event) => {
 		(acc) => acc.groupName === 'Hutang Jangka Panjang' || !hutangLancar.find((h) => h.id === acc.id)
 	);
 
+	// Calculate subtotals
+	const totalAktivaLancar = {
+		balance: aktivaLancar.reduce((sum, acc) => sum + acc.balance, 0)
+	};
+	const totalAktivaTetap = {
+		balance: aktivaTetap.reduce((sum, acc) => sum + acc.balance, 0)
+	};
+	const totalAktivaLainnya = {
+		balance: aktivaLainnya.reduce((sum, acc) => sum + acc.balance, 0)
+	};
+	const totalHutangLancar = {
+		balance: hutangLancar.reduce((sum, acc) => sum + acc.balance, 0)
+	};
+	const totalHutangJangkaPanjang = {
+		balance: hutangJangkaPanjang.reduce((sum, acc) => sum + acc.balance, 0)
+	};
+	const totalModal = {
+		balance: equity.reduce((sum, acc) => sum + acc.balance, 0)
+	};
+
 	// Calculate totals
 	const totalAktiva = {
 		debit: [...aktivaLancar, ...aktivaTetap, ...aktivaLainnya].reduce(
@@ -140,12 +160,18 @@ export const load: PageServerLoad = async (event) => {
 
 	return {
 		aktivaLancar,
+		totalAktivaLancar,
 		aktivaTetap,
+		totalAktivaTetap,
 		aktivaLainnya,
+		totalAktivaLainnya,
 		totalAktiva,
 		hutangLancar,
+		totalHutangLancar,
 		hutangJangkaPanjang,
+		totalHutangJangkaPanjang,
 		modal: equity,
+		totalModal,
 		totalPasiva,
 		netIncome,
 		periods,

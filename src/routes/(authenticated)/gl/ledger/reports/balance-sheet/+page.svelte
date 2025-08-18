@@ -149,15 +149,21 @@
 				<tbody>
 					<!-- Aktiva Lancar -->
 					<tr class="bg-base-200 font-bold">
-						<td colspan={2}>Aktiva Lancar (Current Assets)</td>
+						<td class="pl-4" colspan={2}>Aktiva Lancar (Current Assets)</td>
 					</tr>
 					{#if data.aktivaLancar && data.aktivaLancar.length > 0}
 						{#each data.aktivaLancar as asset}
 							<tr>
-								<td class="pl-{asset.level * 4}">{asset.name}</td>
+								<td class="pl-6">{asset.name}</td>
 								<td class="text-right">{formatCurrencyWithParentheses(asset.balance || 0)}</td>
 							</tr>
 						{/each}
+						<tr class="font-semibold">
+							<td class="pl-6">Total Aktiva Lancar</td>
+							<td class="text-right">
+								{formatCurrencyWithParentheses(data.totalAktivaLancar.balance || 0)}
+							</td>
+						</tr>
 					{:else}
 						<tr>
 							<td colspan={2} class="text-center text-gray-500"
@@ -167,15 +173,21 @@
 					{/if}
 					<!-- Aktiva Tetap -->
 					<tr class="bg-base-200 font-bold">
-						<td colspan={2}>Aktiva Tetap (Fixed Assets)</td>
+						<td class="pl-4" colspan={2}>Aktiva Tetap (Fixed Assets)</td>
 					</tr>
 					{#if data.aktivaTetap && data.aktivaTetap.length > 0}
 						{#each data.aktivaTetap as asset}
 							<tr>
-								<td class="pl-{asset.level * 4}">{asset.name}</td>
+								<td class="pl-6">{asset.name}</td>
 								<td class="text-right">{formatCurrencyWithParentheses(asset.balance || 0)}</td>
 							</tr>
 						{/each}
+						<tr class="font-semibold">
+							<td class="pl-6">Total Aktiva Tetap</td>
+							<td class="text-right">
+								{formatCurrencyWithParentheses(data.totalAktivaTetap.balance || 0)}
+							</td>
+						</tr>
 					{:else}
 						<tr>
 							<td colspan={2} class="text-center text-gray-500"
@@ -185,15 +197,21 @@
 					{/if}
 					<!-- Aktiva Lainnya -->
 					<tr class="bg-base-200 font-bold">
-						<td colspan={2}>Aktiva Lainnya (Other Assets)</td>
+						<td class="pl-4" colspan={2}>Aktiva Lainnya (Other Assets)</td>
 					</tr>
 					{#if data.aktivaLainnya && data.aktivaLainnya.length > 0}
 						{#each data.aktivaLainnya as asset}
 							<tr>
-								<td class="pl-{asset.level * 4}">{asset.name}</td>
+								<td class="pl-6">{asset.name}</td>
 								<td class="text-right">{formatCurrencyWithParentheses(asset.balance || 0)}</td>
 							</tr>
 						{/each}
+						<tr class="font-semibold">
+							<td class="pl-6">Total Aktiva Lainnya</td>
+							<td class="text-right">
+								{formatCurrencyWithParentheses(data.totalAktivaLainnya.balance || 0)}
+							</td>
+						</tr>
 					{:else}
 						<tr>
 							<td colspan={2} class="text-center text-gray-500"
@@ -221,15 +239,23 @@
 				<tbody>
 					<!-- Hutang Lancar -->
 					<tr class="bg-base-200 font-bold">
-						<td colspan={2}>Hutang Lancar (Current Liabilities)</td>
+						<td class="pl-4" colspan={2}>Hutang Lancar (Current Liabilities)</td>
 					</tr>
 					{#if data.hutangLancar && data.hutangLancar.length > 0}
 						{#each data.hutangLancar as liability}
 							<tr>
-								<td class="pl-{liability.level * 4}">{liability.name}</td>
-								<td class="text-right">{formatCurrencyWithParentheses(liability.balance || 0)}</td>
+								<td class="pl-6">{liability.name}</td>
+								<td class="text-right"
+									>{formatCurrencyWithParentheses(liability.balance || 0)}</td
+								>
 							</tr>
 						{/each}
+						<tr class="font-semibold">
+							<td class="pl-6">Total Hutang Lancar</td>
+							<td class="text-right">
+								{formatCurrencyWithParentheses(data.totalHutangLancar.balance || 0)}
+							</td>
+						</tr>
 					{:else}
 						<tr>
 							<td colspan={2} class="text-center text-gray-500"
@@ -239,15 +265,23 @@
 					{/if}
 					<!-- Hutang Jangka Panjang -->
 					<tr class="bg-base-200 font-bold">
-						<td colspan={2}>Hutang Jangka Panjang (Long-term Liabilities)</td>
+						<td class="pl-4" colspan={2}>Hutang Jangka Panjang (Long-term Liabilities)</td>
 					</tr>
 					{#if data.hutangJangkaPanjang && data.hutangJangkaPanjang.length > 0}
 						{#each data.hutangJangkaPanjang as liability}
 							<tr>
-								<td class="pl-{liability.level * 4}">{liability.name}</td>
-								<td class="text-right">{formatCurrencyWithParentheses(liability.balance || 0)}</td>
+								<td class="pl-6">{liability.name}</td>
+								<td class="text-right"
+									>{formatCurrencyWithParentheses(liability.balance || 0)}</td
+								>
 							</tr>
 						{/each}
+						<tr class="font-semibold">
+							<td class="pl-6">Total Hutang Jangka Panjang</td>
+							<td class="text-right">
+								{formatCurrencyWithParentheses(data.totalHutangJangkaPanjang.balance || 0)}
+							</td>
+						</tr>
 					{:else}
 						<tr>
 							<td colspan={2} class="text-center text-gray-500"
@@ -257,15 +291,21 @@
 					{/if}
 					<!-- Modal (Equity) -->
 					<tr class="bg-base-200 font-bold">
-						<td colspan={2}>Modal (Equity)</td>
+						<td class="pl-4" colspan={2}>Modal (Equity)</td>
 					</tr>
 					{#if data.modal && data.modal.length > 0}
 						{#each data.modal as eq}
 							<tr>
-								<td class="pl-{eq.level * 4}">{eq.name}</td>
+								<td class="pl-6">{eq.name}</td>
 								<td class="text-right">{formatCurrencyWithParentheses(eq.balance || 0)}</td>
 							</tr>
 						{/each}
+						<tr class="font-semibold">
+							<td class="pl-6">Total Modal</td>
+							<td class="text-right">
+								{formatCurrencyWithParentheses(data.totalModal.balance || 0)}
+							</td>
+						</tr>
 					{:else}
 						<tr>
 							<td colspan={2} class="text-center text-gray-500"
@@ -274,7 +314,7 @@
 						</tr>
 					{/if}
 					<tr>
-						<td>Laba Rugi Berjalan</td>
+						<td class="pl-6">Laba Rugi Berjalan</td>
 						<td class="text-right">{formatCurrencyWithParentheses(data.netIncome || 0)}</td>
 					</tr>
 					<tr class="font-bold">

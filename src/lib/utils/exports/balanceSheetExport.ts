@@ -36,16 +36,22 @@ interface AccountBalance {
 
 interface BalanceSheetData {
 	aktivaLancar: AccountBalance[];
+	totalAktivaLancar: { balance: number };
 	aktivaTetap: AccountBalance[];
+	totalAktivaTetap: { balance: number };
 	aktivaLainnya: AccountBalance[];
+	totalAktivaLainnya: { balance: number };
 	totalAktiva: {
 		debit: number;
 		credit: number;
 		balance: number;
 	};
 	hutangLancar: AccountBalance[];
+	totalHutangLancar: { balance: number };
 	hutangJangkaPanjang: AccountBalance[];
+	totalHutangJangkaPanjang: { balance: number };
 	modal: AccountBalance[];
+	totalModal: { balance: number };
 	totalPasiva: {
 		debit: number;
 		credit: number;
@@ -96,6 +102,155 @@ export async function exportBalanceSheetToPdf(
 		});
 	}
 
+	const body: TableCell[][] = [
+		getTableHeaders(showPercentages, compareWithPrevious),
+		// Assets Section
+		[
+			{
+				text: 'AKTIVA (ASSETS)',
+				style: 'sectionHeader',
+				colSpan: getColumnCount(showPercentages, compareWithPrevious),
+				fillColor: '#f0f0f0'
+			},
+			...Array(getColumnCount(showPercentages, compareWithPrevious) - 1).fill({})
+		],
+		// Current Assets
+		[
+			{
+				text: 'Aktiva Lancar (Current Assets)',
+				style: 'sectionHeader',
+				margin: [10, 2, 0, 2],
+				colSpan: getColumnCount(showPercentages, compareWithPrevious),
+				fillColor: '#f5f5f5'
+			},
+			...Array(getColumnCount(showPercentages, compareWithPrevious) - 1).fill({})
+		],
+		...getAssetRows(data.aktivaLancar, data, 'aktivaLancar', showPercentages, compareWithPrevious),
+		getSubTotalRow(
+			'Total Aktiva Lancar',
+			data.totalAktivaLancar.balance,
+			showPercentages,
+			compareWithPrevious
+		),
+		// Fixed Assets
+		[
+			{
+				text: 'Aktiva Tetap (Fixed Assets)',
+				style: 'sectionHeader',
+				margin: [10, 2, 0, 2],
+				colSpan: getColumnCount(showPercentages, compareWithPrevious),
+				fillColor: '#f5f5f5'
+			},
+			...Array(getColumnCount(showPercentages, compareWithPrevious) - 1).fill({})
+		],
+		...getAssetRows(data.aktivaTetap, data, 'aktivaTetap', showPercentages, compareWithPrevious),
+		getSubTotalRow(
+			'Total Aktiva Tetap',
+			data.totalAktivaTetap.balance,
+			showPercentages,
+			compareWithPrevious
+		),
+		// Other Assets
+		[
+			{
+				text: 'Aktiva Lainnya (Other Assets)',
+				style: 'sectionHeader',
+				margin: [10, 2, 0, 2],
+				colSpan: getColumnCount(showPercentages, compareWithPrevious),
+				fillColor: '#f5f5f5'
+			},
+			...Array(getColumnCount(showPercentages, compareWithPrevious) - 1).fill({})
+		],
+		...getAssetRows(
+			data.aktivaLainnya,
+			data,
+			'aktivaLainnya',
+			showPercentages,
+			compareWithPrevious
+		),
+		getSubTotalRow(
+			'Total Aktiva Lainnya',
+			data.totalAktivaLainnya.balance,
+			showPercentages,
+			compareWithPrevious
+		),
+		// Total Assets
+		getTotalAssetsRow(data, showPercentages, compareWithPrevious),
+		// Liabilities and Equity Section
+		[
+			{
+				text: 'PASIVA (LIABILITIES & EQUITY)',
+				style: 'sectionHeader',
+				colSpan: getColumnCount(showPercentages, compareWithPrevious),
+				fillColor: '#f0f0f0'
+			},
+			...Array(getColumnCount(showPercentages, compareWithPrevious) - 1).fill({})
+		],
+		// Current Liabilities
+		[
+			{
+				text: 'Hutang Lancar (Current Liabilities)',
+				style: 'sectionHeader',
+				margin: [10, 2, 0, 2],
+				colSpan: getColumnCount(showPercentages, compareWithPrevious),
+				fillColor: '#f5f5f5'
+			},
+			...Array(getColumnCount(showPercentages, compareWithPrevious) - 1).fill({})
+		],
+		...getLiabilityRows(
+			data.hutangLancar,
+			data,
+			'hutangLancar',
+			showPercentages,
+			compareWithPrevious
+		),
+		getSubTotalRow(
+			'Total Hutang Lancar',
+			data.totalHutangLancar.balance,
+			showPercentages,
+			compareWithPrevious
+		),
+		// Long-term Liabilities
+		[
+			{
+				text: 'Hutang Jangka Panjang (Long-term Liabilities)',
+				style: 'sectionHeader',
+				margin: [10, 2, 0, 2],
+				colSpan: getColumnCount(showPercentages, compareWithPrevious),
+				fillColor: '#f5f5f5'
+			},
+			...Array(getColumnCount(showPercentages, compareWithPrevious) - 1).fill({})
+		],
+		...getLiabilityRows(
+			data.hutangJangkaPanjang,
+			data,
+			'hutangJangkaPanjang',
+			showPercentages,
+			compareWithPrevious
+		),
+		getSubTotalRow(
+			'Total Hutang Jangka Panjang',
+			data.totalHutangJangkaPanjang.balance,
+			showPercentages,
+			compareWithPrevious
+		),
+		// Equity
+		[
+			{
+				text: 'Modal (Equity)',
+				style: 'sectionHeader',
+				margin: [10, 2, 0, 2],
+				colSpan: getColumnCount(showPercentages, compareWithPrevious),
+				fillColor: '#f5f5f5'
+			},
+			...Array(getColumnCount(showPercentages, compareWithPrevious) - 1).fill({})
+		],
+		...getEquityRows(data.modal, data, showPercentages, compareWithPrevious),
+		getSubTotalRow('Total Modal', data.totalModal.balance, showPercentages, compareWithPrevious),
+		// Total Liabilities and Equity
+		getTotalPasivaRow(data, showPercentages, compareWithPrevious)
+	];
+
 	const docDefinition: TDocumentDefinitions = {
 		content: [
 			{ text: 'Balance Sheet', style: 'header' },
@@ -108,121 +263,7 @@ export async function exportBalanceSheetToPdf(
 				table: {
 					headerRows: 1,
 					widths: getColumnWidths(showPercentages, compareWithPrevious),
-					body: [
-						getTableHeaders(showPercentages, compareWithPrevious),
-						// Assets Section
-						[
-							{
-								text: 'AKTIVA (ASSETS)',
-								style: 'sectionHeader',
-								colSpan: getColumnCount(showPercentages, compareWithPrevious),
-								fillColor: '#f0f0f0'
-							}
-						],
-						// Current Assets
-						[
-							{
-								text: 'Aktiva Lancar (Current Assets)',
-								style: 'sectionHeader',
-								colSpan: getColumnCount(showPercentages, compareWithPrevious),
-								fillColor: '#f5f5f5'
-							}
-						],
-						...getAssetRows(
-							data.aktivaLancar,
-							data,
-							'aktivaLancar',
-							showPercentages,
-							compareWithPrevious
-						),
-						// Fixed Assets
-						[
-							{
-								text: 'Aktiva Tetap (Fixed Assets)',
-								style: 'sectionHeader',
-								colSpan: getColumnCount(showPercentages, compareWithPrevious),
-								fillColor: '#f5f5f5'
-							}
-						],
-						...getAssetRows(
-							data.aktivaTetap,
-							data,
-							'aktivaTetap',
-							showPercentages,
-							compareWithPrevious
-						),
-						// Other Assets
-						[
-							{
-								text: 'Aktiva Lainnya (Other Assets)',
-								style: 'sectionHeader',
-								colSpan: getColumnCount(showPercentages, compareWithPrevious),
-								fillColor: '#f5f5f5'
-							}
-						],
-						...getAssetRows(
-							data.aktivaLainnya,
-							data,
-							'aktivaLainnya',
-							showPercentages,
-							compareWithPrevious
-						),
-						// Total Assets
-						getTotalAssetsRow(data, showPercentages, compareWithPrevious),
-						// Liabilities and Equity Section
-						[
-							{
-								text: 'PASIVA (LIABILITIES & EQUITY)',
-								style: 'sectionHeader',
-								colSpan: getColumnCount(showPercentages, compareWithPrevious),
-								fillColor: '#f0f0f0'
-							}
-						],
-						// Current Liabilities
-						[
-							{
-								text: 'Hutang Lancar (Current Liabilities)',
-								style: 'sectionHeader',
-								colSpan: getColumnCount(showPercentages, compareWithPrevious),
-								fillColor: '#f5f5f5'
-							}
-						],
-						...getLiabilityRows(
-							data.hutangLancar,
-							data,
-							'hutangLancar',
-							showPercentages,
-							compareWithPrevious
-						),
-						// Long-term Liabilities
-						[
-							{
-								text: 'Hutang Jangka Panjang (Long-term Liabilities)',
-								style: 'sectionHeader',
-								colSpan: getColumnCount(showPercentages, compareWithPrevious),
-								fillColor: '#f5f5f5'
-							}
-						],
-						...getLiabilityRows(
-							data.hutangJangkaPanjang,
-							data,
-							'hutangJangkaPanjang',
-							showPercentages,
-							compareWithPrevious
-						),
-						// Equity
-						[
-							{
-								text: 'Modal (Equity)',
-								style: 'sectionHeader',
-								colSpan: getColumnCount(showPercentages, compareWithPrevious),
-								fillColor: '#f5f5f5'
-							}
-						],
-						...getEquityRows(data.modal, data, showPercentages, compareWithPrevious),
-						// Total Liabilities and Equity
-						getTotalPasivaRow(data, showPercentages, compareWithPrevious)
-					]
+					body: body
 				}
 			}
 		],
@@ -278,7 +319,7 @@ export async function exportBalanceSheetToExcel(
 	}
 
 	// Prepare the worksheet data
-	const wsData = [];
+	const wsData: any[][] = [];
 
 	// Add title and date range
 	wsData.push(['Balance Sheet']);
@@ -299,7 +340,7 @@ export async function exportBalanceSheetToExcel(
 	wsData.push(['AKTIVA (ASSETS)']);
 
 	// Current Assets
-	wsData.push(['Aktiva Lancar (Current Assets)']);
+	wsData.push(['    ' + 'Aktiva Lancar (Current Assets)']);
 	addAccountsToWorksheet(
 		wsData,
 		data.aktivaLancar,
@@ -309,9 +350,13 @@ export async function exportBalanceSheetToExcel(
 		showPercentages,
 		compareWithPrevious
 	);
+	wsData.push([
+		'      ' + 'Total Aktiva Lancar',
+		formatCurrency(data.totalAktivaLancar.balance)
+	]);
 
 	// Fixed Assets
-	wsData.push(['Aktiva Tetap (Fixed Assets)']);
+	wsData.push(['    ' + 'Aktiva Tetap (Fixed Assets)']);
 	addAccountsToWorksheet(
 		wsData,
 		data.aktivaTetap,
@@ -321,9 +366,10 @@ export async function exportBalanceSheetToExcel(
 		showPercentages,
 		compareWithPrevious
 	);
+	wsData.push(['      ' + 'Total Aktiva Tetap', formatCurrency(data.totalAktivaTetap.balance)]);
 
 	// Other Assets
-	wsData.push(['Aktiva Lainnya (Other Assets)']);
+	wsData.push(['    ' + 'Aktiva Lainnya (Other Assets)']);
 	addAccountsToWorksheet(
 		wsData,
 		data.aktivaLainnya,
@@ -333,6 +379,10 @@ export async function exportBalanceSheetToExcel(
 		showPercentages,
 		compareWithPrevious
 	);
+	wsData.push([
+		'      ' + 'Total Aktiva Lainnya',
+		formatCurrency(data.totalAktivaLainnya.balance)
+	]);
 
 	// Total Assets
 	addTotalToWorksheet(
@@ -349,7 +399,7 @@ export async function exportBalanceSheetToExcel(
 	wsData.push(['PASIVA (LIABILITIES & EQUITY)']);
 
 	// Current Liabilities
-	wsData.push(['Hutang Lancar (Current Liabilities)']);
+	wsData.push(['    ' + 'Hutang Lancar (Current Liabilities)']);
 	addAccountsToWorksheet(
 		wsData,
 		data.hutangLancar,
@@ -359,9 +409,13 @@ export async function exportBalanceSheetToExcel(
 		showPercentages,
 		compareWithPrevious
 	);
+	wsData.push([
+		'      ' + 'Total Hutang Lancar',
+		formatCurrency(data.totalHutangLancar.balance)
+	]);
 
 	// Long-term Liabilities
-	wsData.push(['Hutang Jangka Panjang (Long-term Liabilities)']);
+	wsData.push(['    ' + 'Hutang Jangka Panjang (Long-term Liabilities)']);
 	addAccountsToWorksheet(
 		wsData,
 		data.hutangJangkaPanjang,
@@ -371,9 +425,13 @@ export async function exportBalanceSheetToExcel(
 		showPercentages,
 		compareWithPrevious
 	);
+	wsData.push([
+		'      ' + 'Total Hutang Jangka Panjang',
+		formatCurrency(data.totalHutangJangkaPanjang.balance)
+	]);
 
 	// Equity
-	wsData.push(['Modal (Equity)']);
+	wsData.push(['    ' + 'Modal (Equity)']);
 	addAccountsToWorksheet(
 		wsData,
 		data.modal,
@@ -383,6 +441,7 @@ export async function exportBalanceSheetToExcel(
 		showPercentages,
 		compareWithPrevious
 	);
+	wsData.push(['      ' + 'Total Modal', formatCurrency(data.totalModal.balance)]);
 
 	// Total Liabilities and Equity
 	addTotalToWorksheet(
@@ -411,7 +470,7 @@ export async function exportBalanceSheetToExcel(
 					{ wch: 15 }, // Previous Period
 					...(showPercentages ? [{ wch: 12 }] : []), // Previous % of Total
 					{ wch: 20 } // Change
-				]
+			  ]
 			: [])
 	];
 
@@ -494,6 +553,24 @@ function calculateChangeForPdf(
 	};
 }
 
+function getSubTotalRow(
+	label: string,
+	total: number,
+	showPercentages: boolean,
+	compareWithPrevious: boolean
+): TableCell[] {
+	const row: TableCell[] = [
+		{ text: label, bold: true, margin: [20, 0, 0, 0] },
+		{ text: formatForPdf(total), alignment: 'right', bold: true }
+	];
+
+	const colCount = getColumnCount(showPercentages, compareWithPrevious);
+	while (row.length < colCount) {
+		row.push({ text: '' });
+	}
+	return row;
+}
+
 function getAssetRows(
 	assets: AccountBalance[],
 	data: BalanceSheetData,
@@ -503,7 +580,7 @@ function getAssetRows(
 ): TableCell[][] {
 	return assets.map((asset) => {
 		const row: TableCell[] = [
-			{ text: asset.name, margin: [asset.level * 10, 0, 0, 0] },
+			{ text: asset.name, margin: [20, 0, 0, 0] },
 			{ text: formatForPdf(asset.balance || 0), alignment: 'right' }
 		];
 
@@ -554,7 +631,7 @@ function getLiabilityRows(
 ): TableCell[][] {
 	return liabilities.map((liability) => {
 		const row: TableCell[] = [
-			{ text: liability.name, margin: [liability.level * 10, 0, 0, 0] },
+			{ text: liability.name, margin: [20, 0, 0, 0] },
 			{ text: formatForPdf(liability.balance || 0), alignment: 'right' }
 		];
 
@@ -604,7 +681,7 @@ function getEquityRows(
 ): TableCell[][] {
 	return equity.map((item) => {
 		const row: TableCell[] = [
-			{ text: item.name, margin: [item.level * 10, 0, 0, 0] },
+			{ text: item.name, margin: [20, 0, 0, 0] },
 			{ text: formatForPdf(item.balance || 0), alignment: 'right' }
 		];
 
@@ -734,20 +811,23 @@ function addAccountsToWorksheet(
 	compareWithPrevious: boolean
 ) {
 	accounts.forEach((account) => {
-		const row = ['  '.repeat(account.level) + account.name, formatCurrency(account.balance || 0)];
+		const row: any[] = ['      ' + account.name, formatCurrency(account.balance || 0)];
 
 		if (showPercentages) {
 			row.push(calculatePercentage(account.balance || 0, total));
 		}
 
 		if (compareWithPrevious && data.previousPeriod) {
-			const prevAccount = data.previousPeriod[type]?.find((a) => a.id === account.id);
+			const prevAccount = (data.previousPeriod as any)[type]?.find((a: any) => a.id === account.id);
 
 			if (prevAccount) {
 				row.push(formatCurrency(prevAccount.balance || 0));
 
 				if (showPercentages) {
-					const prevTotal = data.previousPeriod[type].reduce((sum, a) => sum + (a.balance || 0), 0);
+					const prevTotal = (data.previousPeriod as any)[type].reduce(
+						(sum: number, a: any) => sum + (a.balance || 0),
+						0
+					);
 					row.push(calculatePercentage(prevAccount.balance || 0, prevTotal));
 				}
 
@@ -772,7 +852,7 @@ function addTotalToWorksheet(
 	showPercentages: boolean,
 	compareWithPrevious: boolean
 ) {
-	const row = [label, formatCurrency(total)];
+	const row: any[] = [label, formatCurrency(total)];
 
 	if (showPercentages) {
 		row.push('100%');
