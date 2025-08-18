@@ -138,7 +138,7 @@
 				<form onsubmit={handleLogin} class="space-y-4">
 					<div class="form-control">
 						<label class="label" for="email">
-							<span class="label-text font-medium">email</span>
+							<span class="label-text font-medium">Email</span>
 						</label>
 						<div class="relative">
 							<input
