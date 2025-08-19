@@ -28,16 +28,12 @@
 		const { exportToPdf, exportToExcel } = await import(
 			'$lib/utils/exports/profitNLossExport'
 		);
-		const lastDayOfMonth = new Date(data.selectedPeriod.year, data.selectedPeriod.month, 0).getDate();
-		const dateRange = {
-			start: `${data.selectedPeriod.year}-${data.selectedPeriod.month.toString().padStart(2, '0')}-01`,
-			end: `${data.selectedPeriod.year}-${data.selectedPeriod.month.toString().padStart(2, '0')}-${lastDayOfMonth.toString().padStart(2, '0')}`
-		};
+		const periodName = data.selectedPeriod.name;
 
 		if (type === 'pdf') {
-			await exportToPdf(data, dateRange, false, false);
+			await exportToPdf(data, periodName, false, false);
 		} else {
-			await exportToExcel(data, dateRange, false, false);
+			await exportToExcel(data, periodName, false, false);
 		}
 	}
 </script>
@@ -136,23 +132,28 @@
 			<thead>
 				<tr>
 					<th>Account</th>
-					<th class="text-right">Current Period</th>
+					<th class="text-right">Balance</th>
+					<th class="text-right">Summary</th>
 				</tr>
 			</thead>
 			<tbody>
 				<!-- Pendapatan -->
 				<tr class="bg-base-200 font-bold">
-					<td colspan={2}>Pendapatan</td>
+					<td colspan={3}>Pendapatan</td>
 				</tr>
 				{#if data.pendapatan && data.pendapatan.length > 0}
 					{#each data.pendapatan as item}
-						<tr>
-							<td style="padding-left: {item.level * 1.5}rem">{item.name}</td>
-							<td class="text-right">{formatCurrencyWithParentheses(item.balance || 0)}</td>
-						</tr>
+						{#if item.balance !== 0}
+							<tr>
+								<td style="padding-left: 2rem">{item.name}</td>
+								<td class="text-right">{formatCurrencyWithParentheses(item.balance || 0)}</td>
+								<td></td>
+							</tr>
+						{/if}
 					{/each}
 					<tr class="font-bold">
-						<td>Total</td>
+						<td style="padding-left: 2rem">Total</td>
+						<td></td>
 						<td class="text-right"
 							>{formatCurrencyWithParentheses(
 								data.pendapatan.reduce((sum, item) => sum + (item.balance || 0), 0)
@@ -161,7 +162,7 @@
 					</tr>
 				{:else}
 					<tr>
-						<td colspan={2} class="text-center text-gray-500"
+						<td colspan={3} class="text-center text-gray-500"
 							>No revenue data found for the selected period</td
 						>
 					</tr>
@@ -169,17 +170,21 @@
 
 				<!-- Harga Pokok (COGS/HPP) -->
 				<tr class="bg-base-200 font-bold">
-					<td colspan={2}>Harga Pokok (COGS/HPP)</td>
+					<td colspan={3}>Harga Pokok (COGS/HPP)</td>
 				</tr>
 				{#if data.hargaPokok && data.hargaPokok.length > 0}
 					{#each data.hargaPokok as item}
-						<tr>
-							<td style="padding-left: {item.level * 1.5}rem">{item.name}</td>
-							<td class="text-right">{formatCurrencyWithParentheses(item.balance || 0)}</td>
-						</tr>
+						{#if item.balance !== 0}
+							<tr>
+								<td style="padding-left: 2rem">{item.name}</td>
+								<td class="text-right">{formatCurrencyWithParentheses(item.balance || 0)}</td>
+								<td></td>
+							</tr>
+						{/if}
 					{/each}
 					<tr class="font-bold">
-						<td>Total</td>
+						<td style="padding-left: 2rem">Total</td>
+						<td></td>
 						<td class="text-right"
 							>{formatCurrencyWithParentheses(
 								data.hargaPokok.reduce((sum, item) => sum + (item.balance || 0), 0)
@@ -188,23 +193,27 @@
 					</tr>
 				{:else}
 					<tr>
-						<td colspan={2} class="text-center text-gray-500">No data found</td>
+						<td colspan={3} class="text-center text-gray-500">No data found</td>
 					</tr>
 				{/if}
 
 				<!-- Biaya Operasional -->
 				<tr class="bg-base-200 font-bold">
-					<td colspan={2}>Biaya Operasional</td>
+					<td colspan={3}>Biaya Operasional</td>
 				</tr>
 				{#if data.biayaOperasional && data.biayaOperasional.length > 0}
 					{#each data.biayaOperasional as item}
-						<tr>
-							<td style="padding-left: {item.level * 1.5}rem">{item.name}</td>
-							<td class="text-right">{formatCurrencyWithParentheses(item.balance || 0)}</td>
-						</tr>
+						{#if item.balance !== 0}
+							<tr>
+								<td style="padding-left: 2rem">{item.name}</td>
+								<td class="text-right">{formatCurrencyWithParentheses(item.balance || 0)}</td>
+								<td></td>
+							</tr>
+						{/if}
 					{/each}
 					<tr class="font-bold">
-						<td>Total</td>
+						<td style="padding-left: 2rem">Total</td>
+						<td></td>
 						<td class="text-right"
 							>{formatCurrencyWithParentheses(
 								data.biayaOperasional.reduce((sum, item) => sum + (item.balance || 0), 0)
@@ -213,23 +222,27 @@
 					</tr>
 				{:else}
 					<tr>
-						<td colspan={2} class="text-center text-gray-500">No data found</td>
+						<td colspan={3} class="text-center text-gray-500">No data found</td>
 					</tr>
 				{/if}
 
 				<!-- Biaya Operasional Lainnya -->
 				<tr class="bg-base-200 font-bold">
-					<td colspan={2}>Biaya Operasional Lainnya</td>
+					<td colspan={3}>Biaya Operasional Lainnya</td>
 				</tr>
 				{#if data.biayaOperasionalLainnya && data.biayaOperasionalLainnya.length > 0}
 					{#each data.biayaOperasionalLainnya as item}
-						<tr>
-							<td style="padding-left: {item.level * 1.5}rem">{item.name}</td>
-							<td class="text-right">{formatCurrencyWithParentheses(item.balance || 0)}</td>
-						</tr>
+						{#if item.balance !== 0}
+							<tr>
+								<td style="padding-left: 2rem">{item.name}</td>
+								<td class="text-right">{formatCurrencyWithParentheses(item.balance || 0)}</td>
+								<td></td>
+							</tr>
+						{/if}
 					{/each}
 					<tr class="font-bold">
-						<td>Total</td>
+						<td style="padding-left: 2rem">Total</td>
+						<td></td>
 						<td class="text-right"
 							>{formatCurrencyWithParentheses(
 								data.biayaOperasionalLainnya.reduce((sum, item) => sum + (item.balance || 0), 0)
@@ -238,23 +251,27 @@
 					</tr>
 				{:else}
 					<tr>
-						<td colspan={2} class="text-center text-gray-500">No data found</td>
+						<td colspan={3} class="text-center text-gray-500">No data found</td>
 					</tr>
 				{/if}
 
 				<!-- Biaya Administrasi & Umum -->
 				<tr class="bg-base-200 font-bold">
-					<td colspan={2}>Biaya Administrasi & Umum</td>
+					<td colspan={3}>Biaya Administrasi & Umum</td>
 				</tr>
 				{#if data.biayaAdministrasiUmum && data.biayaAdministrasiUmum.length > 0}
 					{#each data.biayaAdministrasiUmum as item}
-						<tr>
-							<td style="padding-left: {item.level * 1.5}rem">{item.name}</td>
-							<td class="text-right">{formatCurrencyWithParentheses(item.balance || 0)}</td>
-						</tr>
+						{#if item.balance !== 0}
+							<tr>
+								<td style="padding-left: 2rem">{item.name}</td>
+								<td class="text-right">{formatCurrencyWithParentheses(item.balance || 0)}</td>
+								<td></td>
+							</tr>
+						{/if}
 					{/each}
 					<tr class="font-bold">
-						<td>Total</td>
+						<td style="padding-left: 2rem">Total</td>
+						<td></td>
 						<td class="text-right"
 							>{formatCurrencyWithParentheses(
 								data.biayaAdministrasiUmum.reduce((sum, item) => sum + (item.balance || 0), 0)
@@ -263,23 +280,27 @@
 					</tr>
 				{:else}
 					<tr>
-						<td colspan={2} class="text-center text-gray-500">No data found</td>
+						<td colspan={3} class="text-center text-gray-500">No data found</td>
 					</tr>
 				{/if}
 
 				<!-- (Pendapatan) Biaya Lain-Lain -->
 				<tr class="bg-base-200 font-bold">
-					<td colspan={2}>(Pendapatan) Biaya Lain-Lain</td>
+					<td colspan={3}>(Pendapatan) Biaya Lain-Lain</td>
 				</tr>
 				{#if data.pendapatanBiayaLainLain && data.pendapatanBiayaLainLain.length > 0}
 					{#each data.pendapatanBiayaLainLain as item}
-						<tr>
-							<td style="padding-left: {item.level * 1.5}rem">{item.name}</td>
-							<td class="text-right">{formatCurrencyWithParentheses(item.balance || 0)}</td>
-						</tr>
+						{#if item.balance !== 0}
+							<tr>
+								<td style="padding-left: 2rem">{item.name}</td>
+								<td class="text-right">{formatCurrencyWithParentheses(item.balance || 0)}</td>
+								<td></td>
+							</tr>
+						{/if}
 					{/each}
 					<tr class="font-bold">
-						<td>Total</td>
+						<td style="padding-left: 2rem">Total</td>
+						<td></td>
 						<td class="text-right"
 							>{formatCurrencyWithParentheses(
 								data.pendapatanBiayaLainLain.reduce((sum, item) => sum + (item.balance || 0), 0)
@@ -288,12 +309,13 @@
 					</tr>
 				{:else}
 					<tr>
-						<td colspan={2} class="text-center text-gray-500">No data found</td>
+						<td colspan={3} class="text-center text-gray-500">No data found</td>
 					</tr>
 				{/if}
 
 				<tr class="text-lg font-bold">
 					<td>Net Income</td>
+					<td></td>
 					<td class="text-right">{formatCurrencyWithParentheses(data.netIncome || 0)}</td>
 				</tr>
 			</tbody>

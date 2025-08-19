@@ -72,12 +72,14 @@ function formatForPdf(amount: number): string {
 
 function getGroupedRows(accounts: AccountBalance[]): TableCell[][] {
 	const rows: TableCell[][] = [];
+	const indentMargin = 10; // Fixed indent
 
 	accounts.forEach((account) => {
 		if (account.balance !== 0) {
 			const row: TableCell[] = [
-				{ text: account.name, margin: [account.level * 10, 0, 0, 0] },
-				{ text: formatForPdf(account.balance || 0), alignment: 'right' }
+				{ text: account.name, margin: [indentMargin, 0, 0, 0] },
+				{ text: formatForPdf(account.balance || 0), alignment: 'right' },
+				{ text: '' }
 			];
 			rows.push(row);
 		}
@@ -88,7 +90,7 @@ function getGroupedRows(accounts: AccountBalance[]): TableCell[][] {
 
 export async function exportToPdf(
 	data: ProfitLossData,
-	dateRange: { start: string; end: string },
+	periodName: string,
 	showPercentages: boolean,
 	compareWithPrevious: boolean
 ) {
@@ -139,8 +141,10 @@ export async function exportToPdf(
 			tableBody.push(...accountRows);
 
 			const sectionTotal = section.data.reduce((sum, acc) => sum + (acc.balance || 0), 0);
+			const indentMargin = 10; // Fixed indent
 			const totalRow: TableCell[] = [
-				{ text: `Total ${section.title}`, bold: true },
+				{ text: `Total ${section.title}`, bold: true, margin: [indentMargin, 0, 0, 0] },
+				{ text: '' },
 				{ text: formatForPdf(sectionTotal), alignment: 'right', bold: true }
 			];
 
@@ -159,7 +163,7 @@ export async function exportToPdf(
 		content: [
 			{ text: 'Laporan Laba Rugi', style: 'header' },
 			{
-				text: `Periode: ${dateRange.start} sampai ${dateRange.end}`,
+				text: `Periode: ${periodName}`,
 				style: 'subheader',
 				margin: [0, 0, 0, 10]
 			},
@@ -199,7 +203,7 @@ export async function exportToPdf(
 
 export async function exportToExcel(
 	data: any, // Using any because the structure is now different
-	dateRange: { start: string; end: string },
+	periodName: string,
 	showPercentages: boolean,
 	compareWithPrevious: boolean
 ) {
@@ -223,10 +227,10 @@ export async function exportToExcel(
 
 	const wsData: (string | number)[][] = [];
 	wsData.push(['Laporan Laba Rugi']);
-	wsData.push([`Periode: ${dateRange.start} sampai ${dateRange.end}`]);
+	wsData.push([`Periode: ${periodName}`]);
 	wsData.push([]);
 
-	const headers = ['Account', 'Balance'];
+	const headers = ['Account', 'Balance', 'Summary'];
 	wsData.push(headers);
 
 	const sections = [
@@ -235,25 +239,54 @@ export async function exportToExcel(
 		{ title: 'Biaya Operasional', data: data.biayaOperasional },
 		{ title: 'Biaya Operasional Lainnya', data: data.biayaOperasionalLainnya },
 		{ title: 'Biaya Administrasi & Umum', data: data.biayaAdministrasiUmum },
-		{ title: '(Pendapatan) Biaya Lain-Lain', data: data.pendapatanBiayaLainLain },
+		{ title: '(Pendapatan) Biaya Lain-Lain', data: data.pendapatanBiayaLainLain }
 	];
 
-	sections.forEach(section => {
+	const indent = '    '; // 4 spaces
+
+	sections.forEach((section) => {
 		if (section.data && section.data.length > 0) {
-			wsData.push([section.title]);
-			let sectionTotal = 0;
-			section.data.forEach((item: AccountBalance) => {
-				wsData.push([' '.repeat(item.level) + item.name, formatCurrency(item.balance || 0)]);
-				sectionTotal += item.balance || 0;
-			});
-			wsData.push([`Total ${section.title}`, formatCurrency(sectionTotal)]);
-			wsData.push([]);
+			const filteredData = section.data.filter((item: AccountBalance) => item.balance !== 0);
+			if (filteredData.length > 0) {
+				wsData.push([section.title, '', '']);
+				let sectionTotal = 0;
+				filteredData.forEach((item: AccountBalance) => {
+					wsData.push([
+						indent + item.name,
+						formatCurrency(item.balance || 0),
+						''
+					]);
+					sectionTotal += item.balance || 0;
+				});
+				wsData.push([indent + `Total ${section.title}`, '', formatCurrency(sectionTotal)]);
+				wsData.push([]);
+			}
 		}
 	});
 
-	wsData.push(['Laba Bersih', formatCurrency(data.netIncome || 0)]);
+	wsData.push(['Laba Bersih', '', formatCurrency(data.netIncome || 0)]);
 
 	const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+	// Auto-fit columns
+	const colWidths = wsData.reduce((acc, row) => {
+		row.forEach((cell, i) => {
+			const cellLen = cell ? cell.toString().length : 0;
+			if (!acc[i] || cellLen > acc[i].wch) {
+				acc[i] = { wch: cellLen };
+			}
+		});
+		return acc;
+	}, [] as { wch: number }[]);
+
+    // Add some padding
+    colWidths.forEach(col => {
+        col.wch = col.wch + 2;
+    });
+
+
+	ws['!cols'] = colWidths;
+
 	const wb = XLSX.utils.book_new();
 	XLSX.utils.book_append_sheet(wb, ws, 'Laba Rugi');
 	XLSX.writeFile(wb, 'laporan-laba-rugi.xlsx');
@@ -261,7 +294,7 @@ export async function exportToExcel(
 
 // Helper functions
 function getColumnWidths(showPercentages: boolean, compareWithPrevious: boolean): string[] {
-	const widths = ['*', 'auto'];
+	const widths = ['*', 'auto', 'auto'];
 	if (showPercentages) widths.push('auto');
 	if (compareWithPrevious) {
 		widths.push('auto');
@@ -272,7 +305,7 @@ function getColumnWidths(showPercentages: boolean, compareWithPrevious: boolean)
 }
 
 function getColumnCount(showPercentages: boolean, compareWithPrevious: boolean): number {
-	let count = 2; // Account and Balance
+	let count = 3; // Account and Balance
 	if (showPercentages) count++;
 	if (compareWithPrevious) {
 		count += 2; // Previous Period and Change
@@ -284,7 +317,8 @@ function getColumnCount(showPercentages: boolean, compareWithPrevious: boolean):
 function getTableHeaders(showPercentages: boolean, compareWithPrevious: boolean): TableCell[] {
 	const headers: TableCell[] = [
 		{ text: 'Account', bold: true },
-		{ text: 'Balance', alignment: 'right', bold: true }
+		{ text: 'Balance', alignment: 'right', bold: true },
+		{ text: 'Summary', alignment: 'right', bold: true }
 	];
 	if (showPercentages) headers.push({ text: '% dari Pendapatan', alignment: 'right', bold: true });
 	if (compareWithPrevious) {
@@ -302,6 +336,7 @@ function getNetIncomeRow(
 ): TableCell[] {
 	const row: TableCell[] = [
 		{ text: 'Laba Bersih', style: 'total', bold: true },
+		{ text: '' },
 		{ text: formatForPdf(data.netIncome), alignment: 'right', style: 'total' }
 	];
 
