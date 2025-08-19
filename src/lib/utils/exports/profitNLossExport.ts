@@ -226,7 +226,7 @@ export async function exportToExcel(
 	wsData.push([`Periode: ${dateRange.start} sampai ${dateRange.end}`]);
 	wsData.push([]);
 
-	const headers = ['Account', 'Current Periode'];
+	const headers = ['Account', 'Balance'];
 	wsData.push(headers);
 
 	const sections = [
@@ -272,7 +272,7 @@ function getColumnWidths(showPercentages: boolean, compareWithPrevious: boolean)
 }
 
 function getColumnCount(showPercentages: boolean, compareWithPrevious: boolean): number {
-	let count = 2; // Account and Current Period
+	let count = 2; // Account and Balance
 	if (showPercentages) count++;
 	if (compareWithPrevious) {
 		count += 2; // Previous Period and Change
@@ -284,7 +284,7 @@ function getColumnCount(showPercentages: boolean, compareWithPrevious: boolean):
 function getTableHeaders(showPercentages: boolean, compareWithPrevious: boolean): TableCell[] {
 	const headers: TableCell[] = [
 		{ text: 'Account', bold: true },
-		{ text: 'Current Periode', alignment: 'right', bold: true }
+		{ text: 'Balance', alignment: 'right', bold: true }
 	];
 	if (showPercentages) headers.push({ text: '% dari Pendapatan', alignment: 'right', bold: true });
 	if (compareWithPrevious) {
