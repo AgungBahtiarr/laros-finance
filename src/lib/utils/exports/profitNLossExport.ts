@@ -198,7 +198,9 @@ export async function exportToPdf(
 		}
 	};
 
-	pdfMake.createPdf(docDefinition).download('laporan-laba-rugi.pdf');
+	const sanitizedPeriodName = periodName.replace(/\s+/g, '-');
+	const filename = `${sanitizedPeriodName}_laporan-laba-rugi.pdf`;
+	pdfMake.createPdf(docDefinition).download(filename);
 }
 
 export async function exportToExcel(
@@ -289,7 +291,9 @@ export async function exportToExcel(
 
 	const wb = XLSX.utils.book_new();
 	XLSX.utils.book_append_sheet(wb, ws, 'Laba Rugi');
-	XLSX.writeFile(wb, 'laporan-laba-rugi.xlsx');
+	const sanitizedPeriodName = periodName.replace(/\s+/g, '-');
+	const filename = `${sanitizedPeriodName}_laporan-laba-rugi.xlsx`;
+	XLSX.writeFile(wb, filename);
 }
 
 // Helper functions
