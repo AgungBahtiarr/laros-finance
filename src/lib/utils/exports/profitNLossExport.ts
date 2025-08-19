@@ -308,7 +308,7 @@ export async function exportToExcel(
 	});
 
 	// Net Income
-	addCell(rowIndex, 0, 'Laba Bersih', boldStyle);
+	addCell(rowIndex, 0, 'Current Earning', boldStyle);
 	addCell(rowIndex, 2, data.netIncome, boldRightAlignStyle);
 	rowIndex++;
 
@@ -369,7 +369,7 @@ function getNetIncomeRow(
 	compareWithPrevious: boolean
 ): TableCell[] {
 	const row: TableCell[] = [
-		{ text: 'Laba Bersih', style: 'total', bold: true },
+		{ text: 'Current Earning', style: 'total', bold: true },
 		{ text: '' },
 		{ text: formatForPdf(data.netIncome), alignment: 'right', style: 'total' }
 	];
