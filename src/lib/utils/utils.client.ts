@@ -21,26 +21,25 @@ export function formatCurrencyWithDecimals(amount: number | string | null | unde
 }
 
 export function formatCurrencyWithParentheses(amount: number | string | null | undefined): string {
-	if (amount === null || amount === undefined) return '-';
+	if (amount === null || amount === undefined || amount === '') return '-';
 	const num = typeof amount === 'string' ? parseFloat(amount) : amount;
 
+	if (isNaN(num)) return '-';
+
+	const fixedNum = num.toFixed(2);
+	const parts = fixedNum.split('.');
+	const integerPart = parseInt(parts[0], 10);
+	const decimalPart = parts[1];
+
+	const formattedInteger = new Intl.NumberFormat('id-ID').format(Math.abs(integerPart));
+
+	const result = `${formattedInteger},${decimalPart}`;
+
 	if (num < 0) {
-		// Format positive value and wrap with parentheses
-		const positiveFormatted = new Intl.NumberFormat('id-ID', {
-			style: 'currency',
-			currency: 'IDR',
-			minimumFractionDigits: 2,
-			maximumFractionDigits: 2
-		}).format(Math.abs(num));
-		return `(${positiveFormatted})`;
+		return `(${result})`;
 	}
 
-	return new Intl.NumberFormat('id-ID', {
-		style: 'currency',
-		currency: 'IDR',
-		minimumFractionDigits: 2,
-		maximumFractionDigits: 2
-	}).format(num);
+	return result;
 }
 
 export function formatCurrencyAdvanced(

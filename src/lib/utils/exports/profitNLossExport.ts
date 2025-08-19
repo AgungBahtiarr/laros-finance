@@ -63,11 +63,20 @@ interface TableCell {
 function formatForPdf(amount: number): string {
     if (amount === null || amount === undefined) return '-';
     const num = Number(amount);
-    if (num === 0) return '0';
-    if (num < 0) {
-        return `(${Math.abs(num).toLocaleString('id-ID')})`;
-    }
-    return num.toLocaleString('id-ID');
+
+	const fixedNum = num.toFixed(2);
+    const parts = fixedNum.split('.');
+    const integerPart = parseInt(parts[0], 10);
+    const decimalPart = parts[1];
+
+    const formattedInteger = new Intl.NumberFormat('id-ID').format(Math.abs(integerPart));
+
+    const result = `${formattedInteger},${decimalPart}`;
+
+	if (num < 0) {
+		return `(${result})`;
+	}
+	return result;
 }
 
 function getGroupedRows(accounts: AccountBalance[]): TableCell[][] {
@@ -198,7 +207,7 @@ export async function exportToPdf(
 		}
 	};
 
-	const sanitizedPeriodName = periodName.replace(/\s+/g, '-');
+	const sanitizedPeriodName = periodName.replace(/\s+/g, '');
 	const filename = `${sanitizedPeriodName}_laporan-laba-rugi.pdf`;
 	pdfMake.createPdf(docDefinition).download(filename);
 }
@@ -227,13 +236,42 @@ export async function exportToExcel(
 		});
 	}
 
-	const wsData: (string | number)[][] = [];
-	wsData.push(['Laporan Laba Rugi']);
-	wsData.push([`Periode: ${periodName}`]);
-	wsData.push([]);
+	const wb = XLSX.utils.book_new();
+	const ws: { [key: string]: any } = {};
+	let rowIndex = 0;
 
+	// Define styles
+	const boldStyle = { font: { bold: true } };
+	const rightAlignStyle = { alignment: { horizontal: 'right' } };
+	const boldRightAlignStyle = { font: { bold: true }, alignment: { horizontal: 'right' } };
+
+	// Helper to add cell
+	const addCell = (row: number, col: number, value: any, style?: any) => {
+		const cellRef = XLSX.utils.encode_cell({ r: row, c: col });
+		const cell: { [key: string]: any } = { v: value };
+		if (typeof value === 'number') {
+			cell.t = 'n'; // Set cell type to number
+			cell.v = value;
+			cell.z = '#,##0.00;(#,##0.00);0.00'; // Excel format for accounting (black negatives)
+		} else {
+			cell.t = 's'; // Set cell type to string
+		}
+		if (style) {
+			cell.s = style;
+		}
+		ws[cellRef] = cell;
+	};
+
+	// Title and Period
+	addCell(rowIndex, 0, 'Laporan Laba Rugi', boldStyle);
+	rowIndex++;
+	addCell(rowIndex, 0, `Periode: ${periodName}`, boldStyle);
+	rowIndex += 2; // Add a blank row
+
+	// Headers
 	const headers = ['Account', 'Balance', 'Summary'];
-	wsData.push(headers);
+	headers.forEach((header, i) => addCell(rowIndex, i, header, boldStyle));
+	rowIndex++;
 
 	const sections = [
 		{ title: 'Pendapatan', data: data.pendapatan },
@@ -250,48 +288,40 @@ export async function exportToExcel(
 		if (section.data && section.data.length > 0) {
 			const filteredData = section.data.filter((item: AccountBalance) => item.balance !== 0);
 			if (filteredData.length > 0) {
-				wsData.push([section.title, '', '']);
+				addCell(rowIndex, 0, section.title, boldStyle);
+				rowIndex++;
+
 				let sectionTotal = 0;
 				filteredData.forEach((item: AccountBalance) => {
-					wsData.push([
-						indent + item.name,
-						formatCurrency(item.balance || 0),
-						''
-					]);
+					addCell(rowIndex, 0, indent + item.name);
+					addCell(rowIndex, 1, item.balance, rightAlignStyle);
 					sectionTotal += item.balance || 0;
+					rowIndex++;
 				});
-				wsData.push([indent + `Total ${section.title}`, '', formatCurrency(sectionTotal)]);
-				wsData.push([]);
+
+				addCell(rowIndex, 0, indent + `Total ${section.title}`, boldStyle);
+				addCell(rowIndex, 2, sectionTotal, boldRightAlignStyle);
+				rowIndex++;
+				rowIndex++; // Blank row
 			}
 		}
 	});
 
-	wsData.push(['Laba Bersih', '', formatCurrency(data.netIncome || 0)]);
+	// Net Income
+	addCell(rowIndex, 0, 'Laba Bersih', boldStyle);
+	addCell(rowIndex, 2, data.netIncome, boldRightAlignStyle);
+	rowIndex++;
 
-	const ws = XLSX.utils.aoa_to_sheet(wsData);
+	// Set worksheet range
+	const range = { s: { c: 0, r: 0 }, e: { c: headers.length - 1, r: rowIndex } };
+    ws['!ref'] = XLSX.utils.encode_range(range);
 
-	// Auto-fit columns
-	const colWidths = wsData.reduce((acc, row) => {
-		row.forEach((cell, i) => {
-			const cellLen = cell ? cell.toString().length : 0;
-			if (!acc[i] || cellLen > acc[i].wch) {
-				acc[i] = { wch: cellLen };
-			}
-		});
-		return acc;
-	}, [] as { wch: number }[]);
+	// Set column widths
+	ws['!cols'] = [{ wch: 50 }, { wch: 20 }, { wch: 20 }];
 
-    // Add some padding
-    colWidths.forEach(col => {
-        col.wch = col.wch + 2;
-    });
-
-
-	ws['!cols'] = colWidths;
-
-	const wb = XLSX.utils.book_new();
 	XLSX.utils.book_append_sheet(wb, ws, 'Laba Rugi');
-	const sanitizedPeriodName = periodName.replace(/\s+/g, '-');
+
+	const sanitizedPeriodName = periodName.replace(/\s+/g, '');
 	const filename = `${sanitizedPeriodName}_laporan-laba-rugi.xlsx`;
 	XLSX.writeFile(wb, filename);
 }
@@ -362,9 +392,18 @@ function getNetIncomeRow(
 function formatCurrency(amount: number): string {
     if (amount === null || amount === undefined) return '-';
     const num = Number(amount);
-    if (num === 0) return '0';
-    if (num < 0) {
-        return `(${Math.abs(num).toLocaleString('id-ID')})`;
-    }
-    return num.toLocaleString('id-ID');
+
+	const fixedNum = num.toFixed(2);
+    const parts = fixedNum.split('.');
+    const integerPart = parseInt(parts[0], 10);
+    const decimalPart = parts[1];
+
+    const formattedInteger = new Intl.NumberFormat('id-ID').format(Math.abs(integerPart));
+
+    const result = `${formattedInteger},${decimalPart}`;
+
+	if (num < 0) {
+		return `(${result})`;
+	}
+	return result;
 }
