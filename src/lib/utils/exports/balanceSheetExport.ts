@@ -1,7 +1,22 @@
 import type { TDocumentDefinitions } from 'pdfmake/interfaces';
 import type * as pdfMakeType from 'pdfmake/build/pdfmake';
 import type { WorkBook } from 'xlsx';
-import { formatCurrency } from '../utils.client';
+function formatCurrency(amount: number | string | null | undefined): string {
+	if (amount === null || amount === undefined) return '-';
+	const num = typeof amount === 'string' ? parseFloat(amount) : amount;
+	if (isNaN(num)) return '-';
+
+	const formattedNum = new Intl.NumberFormat('id-ID', {
+		minimumFractionDigits: 0,
+		maximumFractionDigits: 0
+	}).format(Math.abs(num));
+
+	if (num < 0) {
+		return `(${formattedNum})`;
+	}
+
+	return formattedNum;
+}
 import { browser } from '$app/environment';
 
 // Dynamically import pdfmake and fonts only in browser
@@ -384,7 +399,7 @@ export async function exportBalanceSheetToPdf(
 
 export async function exportBalanceSheetToExcel(
 	data: BalanceSheetData,
-	dateRange: { start: string; end: string },
+	period: { month: number; year: number },
 	showPercentages: boolean,
 	compareWithPrevious: boolean
 ) {
@@ -410,94 +425,83 @@ export async function exportBalanceSheetToExcel(
 	// Prepare the worksheet data
 	const wsData: any[][] = [];
 
+	const monthNames = [
+		'Januari',
+		'Februari',
+		'Maret',
+		'April',
+		'Mei',
+		'Juni',
+		'Juli',
+		'Agustus',
+		'September',
+		'Oktober',
+		'November',
+		'Desember'
+	];
+	const monthName = monthNames[period.month - 1];
+
 	// Add title and date range
 	wsData.push(['Balance Sheet']);
-	wsData.push([`Period: ${dateRange.start} to ${dateRange.end}`]);
+	wsData.push([`Periode: ${monthName} ${period.year}`]);
 	wsData.push([]); // Empty row for spacing
 
 	// Add headers
-	const headers = ['Account', 'Balance'];
-	if (showPercentages) headers.push('% of Total');
-	if (compareWithPrevious) {
-		headers.push('Previous Period');
-		if (showPercentages) headers.push('% of Total');
-		headers.push('Change');
-	}
-	wsData.push(headers);
+	wsData.push(['Account', 'Balance', 'SUMMARY']);
 
 	// Add Assets section
 	wsData.push(['AKTIVA (ASSETS)']);
 
 	// Current Assets
 	wsData.push(['    ' + 'Aktiva Lancar (Current Assets)']);
-	addAccountsToWorksheet(
-		wsData,
-		data.aktivaLancar,
-		data.totalAktiva.balance,
-		'aktivaLancar',
-		data,
-		showPercentages,
-		compareWithPrevious
-	);
+	addAccountsToWorksheet(wsData, data.aktivaLancar);
 	wsData.push([
 		'      ' + 'Total Aktiva Lancar',
-		formatCurrency(data.totalAktivaLancar.balance)
+		'',
+		{
+			v: formatCurrency(data.totalAktivaLancar.balance),
+			s: { font: { bold: true }, alignment: { horizontal: 'left' } }
+		}
 	]);
 
 	// Fixed Assets
 	wsData.push(['    ' + 'Aktiva Tetap (Fixed Assets)']);
-	addAccountsToWorksheet(
-		wsData,
-		data.aktivaTetap,
-		data.totalAktiva.balance,
-		'aktivaTetap',
-		data,
-		showPercentages,
-		compareWithPrevious
-	);
-	wsData.push(['      ' + 'Total Aktiva Tetap', formatCurrency(data.totalAktivaTetap.balance)]);
+	addAccountsToWorksheet(wsData, data.aktivaTetap);
+	wsData.push([
+		'      ' + 'Total Aktiva Tetap',
+		'',
+		{
+			v: formatCurrency(data.totalAktivaTetap.balance),
+			s: { font: { bold: true }, alignment: { horizontal: 'left' } }
+		}
+	]);
 
 	// Akumulasi Penyusutan
 	wsData.push(['    ' + 'Akumulasi Penyusutan']);
-	addAccountsToWorksheet(
-		wsData,
-		data.akumulasiPenyusutan,
-		data.totalAktiva.balance,
-		'akumulasiPenyusutan',
-		data,
-		showPercentages,
-		compareWithPrevious
-	);
+	addAccountsToWorksheet(wsData, data.akumulasiPenyusutan);
 	wsData.push([
 		'      ' + 'Total Akumulasi Penyusutan',
-		formatCurrency(data.totalAkumulasiPenyusutan.balance)
+		'',
+		{
+			v: formatCurrency(data.totalAkumulasiPenyusutan.balance),
+			s: { font: { bold: true }, alignment: { horizontal: 'left' } }
+		}
 	]);
 
 	// Other Assets
 	wsData.push(['    ' + 'Aktiva Lainnya (Other Assets)']);
-	addAccountsToWorksheet(
-		wsData,
-		data.aktivaLainnya,
-		data.totalAktiva.balance,
-		'aktivaLainnya',
-		data,
-		showPercentages,
-		compareWithPrevious
-	);
+	addAccountsToWorksheet(wsData, data.aktivaLainnya);
 	wsData.push([
 		'      ' + 'Total Aktiva Lainnya',
-		formatCurrency(data.totalAktivaLainnya.balance)
+		'',
+		{
+			v: formatCurrency(data.totalAktivaLainnya.balance),
+			s: { font: { bold: true }, alignment: { horizontal: 'left' } }
+		}
 	]);
 
 	// Total Assets
-	addTotalToWorksheet(
-		wsData,
-		'Total Aktiva (Total Assets)',
-		data.totalAktiva.balance,
-		data,
-		showPercentages,
-		compareWithPrevious
-	);
+	addTotalToWorksheet(wsData, 'Total Aktiva (Total Assets)', data.totalAktiva.balance);
 	wsData.push([]); // Empty row for spacing
 
 	// Add Liabilities and Equity section
@@ -505,113 +509,75 @@ export async function exportBalanceSheetToExcel(
 
 	// Current Liabilities
 	wsData.push(['    ' + 'Hutang Lancar (Current Liabilities)']);
-	addAccountsToWorksheet(
-		wsData,
-		data.hutangLancar,
-		data.totalPasiva.balance,
-		'hutangLancar',
-		data,
-		showPercentages,
-		compareWithPrevious
-	);
+	addAccountsToWorksheet(wsData, data.hutangLancar);
 	wsData.push([
 		'      ' + 'Total Hutang Lancar',
-		formatCurrency(data.totalHutangLancar.balance)
+		'',
+		{
+			v: formatCurrency(data.totalHutangLancar.balance),
+			s: { font: { bold: true }, alignment: { horizontal: 'left' } }
+		}
 	]);
 
 	// Accrued Expenses
 	wsData.push(['    ' + 'Biaya Yang Masih Harus Dibayar']);
-	addAccountsToWorksheet(
-		wsData,
-		data.biayaYMHDB,
-		data.totalPasiva.balance,
-		'biayaYMHDB',
-		data,
-		showPercentages,
-		compareWithPrevious
-	);
+	addAccountsToWorksheet(wsData, data.biayaYMHDB);
 	wsData.push([
 		'      ' + 'Total Biaya Yang Masih Harus Dibayar',
-		formatCurrency(data.totalBiayaYMHDB.balance)
+		'',
+		{
+			v: formatCurrency(data.totalBiayaYMHDB.balance),
+			s: { font: { bold: true }, alignment: { horizontal: 'left' } }
+		}
 	]);
 
 	// Accrued Taxes
 	wsData.push(['    ' + 'Pajak Yang Masih Harus Dibayar']);
-	addAccountsToWorksheet(
-		wsData,
-		data.pajakYMHDB,
-		data.totalPasiva.balance,
-		'pajakYMHDB',
-		data,
-		showPercentages,
-		compareWithPrevious
-	);
+	addAccountsToWorksheet(wsData, data.pajakYMHDB);
 	wsData.push([
 		'      ' + 'Total Pajak Yang Masih Harus Dibayar',
-		formatCurrency(data.totalPajakYMHDB.balance)
+		'',
+		{
+			v: formatCurrency(data.totalPajakYMHDB.balance),
+			s: { font: { bold: true }, alignment: { horizontal: 'left' } }
+		}
 	]);
 
 	// Long-term Liabilities
 	wsData.push(['    ' + 'Hutang Jangka Panjang (Long-term Liabilities)']);
-	addAccountsToWorksheet(
-		wsData,
-		data.hutangJangkaPanjang,
-		data.totalPasiva.balance,
-		'hutangJangkaPanjang',
-		data,
-		showPercentages,
-		compareWithPrevious
-	);
+	addAccountsToWorksheet(wsData, data.hutangJangkaPanjang);
 	wsData.push([
 		'      ' + 'Total Hutang Jangka Panjang',
-		formatCurrency(data.totalHutangJangkaPanjang.balance)
+		'',
+		{
+			v: formatCurrency(data.totalHutangJangkaPanjang.balance),
+			s: { font: { bold: true }, alignment: { horizontal: 'left' } }
+		}
 	]);
 
 	// Equity
 	wsData.push(['    ' + 'Modal (Equity)']);
-	addAccountsToWorksheet(
-		wsData,
-		data.modal,
-		data.totalPasiva.balance,
-		'modal',
-		data,
-		showPercentages,
-		compareWithPrevious
-	);
-	wsData.push(['      ' + 'Total Modal', formatCurrency(data.totalModal.balance)]);
+	addAccountsToWorksheet(wsData, data.modal);
+	wsData.push([
+		'      ' + 'Total Modal',
+		'',
+		{ v: formatCurrency(data.totalModal.balance), s: { font: { bold: true }, alignment: { horizontal: 'left' } } }
+	]);
 
-	wsData.push(['    ' + 'Laba (Rugi) Berjalan', formatCurrency(data.netIncome)]);
+	wsData.push(['    ' + 'Laba (Rugi) Berjalan', '', formatCurrency(data.netIncome)]);
 
 	// Total Liabilities and Equity
 	addTotalToWorksheet(
 		wsData,
 		'Total Pasiva (Total Liabilities & Equity)',
-		data.totalPasiva.balance,
-		data,
-		showPercentages,
-		compareWithPrevious
+		data.totalPasiva.balance
 	);
 
 	// Create worksheet
 	const ws = XLSX.utils.aoa_to_sheet(wsData);
 
-	// Add styling
-	const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
-	const maxCol = range.e.c;
-
 	// Set column widths
-	ws['!cols'] = [
-		{ wch: 40 }, // Account name
-		{ wch: 15 }, // Balance
-		...(showPercentages ? [{ wch: 12 }] : []),
-		...(compareWithPrevious
-			? [
-					{ wch: 15 }, // Previous Period
-					...(showPercentages ? [{ wch: 12 }] : []),
-					{ wch: 20 } // Change
-			  ]
-			: [])
-	];
+	ws['!cols'] = [{ wch: 40 }, { wch: 15 }, { wch: 15 }];
 
 	// Create workbook and add worksheet
 	const wb = XLSX.utils.book_new();
@@ -958,77 +924,19 @@ function getTotalPasivaRow(
 	return row;
 }
 
-function addAccountsToWorksheet(
-	wsData: any[],
-	accounts: AccountBalance[],
-	total: number,
-	type: string,
-	data: BalanceSheetData,
-	showPercentages: boolean,
-	compareWithPrevious: boolean
-) {
+function addAccountsToWorksheet(wsData: any[][], accounts: AccountBalance[]) {
 	accounts.forEach((account) => {
-		const row: any[] = ['      ' + account.name, formatCurrency(account.balance || 0)];
-
-		if (showPercentages) {
-			row.push(calculatePercentage(account.balance || 0, total));
-		}
-
-		if (compareWithPrevious && data.previousPeriod) {
-			const prevAccount = (data.previousPeriod as any)[type]?.find((a: any) => a.id === account.id);
-
-			if (prevAccount) {
-				row.push(formatCurrency(prevAccount.balance || 0));
-
-				if (showPercentages) {
-					const prevTotal = (data.previousPeriod as any)[type].reduce(
-						(sum: number, a: any) => sum + (a.balance || 0),
-						0
-					);
-					row.push(calculatePercentage(prevAccount.balance || 0, prevTotal));
-				}
-
-				const change = calculateChange(account.balance || 0, prevAccount.balance || 0);
-				row.push(change.display);
-			} else {
-				row.push('-');
-				if (showPercentages) row.push('-');
-				row.push('-');
-			}
-		}
-
-		wsData.push(row);
+		wsData.push(['      ' + account.name, formatCurrency(account.balance || 0), '']);
 	});
 }
 
-function addTotalToWorksheet(
-	wsData: any[],
-	label: string,
-	total: number,
-	data: BalanceSheetData,
-	showPercentages: boolean,
-	compareWithPrevious: boolean
-) {
-	const row: any[] = [label, formatCurrency(total)];
-
-	if (showPercentages) {
-		row.push('100%');
-	}
-
-	if (compareWithPrevious && data.previousPeriod) {
-		const prevTotal = Object.values(data.previousPeriod)
-			.flat()
-			.reduce((sum, item) => sum + (item.balance || 0), 0);
-
-		row.push(formatCurrency(prevTotal));
-
-		if (showPercentages) {
-			row.push('100%');
+function addTotalToWorksheet(wsData: any[][], label: string, total: number) {
+	wsData.push([
+		label,
+		'',
+		{
+			v: formatCurrency(total),
+			s: { font: { bold: true }, alignment: { horizontal: 'left' } }
 		}
-
-		const change = calculateChange(total, prevTotal);
-		row.push(change.display);
-	}
-
-	wsData.push(row);
+	]);
 }

@@ -40,7 +40,7 @@
 	}
 
 	async function handleExcelExport() {
-		await exportBalanceSheetToExcel(data, dateRange, false, false);
+		await exportBalanceSheetToExcel(data, data.selectedPeriod, false, false);
 	}
 
 	let totalAktiva = $derived(data.totalAktiva?.balance || 0);
