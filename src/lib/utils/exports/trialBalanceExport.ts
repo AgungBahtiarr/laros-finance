@@ -98,12 +98,24 @@ export async function exportTrialBalanceToPdf(
 
 	// Tambahkan tanggal sekarang
 	const now = new Date();
-	const printedAt = `Printed at: ${now.toLocaleDateString()} ${now.toLocaleTimeString()}`;
 
-	// Format proper date range
+	// Format period string
 	const startDate = new Date(dateRange.start);
-	const endDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0); // Last day of the month
-	const formattedDateRange = `${startDate.toLocaleDateString('id-ID')} to ${endDate.toLocaleDateString('id-ID')}`;
+	const monthNames = [
+		'Januari',
+		'Februari',
+		'Maret',
+		'April',
+		'Mei',
+		'Juni',
+		'Juli',
+		'Agustus',
+		'September',
+		'Oktober',
+		'November',
+		'Desember'
+	];
+	const periodString = `${monthNames[startDate.getMonth()]} ${startDate.getFullYear()}`;
 
 	const docDefinition: TDocumentDefinitions = {
 		pageSize: 'A4',
@@ -111,9 +123,8 @@ export async function exportTrialBalanceToPdf(
 		pageMargins: [40, 60, 40, 60],
 		content: [
 			{ text: 'Trial Balance', style: 'header' },
-			{ text: printedAt, style: 'printedAt', margin: [0, 0, 0, 5] },
 			{
-				text: `Period: ${formattedDateRange}`,
+				text: `Period: ${periodString}`,
 				style: 'subheader',
 				margin: [0, 0, 0, 10]
 			},
@@ -251,26 +262,60 @@ export async function exportTrialBalanceToExcel(
 		});
 	}
 
-	// Tambahkan tanggal sekarang
-	const now = new Date();
-	const printedAt = `Printed at: ${now.toLocaleDateString()} ${now.toLocaleTimeString()}`;
+	const wb = XLSX.utils.book_new();
+	const ws: { [key: string]: any } = {};
+	let rowIndex = 0;
 
-	// Prepare the worksheet data
-	const wsData = [];
+	// Define styles
+	const boldStyle = { font: { bold: true } };
+	const rightAlignStyle = { alignment: { horizontal: 'right' } };
+	const boldRightAlignStyle = { font: { bold: true }, alignment: { horizontal: 'right' } };
+	const numberFormat = '#,##0;(#,##0);0';
 
-	// Format proper date range
+	// Helper to add cell
+	const addCell = (row: number, col: number, value: any, style?: any) => {
+		const cellRef = XLSX.utils.encode_cell({ r: row, c: col });
+		const cell: { [key: string]: any } = { v: value };
+		if (typeof value === 'number') {
+			cell.t = 'n';
+			cell.z = numberFormat;
+		} else {
+			cell.t = 's';
+		}
+		if (style) {
+			cell.s = style;
+		}
+		ws[cellRef] = cell;
+	};
+
+	// --- Period Formatting ---
 	const startDate = new Date(dateRange.start);
-	const endDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0); // Last day of the month
-	const formattedDateRange = `${startDate.toLocaleDateString('id-ID')} to ${endDate.toLocaleDateString('id-ID')}`;
+	const monthNames = [
+		'Januari',
+		'Februari',
+		'Maret',
+		'April',
+		'Mei',
+		'Juni',
+		'Juli',
+		'Agustus',
+		'September',
+		'Oktober',
+		'November',
+		'Desember'
+	];
+	const periodString = `(${monthNames[startDate.getMonth()]} ${startDate.getFullYear()})`;
 
-	// Add title, printed at, and date range
-	wsData.push(['Trial Balance']);
-	wsData.push([printedAt]);
-	wsData.push([`Period: ${formattedDateRange}`]);
-	wsData.push([]); // Empty row for spacing
+	// --- Add content to worksheet ---
+	// Add title and period
+	addCell(rowIndex, 0, 'Trial Balance', boldStyle);
+	rowIndex++;
+	addCell(rowIndex, 0, `Period: ${periodString}`);
+	rowIndex++;
+	rowIndex++; // Empty row
 
 	// Add headers
-	wsData.push([
+	const headers = [
 		'Account',
 		'Name',
 		'Previous Debit',
@@ -279,58 +324,55 @@ export async function exportTrialBalanceToExcel(
 		'Current Credit',
 		'Balance Debit',
 		'Balance Credit'
-	]);
+	];
+	headers.forEach((header, i) => {
+		const headerStyle = i > 1 ? boldRightAlignStyle : boldStyle;
+		addCell(rowIndex, i, header, headerStyle);
+	});
+	rowIndex++;
 
 	// Add account rows
 	data.accounts.forEach((account) => {
-		wsData.push([
-			account.code,
-			account.name,
-			formatCurrency2(account.previousDebit || 0),
-			formatCurrency2(account.previousCredit || 0),
-			formatCurrency2(account.debit),
-			formatCurrency2(account.credit),
-			formatCurrency2(account.isDebit ? account.balance || 0 : 0),
-			formatCurrency2(!account.isDebit ? account.balance || 0 : 0)
-		]);
+		addCell(rowIndex, 0, account.code);
+		addCell(rowIndex, 1, account.name);
+		addCell(rowIndex, 2, account.previousDebit || 0, rightAlignStyle);
+		addCell(rowIndex, 3, account.previousCredit || 0, rightAlignStyle);
+		addCell(rowIndex, 4, account.debit, rightAlignStyle);
+		addCell(rowIndex, 5, account.credit, rightAlignStyle);
+		addCell(rowIndex, 6, account.isDebit ? account.balance || 0 : 0, rightAlignStyle);
+		addCell(rowIndex, 7, !account.isDebit ? account.balance || 0 : 0, rightAlignStyle);
+		rowIndex++;
 	});
 
 	// Add total row
-	wsData.push([
-		'Total',
-		'',
-		formatCurrency2(data.totals.previousDebit || 0),
-		formatCurrency2(data.totals.previousCredit || 0),
-		formatCurrency2(data.totals.debit),
-		formatCurrency2(data.totals.credit),
-		formatCurrency2(data.totals.balanceDebit || 0),
-		formatCurrency2(data.totals.balanceCredit || 0)
-	]);
+	addCell(rowIndex, 0, 'Total', boldStyle);
+	addCell(rowIndex, 1, '', boldStyle); // Empty cell
+	addCell(rowIndex, 2, data.totals.previousDebit || 0, boldRightAlignStyle);
+	addCell(rowIndex, 3, data.totals.previousCredit || 0, boldRightAlignStyle);
+	addCell(rowIndex, 4, data.totals.debit, boldRightAlignStyle);
+	addCell(rowIndex, 5, data.totals.credit, boldRightAlignStyle);
+	addCell(rowIndex, 6, data.totals.balanceDebit || 0, boldRightAlignStyle);
+	addCell(rowIndex, 7, data.totals.balanceCredit || 0, boldRightAlignStyle);
+	rowIndex++;
 
-	// Create worksheet
-	const ws = XLSX.utils.aoa_to_sheet(wsData);
-
-	// Add styling
-	const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
-	const maxCol = range.e.c;
-
-	// Set column widths
+	// Set worksheet range and column widths
+	const range = { s: { c: 0, r: 0 }, e: { c: headers.length - 1, r: rowIndex } };
+	ws['!ref'] = XLSX.utils.encode_range(range);
 	ws['!cols'] = [
-		{ wch: 15 }, // Account
-		{ wch: 40 }, // Name
-		{ wch: 18 }, // Previous Debit
-		{ wch: 18 }, // Previous Credit
-		{ wch: 18 }, // Current Debit
-		{ wch: 18 }, // Current Credit
-		{ wch: 18 }, // Balance Debit
-		{ wch: 18 } // Balance Credit
+		{ wch: 15 },
+		{ wch: 40 },
+		{ wch: 18 },
+		{ wch: 18 },
+		{ wch: 18 },
+		{ wch: 18 },
+		{ wch: 18 },
+		{ wch: 18 }
 	];
 
 	// Create workbook and add worksheet
-	const wb = XLSX.utils.book_new();
 	XLSX.utils.book_append_sheet(wb, ws, 'Trial Balance');
 
-	// Generate filename: tahun_bulan-trial-balance.xlsx
+	// Generate filename
 	const [year, month] = dateRange.start.split('-');
 	const filename = `${year}_${month}-trial-balance.xlsx`;
 
