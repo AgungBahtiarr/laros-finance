@@ -87,7 +87,6 @@
 				id: account.id,
 				code: account.code,
 				name: account.name,
-				type: account.type,
 				level: account.level,
 				debit: account.currentDebit,
 				credit: account.currentCredit,

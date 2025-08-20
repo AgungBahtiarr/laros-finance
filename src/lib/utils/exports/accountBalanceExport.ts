@@ -27,7 +27,6 @@ interface AccountBalanceData {
 	accounts: {
 		code: string;
 		name: string;
-		type: string;
 		level: number;
 		previousDebit: number;
 		previousCredit: number;
@@ -124,12 +123,11 @@ export async function exportAccountBalanceToPdf(
 			{
 				table: {
 					headerRows: 1,
-					widths: ['auto', '*', 60, 80, 80, 80, 80, 80, 80],
+					widths: ['auto', '*', 80, 80, 80, 80, 80, 80],
 					body: [
 						[
 							{ text: 'Account', bold: true },
 							{ text: 'Name', bold: true },
-							{ text: 'Type', bold: true },
 							{ text: 'Previous Debit', alignment: 'right', bold: true },
 							{ text: 'Previous Credit', alignment: 'right', bold: true },
 							{ text: 'Current Debit', alignment: 'right', bold: true },
@@ -140,7 +138,6 @@ export async function exportAccountBalanceToPdf(
 						...data.accounts.map((account) => [
 							{ text: account.code },
 							{ text: account.name },
-							{ text: account.type },
 							{ text: formatForPdf(account.previousDebit), alignment: 'right' },
 							{ text: formatForPdf(account.previousCredit), alignment: 'right' },
 							{ text: formatForPdf(account.debit), alignment: 'right' },
@@ -155,8 +152,7 @@ export async function exportAccountBalanceToPdf(
 							}
 						]),
 						[
-							{ text: 'Total', style: 'total', bold: true, colSpan: 3 },
-							{},
+							{ text: 'Total', style: 'total', bold: true, colSpan: 2 },
 							{},
 							{
 								text: formatForPdf(data.totals.previousDebit),
@@ -302,7 +298,6 @@ export async function exportAccountBalanceToExcel(
 	const headers = [
 		'Account',
 		'Name',
-		'Type',
 		'Previous Debit',
 		'Previous Credit',
 		'Current Debit',
@@ -311,7 +306,7 @@ export async function exportAccountBalanceToExcel(
 		'Balance Credit'
 	];
 	headers.forEach((header, i) => {
-		const headerStyle = i > 2 ? boldRightAlignStyle : boldStyle;
+		const headerStyle = i > 1 ? boldRightAlignStyle : boldStyle;
 		addCell(rowIndex, i, header, headerStyle);
 	});
 	rowIndex++;
@@ -320,26 +315,24 @@ export async function exportAccountBalanceToExcel(
 	data.accounts.forEach((account) => {
 		addCell(rowIndex, 0, account.code);
 		addCell(rowIndex, 1, account.name);
-		addCell(rowIndex, 2, account.type);
-		addCell(rowIndex, 3, account.previousDebit || 0, rightAlignStyle);
-		addCell(rowIndex, 4, account.previousCredit || 0, rightAlignStyle);
-		addCell(rowIndex, 5, account.debit, rightAlignStyle);
-		addCell(rowIndex, 6, account.credit, rightAlignStyle);
-		addCell(rowIndex, 7, account.isDebit ? account.balance || 0 : 0, rightAlignStyle);
-		addCell(rowIndex, 8, !account.isDebit ? account.balance || 0 : 0, rightAlignStyle);
+		addCell(rowIndex, 2, account.previousDebit || 0, rightAlignStyle);
+		addCell(rowIndex, 3, account.previousCredit || 0, rightAlignStyle);
+		addCell(rowIndex, 4, account.debit, rightAlignStyle);
+		addCell(rowIndex, 5, account.credit, rightAlignStyle);
+		addCell(rowIndex, 6, account.isDebit ? account.balance || 0 : 0, rightAlignStyle);
+		addCell(rowIndex, 7, !account.isDebit ? account.balance || 0 : 0, rightAlignStyle);
 		rowIndex++;
 	});
 
 	// Add total row
 	addCell(rowIndex, 0, 'Total', boldStyle);
 	addCell(rowIndex, 1, '', boldStyle); // Empty cell
-	addCell(rowIndex, 2, '', boldStyle); // Empty cell
-	addCell(rowIndex, 3, data.totals.previousDebit || 0, boldRightAlignStyle);
-	addCell(rowIndex, 4, data.totals.previousCredit || 0, boldRightAlignStyle);
-	addCell(rowIndex, 5, data.totals.debit, boldRightAlignStyle);
-	addCell(rowIndex, 6, data.totals.credit, boldRightAlignStyle);
-	addCell(rowIndex, 7, data.totals.balanceDebit || 0, boldRightAlignStyle);
-	addCell(rowIndex, 8, data.totals.balanceCredit || 0, boldRightAlignStyle);
+	addCell(rowIndex, 2, data.totals.previousDebit || 0, boldRightAlignStyle);
+	addCell(rowIndex, 3, data.totals.previousCredit || 0, boldRightAlignStyle);
+	addCell(rowIndex, 4, data.totals.debit, boldRightAlignStyle);
+	addCell(rowIndex, 5, data.totals.credit, boldRightAlignStyle);
+	addCell(rowIndex, 6, data.totals.balanceDebit || 0, boldRightAlignStyle);
+	addCell(rowIndex, 7, data.totals.balanceCredit || 0, boldRightAlignStyle);
 	rowIndex++;
 
 	// Set worksheet range and column widths
@@ -348,7 +341,6 @@ export async function exportAccountBalanceToExcel(
 	ws['!cols'] = [
 		{ wch: 15 },
 		{ wch: 40 },
-		{ wch: 15 },
 		{ wch: 18 },
 		{ wch: 18 },
 		{ wch: 18 },
