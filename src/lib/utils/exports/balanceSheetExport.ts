@@ -350,7 +350,26 @@ export async function exportBalanceSheetToPdf(
 		content: [
 			{ text: 'Balance Sheet', style: 'header' },
 			{
-				text: `Period: ${dateRange.start} to ${dateRange.end}`,
+				text: `Period: ${(() => {
+					const endDate = new Date(dateRange.end);
+					const month = endDate.getMonth();
+					const year = endDate.getFullYear();
+					const monthNames = [
+						'Januari',
+						'Februari',
+						'Maret',
+						'April',
+						'Mei',
+						'Juni',
+						'Juli',
+						'Agustus',
+						'September',
+						'Oktober',
+						'November',
+						'Desember'
+					];
+					return `${monthNames[month]} ${year}`;
+				})()}`,
 				style: 'subheader',
 				margin: [0, 0, 0, 10]
 			},
