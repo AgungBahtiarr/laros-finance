@@ -385,7 +385,28 @@ export async function exportBalanceSheetToPdf(
 		}
 	};
 
-	pdfMake.createPdf(docDefinition).download('balance-sheet.pdf');
+	const endDate = new Date(dateRange.end);
+	const month = endDate.getMonth();
+	const year = endDate.getFullYear();
+
+	const monthNames = [
+		'Januari',
+		'Februari',
+		'Maret',
+		'April',
+		'Mei',
+		'Juni',
+		'Juli',
+		'Agustus',
+		'September',
+		'Oktober',
+		'November',
+		'Desember'
+	];
+	const monthName = monthNames[month];
+	const periodName = `${monthName}_${year}`;
+	const filename = `Balance_Sheet_${periodName}.pdf`;
+	pdfMake.createPdf(docDefinition).download(filename);
 }
 
 export async function exportBalanceSheetToExcel(
@@ -413,8 +434,32 @@ export async function exportBalanceSheetToExcel(
 		});
 	}
 
-	// Prepare the worksheet data
-	const wsData: any[][] = [];
+	const wb = XLSX.utils.book_new();
+	const ws: { [key: string]: any } = {};
+	let rowIndex = 0;
+
+	// Define styles
+	const boldStyle = { font: { bold: true } };
+	const rightAlignStyle = { alignment: { horizontal: 'right' } };
+	const boldRightAlignStyle = { font: { bold: true }, alignment: { horizontal: 'right' } };
+	const numberFormat = '#,##0;(#,##0);0';
+
+	// Helper to add cell
+	const addCell = (row: number, col: number, value: any, style?: any) => {
+		const cellRef = XLSX.utils.encode_cell({ r: row, c: col });
+		const cell: { [key: string]: any } = { v: value };
+		if (typeof value === 'number') {
+			cell.t = 'n';
+			cell.v = Math.round(value);
+			cell.z = numberFormat;
+		} else {
+			cell.t = 's';
+		}
+		if (style) {
+			cell.s = style;
+		}
+		ws[cellRef] = cell;
+	};
 
 	const monthNames = [
 		'Januari',
@@ -433,169 +478,174 @@ export async function exportBalanceSheetToExcel(
 	const monthName = monthNames[period.month - 1];
 
 	// Add title and date range
-	wsData.push(['Balance Sheet']);
-	wsData.push([`Periode: ${monthName} ${period.year}`]);
-	wsData.push([]); // Empty row for spacing
+	addCell(rowIndex, 0, 'Balance Sheet', boldStyle);
+	rowIndex++;
+	addCell(rowIndex, 0, `Periode: ${monthName} ${period.year}`, boldStyle);
+	rowIndex += 2; // Empty row for spacing
 
 	// Add headers
-	wsData.push(['Account', 'Balance', 'Summary']);
+	addCell(rowIndex, 0, 'Account', boldStyle);
+	addCell(rowIndex, 1, 'Balance', boldStyle);
+	addCell(rowIndex, 2, 'Summary', boldStyle);
+	rowIndex++;
+
+	const indent = '    ';
+	const subIndent = '      ';
 
 	// Add Assets section
-	wsData.push(['AKTIVA (ASSETS)']);
+	addCell(rowIndex, 0, 'AKTIVA (ASSETS)', boldStyle);
+	rowIndex++;
 
 	// Current Assets
-	wsData.push(['    ' + 'Aktiva Lancar (Current Assets)']);
-	addAccountsToWorksheet(wsData, data.aktivaLancar);
-	wsData.push([
-		'      ' + 'Total Aktiva Lancar',
-		'',
-		{
-			v: Math.round(data.totalAktivaLancar.balance),
-			t: 'n',
-			s: { font: { bold: true }, alignment: { horizontal: 'right' }, numFmt: '#,##0;(#,##0)' }
-		}
-	]);
+	addCell(rowIndex, 0, indent + 'Aktiva Lancar (Current Assets)');
+	rowIndex++;
+	data.aktivaLancar.forEach((account) => {
+		addCell(rowIndex, 0, subIndent + account.name);
+		addCell(rowIndex, 1, account.balance, rightAlignStyle);
+		rowIndex++;
+	});
+	addCell(rowIndex, 0, subIndent + 'Total Aktiva Lancar', boldStyle);
+	addCell(rowIndex, 2, data.totalAktivaLancar.balance, boldRightAlignStyle);
+	rowIndex++;
+	rowIndex++;
 
 	// Fixed Assets
-	wsData.push(['    ' + 'Aktiva Tetap (Fixed Assets)']);
-	addAccountsToWorksheet(wsData, data.aktivaTetap);
-	wsData.push([
-		'      ' + 'Total Aktiva Tetap',
-		'',
-		{
-			v: Math.round(data.totalAktivaTetap.balance),
-			t: 'n',
-			s: { font: { bold: true }, alignment: { horizontal: 'right' }, numFmt: '#,##0;(#,##0)' }
-		}
-	]);
+	addCell(rowIndex, 0, indent + 'Aktiva Tetap (Fixed Assets)');
+	rowIndex++;
+	data.aktivaTetap.forEach((account) => {
+		addCell(rowIndex, 0, subIndent + account.name);
+		addCell(rowIndex, 1, account.balance, rightAlignStyle);
+		rowIndex++;
+	});
+	addCell(rowIndex, 0, subIndent + 'Total Aktiva Tetap', boldStyle);
+	addCell(rowIndex, 2, data.totalAktivaTetap.balance, boldRightAlignStyle);
+	rowIndex++;
+	rowIndex++;
 
 	// Akumulasi Penyusutan
-	wsData.push(['    ' + 'Akumulasi Penyusutan']);
-	addAccountsToWorksheet(wsData, data.akumulasiPenyusutan);
-	wsData.push([
-		'      ' + 'Total Akumulasi Penyusutan',
-		'',
-		{
-			v: Math.round(data.totalAkumulasiPenyusutan.balance),
-			t: 'n',
-			s: { font: { bold: true }, alignment: { horizontal: 'right' }, numFmt: '#,##0;(#,##0)' }
-		}
-	]);
+	addCell(rowIndex, 0, indent + 'Akumulasi Penyusutan');
+	rowIndex++;
+	data.akumulasiPenyusutan.forEach((account) => {
+		addCell(rowIndex, 0, subIndent + account.name);
+		addCell(rowIndex, 1, account.balance, rightAlignStyle);
+		rowIndex++;
+	});
+	addCell(rowIndex, 0, subIndent + 'Total Akumulasi Penyusutan', boldStyle);
+	addCell(rowIndex, 2, data.totalAkumulasiPenyusutan.balance, boldRightAlignStyle);
+	rowIndex++;
+	rowIndex++;
 
 	// Other Assets
-	wsData.push(['    ' + 'Aktiva Lainnya (Other Assets)']);
-	addAccountsToWorksheet(wsData, data.aktivaLainnya);
-	wsData.push([
-		'      ' + 'Total Aktiva Lainnya',
-		'',
-		{
-			v: Math.round(data.totalAktivaLainnya.balance),
-			t: 'n',
-			s: { font: { bold: true }, alignment: { horizontal: 'right' }, numFmt: '#,##0;(#,##0)' }
-		}
-	]);
+	addCell(rowIndex, 0, indent + 'Aktiva Lainnya (Other Assets)');
+	rowIndex++;
+	data.aktivaLainnya.forEach((account) => {
+		addCell(rowIndex, 0, subIndent + account.name);
+		addCell(rowIndex, 1, account.balance, rightAlignStyle);
+		rowIndex++;
+	});
+	addCell(rowIndex, 0, subIndent + 'Total Aktiva Lainnya', boldStyle);
+	addCell(rowIndex, 2, data.totalAktivaLainnya.balance, boldRightAlignStyle);
+	rowIndex++;
+	rowIndex++;
 
 	// Total Assets
-	addTotalToWorksheet(wsData, 'Total Aktiva (Total Assets)', data.totalAktiva.balance);
-	wsData.push([]); // Empty row for spacing
+	addCell(rowIndex, 0, 'Total Aktiva (Total Assets)', boldStyle);
+	addCell(rowIndex, 2, data.totalAktiva.balance, boldRightAlignStyle);
+	rowIndex++;
+	rowIndex++;
 
 	// Add Liabilities and Equity section
-	wsData.push(['PASIVA (LIABILITIES & EQUITY)']);
+	addCell(rowIndex, 0, 'PASIVA (LIABILITIES & EQUITY)', boldStyle);
+	rowIndex++;
 
 	// Current Liabilities
-	wsData.push(['    ' + 'Hutang Lancar (Current Liabilities)']);
-	addAccountsToWorksheet(wsData, data.hutangLancar);
-	wsData.push([
-		'      ' + 'Total Hutang Lancar',
-		'',
-		{
-			v: Math.round(data.totalHutangLancar.balance),
-			t: 'n',
-			s: { font: { bold: true }, alignment: { horizontal: 'right' }, numFmt: '#,##0;(#,##0)' }
-		}
-	]);
+	addCell(rowIndex, 0, indent + 'Hutang Lancar (Current Liabilities)');
+	rowIndex++;
+	data.hutangLancar.forEach((account) => {
+		addCell(rowIndex, 0, subIndent + account.name);
+		addCell(rowIndex, 1, account.balance, rightAlignStyle);
+		rowIndex++;
+	});
+	addCell(rowIndex, 0, subIndent + 'Total Hutang Lancar', boldStyle);
+	addCell(rowIndex, 2, data.totalHutangLancar.balance, boldRightAlignStyle);
+	rowIndex++;
+	rowIndex++;
 
 	// Accrued Expenses
-	wsData.push(['    ' + 'Biaya Yang Masih Harus Dibayar']);
-	addAccountsToWorksheet(wsData, data.biayaYMHDB);
-	wsData.push([
-		'      ' + 'Total Biaya Yang Masih Harus Dibayar',
-		'',
-		{
-			v: Math.round(data.totalBiayaYMHDB.balance),
-			t: 'n',
-			s: { font: { bold: true }, alignment: { horizontal: 'right' }, numFmt: '#,##0;(#,##0)' }
-		}
-	]);
+	addCell(rowIndex, 0, indent + 'Biaya Yang Masih Harus Dibayar');
+	rowIndex++;
+	data.biayaYMHDB.forEach((account) => {
+		addCell(rowIndex, 0, subIndent + account.name);
+		addCell(rowIndex, 1, account.balance, rightAlignStyle);
+		rowIndex++;
+	});
+	addCell(rowIndex, 0, subIndent + 'Total Biaya Yang Masih Harus Dibayar', boldStyle);
+	addCell(rowIndex, 2, data.totalBiayaYMHDB.balance, boldRightAlignStyle);
+	rowIndex++;
+	rowIndex++;
 
 	// Accrued Taxes
-	wsData.push(['    ' + 'Pajak Yang Masih Harus Dibayar']);
-	addAccountsToWorksheet(wsData, data.pajakYMHDB);
-	wsData.push([
-		'      ' + 'Total Pajak Yang Masih Harus Dibayar',
-		'',
-		{
-			v: Math.round(data.totalPajakYMHDB.balance),
-			t: 'n',
-			s: { font: { bold: true }, alignment: { horizontal: 'right' }, numFmt: '#,##0;(#,##0)' }
-		}
-	]);
+	addCell(rowIndex, 0, indent + 'Pajak Yang Masih Harus Dibayar');
+	rowIndex++;
+	data.pajakYMHDB.forEach((account) => {
+		addCell(rowIndex, 0, subIndent + account.name);
+		addCell(rowIndex, 1, account.balance, rightAlignStyle);
+		rowIndex++;
+	});
+	addCell(rowIndex, 0, subIndent + 'Total Pajak Yang Masih Harus Dibayar', boldStyle);
+	addCell(rowIndex, 2, data.totalPajakYMHDB.balance, boldRightAlignStyle);
+	rowIndex++;
+	rowIndex++;
 
 	// Long-term Liabilities
-	wsData.push(['    ' + 'Hutang Jangka Panjang (Long-term Liabilities)']);
-	addAccountsToWorksheet(wsData, data.hutangJangkaPanjang);
-	wsData.push([
-		'      ' + 'Total Hutang Jangka Panjang',
-		'',
-		{
-			v: Math.round(data.totalHutangJangkaPanjang.balance),
-			t: 'n',
-			s: { font: { bold: true }, alignment: { horizontal: 'right' }, numFmt: '#,##0;(#,##0)' }
-		}
-	]);
+	addCell(rowIndex, 0, indent + 'Hutang Jangka Panjang (Long-term Liabilities)');
+	rowIndex++;
+	data.hutangJangkaPanjang.forEach((account) => {
+		addCell(rowIndex, 0, subIndent + account.name);
+		addCell(rowIndex, 1, account.balance, rightAlignStyle);
+		rowIndex++;
+	});
+	addCell(rowIndex, 0, subIndent + 'Total Hutang Jangka Panjang', boldStyle);
+	addCell(rowIndex, 2, data.totalHutangJangkaPanjang.balance, boldRightAlignStyle);
+	rowIndex++;
+	rowIndex++;
 
 	// Equity
-	wsData.push(['    ' + 'Modal (Equity)']);
-	addAccountsToWorksheet(wsData, data.modal);
-	wsData.push([
-		'      ' + 'Total Modal',
-		'',
-		{
-			v: Math.round(data.totalModal.balance),
-			t: 'n',
-			s: { font: { bold: true }, alignment: { horizontal: 'right' }, numFmt: '#,##0;(#,##0)' }
-		}
-	]);
+	addCell(rowIndex, 0, indent + 'Modal (Equity)');
+	rowIndex++;
+	data.modal.forEach((account) => {
+		addCell(rowIndex, 0, subIndent + account.name);
+		addCell(rowIndex, 1, account.balance, rightAlignStyle);
+		rowIndex++;
+	});
+	addCell(rowIndex, 0, subIndent + 'Total Modal', boldStyle);
+	addCell(rowIndex, 2, data.totalModal.balance, boldRightAlignStyle);
+	rowIndex++;
+	rowIndex++;
 
-	wsData.push([
-		'    ' + 'Laba (Rugi) Berjalan',
-		'',
-		{
-			v: Math.round(data.netIncome),
-			t: 'n',
-			s: { alignment: { horizontal: 'right' }, numFmt: '#,##0;(#,##0)' }
-		}
-	]);
+	addCell(rowIndex, 0, '    ' + 'Laba (Rugi) Berjalan');
+	addCell(rowIndex, 2, data.netIncome, rightAlignStyle);
+	rowIndex++;
 
 	// Total Liabilities and Equity
-	addTotalToWorksheet(
-		wsData,
-		'Total Pasiva (Total Liabilities & Equity)',
-		data.totalPasiva.balance
-	);
+	addCell(rowIndex, 0, 'Total Pasiva (Total Liabilities & Equity)', boldStyle);
+	addCell(rowIndex, 2, data.totalPasiva.balance, boldRightAlignStyle);
+	rowIndex++;
 
-	// Create worksheet
-	const ws = XLSX.utils.aoa_to_sheet(wsData);
+	// Set worksheet range
+	const range = { s: { c: 0, r: 0 }, e: { c: 2, r: rowIndex } };
+	ws['!ref'] = XLSX.utils.encode_range(range);
 
 	// Set column widths
 	ws['!cols'] = [{ wch: 40 }, { wch: 15 }, { wch: 15 }];
 
 	// Create workbook and add worksheet
-	const wb = XLSX.utils.book_new();
 	XLSX.utils.book_append_sheet(wb, ws, 'Balance Sheet');
 
 	// Save the file
-	XLSX.writeFile(wb, 'balance-sheet.xlsx');
+	const periodName = `${monthName}_${period.year}`;
+	const filename = `Balance_Sheet_${periodName}.xlsx`;
+	XLSX.writeFile(wb, filename);
 }
 
 // Helper functions
@@ -651,10 +701,17 @@ function calculateChange(current: number, previous: number): { value: number; di
 function formatForPdf(amount: number): string {
 	if (amount === null || amount === undefined) return '-';
 	const num = Number(amount);
+
+	const formattedNum = new Intl.NumberFormat('id-ID', {
+		minimumFractionDigits: 0,
+		maximumFractionDigits: 0
+	}).format(Math.abs(num));
+
 	if (num < 0) {
-		return `(${Math.abs(num).toLocaleString('id-ID')})`;
+		return `(${formattedNum})`;
 	}
-	return num.toLocaleString('id-ID');
+
+	return formattedNum;
 }
 
 function calculateChangeForPdf(
@@ -942,7 +999,7 @@ function addAccountsToWorksheet(wsData: any[][], accounts: AccountBalance[]) {
 			{
 				v: Math.round(account.balance || 0),
 				t: 'n',
-				s: { alignment: { horizontal: 'right' }, numFmt: '#,##0;(#,##0)' }
+				s: { alignment: { horizontal: 'right' }, numFmt: '#,##0;"("#,##0")"' }
 			},
 			''
 		]);
@@ -956,7 +1013,7 @@ function addTotalToWorksheet(wsData: any[][], label: string, total: number) {
 		{
 			v: Math.round(total),
 			t: 'n',
-			s: { font: { bold: true }, alignment: { horizontal: 'right' }, numFmt: '#,##0;(#,##0)' }
+			s: { font: { bold: true }, alignment: { horizontal: 'right' }, numFmt: '#,##0;"("#,##0")"' }
 		}
 	]);
 }
