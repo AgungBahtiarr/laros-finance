@@ -225,21 +225,12 @@ export async function exportBalanceSheetToPdf(
 		getSubTotalRow('Total Modal', data.totalModal.balance, showPercentages, compareWithPrevious)
 	];
 
-    pasivaRows.push(
-        getStandaloneRow(
-            'Pendapatan diterima dimuka',
-            showPercentages,
-            compareWithPrevious
-        )
-    );
+	pasivaRows.push(
+		getStandaloneRow('Pendapatan diterima dimuka', showPercentages, compareWithPrevious)
+	);
 
 	pasivaRows.push(
-		getStandaloneRow(
-			'Laba (Rugi) Berjalan',
-			data.netIncome,
-			showPercentages,
-			compareWithPrevious
-		)
+		getStandaloneRow('Laba (Rugi) Berjalan', data.netIncome, showPercentages, compareWithPrevious)
 	);
 
 	const body: TableCell[][] = [
@@ -447,7 +438,7 @@ export async function exportBalanceSheetToExcel(
 	wsData.push([]); // Empty row for spacing
 
 	// Add headers
-	wsData.push(['Account', 'Balance', 'SUMMARY']);
+	wsData.push(['Account', 'Balance', 'Summary']);
 
 	// Add Assets section
 	wsData.push(['AKTIVA (ASSETS)']);
@@ -459,8 +450,9 @@ export async function exportBalanceSheetToExcel(
 		'      ' + 'Total Aktiva Lancar',
 		'',
 		{
-			v: formatCurrency(data.totalAktivaLancar.balance),
-			s: { font: { bold: true }, alignment: { horizontal: 'left' } }
+			v: Math.round(data.totalAktivaLancar.balance),
+			t: 'n',
+			s: { font: { bold: true }, alignment: { horizontal: 'right' }, numFmt: '#,##0;(#,##0)' }
 		}
 	]);
 
@@ -471,8 +463,9 @@ export async function exportBalanceSheetToExcel(
 		'      ' + 'Total Aktiva Tetap',
 		'',
 		{
-			v: formatCurrency(data.totalAktivaTetap.balance),
-			s: { font: { bold: true }, alignment: { horizontal: 'left' } }
+			v: Math.round(data.totalAktivaTetap.balance),
+			t: 'n',
+			s: { font: { bold: true }, alignment: { horizontal: 'right' }, numFmt: '#,##0;(#,##0)' }
 		}
 	]);
 
@@ -483,8 +476,9 @@ export async function exportBalanceSheetToExcel(
 		'      ' + 'Total Akumulasi Penyusutan',
 		'',
 		{
-			v: formatCurrency(data.totalAkumulasiPenyusutan.balance),
-			s: { font: { bold: true }, alignment: { horizontal: 'left' } }
+			v: Math.round(data.totalAkumulasiPenyusutan.balance),
+			t: 'n',
+			s: { font: { bold: true }, alignment: { horizontal: 'right' }, numFmt: '#,##0;(#,##0)' }
 		}
 	]);
 
@@ -495,8 +489,9 @@ export async function exportBalanceSheetToExcel(
 		'      ' + 'Total Aktiva Lainnya',
 		'',
 		{
-			v: formatCurrency(data.totalAktivaLainnya.balance),
-			s: { font: { bold: true }, alignment: { horizontal: 'left' } }
+			v: Math.round(data.totalAktivaLainnya.balance),
+			t: 'n',
+			s: { font: { bold: true }, alignment: { horizontal: 'right' }, numFmt: '#,##0;(#,##0)' }
 		}
 	]);
 
@@ -514,8 +509,9 @@ export async function exportBalanceSheetToExcel(
 		'      ' + 'Total Hutang Lancar',
 		'',
 		{
-			v: formatCurrency(data.totalHutangLancar.balance),
-			s: { font: { bold: true }, alignment: { horizontal: 'left' } }
+			v: Math.round(data.totalHutangLancar.balance),
+			t: 'n',
+			s: { font: { bold: true }, alignment: { horizontal: 'right' }, numFmt: '#,##0;(#,##0)' }
 		}
 	]);
 
@@ -526,8 +522,9 @@ export async function exportBalanceSheetToExcel(
 		'      ' + 'Total Biaya Yang Masih Harus Dibayar',
 		'',
 		{
-			v: formatCurrency(data.totalBiayaYMHDB.balance),
-			s: { font: { bold: true }, alignment: { horizontal: 'left' } }
+			v: Math.round(data.totalBiayaYMHDB.balance),
+			t: 'n',
+			s: { font: { bold: true }, alignment: { horizontal: 'right' }, numFmt: '#,##0;(#,##0)' }
 		}
 	]);
 
@@ -538,8 +535,9 @@ export async function exportBalanceSheetToExcel(
 		'      ' + 'Total Pajak Yang Masih Harus Dibayar',
 		'',
 		{
-			v: formatCurrency(data.totalPajakYMHDB.balance),
-			s: { font: { bold: true }, alignment: { horizontal: 'left' } }
+			v: Math.round(data.totalPajakYMHDB.balance),
+			t: 'n',
+			s: { font: { bold: true }, alignment: { horizontal: 'right' }, numFmt: '#,##0;(#,##0)' }
 		}
 	]);
 
@@ -550,8 +548,9 @@ export async function exportBalanceSheetToExcel(
 		'      ' + 'Total Hutang Jangka Panjang',
 		'',
 		{
-			v: formatCurrency(data.totalHutangJangkaPanjang.balance),
-			s: { font: { bold: true }, alignment: { horizontal: 'left' } }
+			v: Math.round(data.totalHutangJangkaPanjang.balance),
+			t: 'n',
+			s: { font: { bold: true }, alignment: { horizontal: 'right' }, numFmt: '#,##0;(#,##0)' }
 		}
 	]);
 
@@ -561,10 +560,22 @@ export async function exportBalanceSheetToExcel(
 	wsData.push([
 		'      ' + 'Total Modal',
 		'',
-		{ v: formatCurrency(data.totalModal.balance), s: { font: { bold: true }, alignment: { horizontal: 'left' } } }
+		{
+			v: Math.round(data.totalModal.balance),
+			t: 'n',
+			s: { font: { bold: true }, alignment: { horizontal: 'right' }, numFmt: '#,##0;(#,##0)' }
+		}
 	]);
 
-	wsData.push(['    ' + 'Laba (Rugi) Berjalan', '', formatCurrency(data.netIncome)]);
+	wsData.push([
+		'    ' + 'Laba (Rugi) Berjalan',
+		'',
+		{
+			v: Math.round(data.netIncome),
+			t: 'n',
+			s: { alignment: { horizontal: 'right' }, numFmt: '#,##0;(#,##0)' }
+		}
+	]);
 
 	// Total Liabilities and Equity
 	addTotalToWorksheet(
@@ -926,7 +937,15 @@ function getTotalPasivaRow(
 
 function addAccountsToWorksheet(wsData: any[][], accounts: AccountBalance[]) {
 	accounts.forEach((account) => {
-		wsData.push(['      ' + account.name, formatCurrency(account.balance || 0), '']);
+		wsData.push([
+			'      ' + account.name,
+			{
+				v: Math.round(account.balance || 0),
+				t: 'n',
+				s: { alignment: { horizontal: 'right' }, numFmt: '#,##0;(#,##0)' }
+			},
+			''
+		]);
 	});
 }
 
@@ -935,8 +954,9 @@ function addTotalToWorksheet(wsData: any[][], label: string, total: number) {
 		label,
 		'',
 		{
-			v: formatCurrency(total),
-			s: { font: { bold: true }, alignment: { horizontal: 'left' } }
+			v: Math.round(total),
+			t: 'n',
+			s: { font: { bold: true }, alignment: { horizontal: 'right' }, numFmt: '#,##0;(#,##0)' }
 		}
 	]);
 }
