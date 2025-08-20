@@ -56,11 +56,9 @@ function formatCurrency2(value: number) {
 }
 
 function formatForPdf(amount: number): string {
-	if (amount === null || amount === undefined)
-		return '-';
+	if (amount === null || amount === undefined) return '-';
 	const num = Number(amount);
-	if (num === 0)
-		return '0';
+	if (num === 0) return '0';
 	if (num < 0) {
 		return `(${Math.abs(num).toLocaleString('id-ID')})`;
 	}
@@ -91,14 +89,26 @@ export async function exportAccountBalanceToPdf(
 	}
 
 	const now = new Date();
-	const printedAt = `Printed at: ${now.toLocaleDateString()} ${now.toLocaleTimeString()}`;
 	const [year, month] = dateRange.start.split('-');
 	const filename = `${year}_${month}-account-balance.pdf`;
 
-	// Format proper date range
+	// Format period string
 	const startDate = new Date(dateRange.start);
-	const endDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0); // Last day of the month
-	const formattedDateRange = `${startDate.toLocaleDateString('id-ID')} to ${endDate.toLocaleDateString('id-ID')}`;
+	const monthNames = [
+		'Januari',
+		'Februari',
+		'Maret',
+		'April',
+		'Mei',
+		'Juni',
+		'Juli',
+		'Agustus',
+		'September',
+		'Oktober',
+		'November',
+		'Desember'
+	];
+	const periodString = `${monthNames[startDate.getMonth()]} ${startDate.getFullYear()}`;
 
 	const docDefinition: TDocumentDefinitions = {
 		pageSize: 'A4',
@@ -106,9 +116,8 @@ export async function exportAccountBalanceToPdf(
 		pageMargins: [40, 60, 40, 60],
 		content: [
 			{ text: 'Account Balance', style: 'header' },
-			{ text: printedAt, style: 'printedAt', margin: [0, 0, 0, 5] },
 			{
-				text: `Period: ${formattedDateRange}`,
+				text: `Period: ${periodString}`,
 				style: 'subheader',
 				margin: [0, 0, 0, 10]
 			},
@@ -204,11 +213,6 @@ export async function exportAccountBalanceToPdf(
 			total: {
 				bold: true,
 				fillColor: '#f0f0f0'
-			},
-			printedAt: {
-				fontSize: 10,
-				italics: true,
-				color: '#888888'
 			}
 		},
 		defaultStyle: {
@@ -242,22 +246,60 @@ export async function exportAccountBalanceToExcel(
 		});
 	}
 
-	const now = new Date();
-	const printedAt = `Printed at: ${now.toLocaleDateString()} ${now.toLocaleTimeString()}`;
-	const [year, month] = dateRange.start.split('-');
-	const filename = `${year}_${month}-account-balance.xlsx`;
+	const wb = XLSX.utils.book_new();
+	const ws: { [key: string]: any } = {};
+	let rowIndex = 0;
 
-	// Format proper date range
+	// Define styles
+	const boldStyle = { font: { bold: true } };
+	const rightAlignStyle = { alignment: { horizontal: 'right' } };
+	const boldRightAlignStyle = { font: { bold: true }, alignment: { horizontal: 'right' } };
+	const numberFormat = '#,##0;(#,##0);0';
+
+	// Helper to add cell
+	const addCell = (row: number, col: number, value: any, style?: any) => {
+		const cellRef = XLSX.utils.encode_cell({ r: row, c: col });
+		const cell: { [key: string]: any } = { v: value };
+		if (typeof value === 'number') {
+			cell.t = 'n';
+			cell.z = numberFormat;
+		} else {
+			cell.t = 's';
+		}
+		if (style) {
+			cell.s = style;
+		}
+		ws[cellRef] = cell;
+	};
+
+	// --- Period Formatting ---
 	const startDate = new Date(dateRange.start);
-	const endDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0); // Last day of the month
-	const formattedDateRange = `${startDate.toLocaleDateString('id-ID')} to ${endDate.toLocaleDateString('id-ID')}`;
+	const monthNames = [
+		'Januari',
+		'Februari',
+		'Maret',
+		'April',
+		'Mei',
+		'Juni',
+		'Juli',
+		'Agustus',
+		'September',
+		'Oktober',
+		'November',
+		'Desember'
+	];
+	const periodString = `(${monthNames[startDate.getMonth()]} ${startDate.getFullYear()})`;
 
-	const wsData = [];
-	wsData.push(['Account Balance']);
-	wsData.push([printedAt]);
-	wsData.push([`Period: ${formattedDateRange}`]);
-	wsData.push([]);
-	wsData.push([
+	// --- Add content to worksheet ---
+	// Add title and period
+	addCell(rowIndex, 0, 'Account Balance', boldStyle);
+	rowIndex++;
+	addCell(rowIndex, 0, `Period: ${periodString}`);
+	rowIndex++;
+	rowIndex++; // Empty row
+
+	// Add headers
+	const headers = [
 		'Account',
 		'Name',
 		'Type',
@@ -267,46 +309,61 @@ export async function exportAccountBalanceToExcel(
 		'Current Credit',
 		'Balance Debit',
 		'Balance Credit'
-	]);
-	data.accounts.forEach((account) => {
-		wsData.push([
-			account.code,
-			account.name,
-			account.type,
-			formatCurrency2(account.previousDebit),
-			formatCurrency2(account.previousCredit),
-			formatCurrency2(account.debit),
-			formatCurrency2(account.credit),
-			formatCurrency2(account.isDebit ? account.balance : 0),
-			formatCurrency2(!account.isDebit ? account.balance : 0)
-		]);
+	];
+	headers.forEach((header, i) => {
+		const headerStyle = i > 2 ? boldRightAlignStyle : boldStyle;
+		addCell(rowIndex, i, header, headerStyle);
 	});
-	wsData.push([
-		'Total',
-		'',
-		'',
-		formatCurrency2(data.totals.previousDebit),
-		formatCurrency2(data.totals.previousCredit),
-		formatCurrency2(data.totals.debit),
-		formatCurrency2(data.totals.credit),
-		formatCurrency2(data.totals.balanceDebit),
-		formatCurrency2(data.totals.balanceCredit)
-	]);
+	rowIndex++;
 
-	const ws = XLSX.utils.aoa_to_sheet(wsData);
+	// Add account rows
+	data.accounts.forEach((account) => {
+		addCell(rowIndex, 0, account.code);
+		addCell(rowIndex, 1, account.name);
+		addCell(rowIndex, 2, account.type);
+		addCell(rowIndex, 3, account.previousDebit || 0, rightAlignStyle);
+		addCell(rowIndex, 4, account.previousCredit || 0, rightAlignStyle);
+		addCell(rowIndex, 5, account.debit, rightAlignStyle);
+		addCell(rowIndex, 6, account.credit, rightAlignStyle);
+		addCell(rowIndex, 7, account.isDebit ? account.balance || 0 : 0, rightAlignStyle);
+		addCell(rowIndex, 8, !account.isDebit ? account.balance || 0 : 0, rightAlignStyle);
+		rowIndex++;
+	});
+
+	// Add total row
+	addCell(rowIndex, 0, 'Total', boldStyle);
+	addCell(rowIndex, 1, '', boldStyle); // Empty cell
+	addCell(rowIndex, 2, '', boldStyle); // Empty cell
+	addCell(rowIndex, 3, data.totals.previousDebit || 0, boldRightAlignStyle);
+	addCell(rowIndex, 4, data.totals.previousCredit || 0, boldRightAlignStyle);
+	addCell(rowIndex, 5, data.totals.debit, boldRightAlignStyle);
+	addCell(rowIndex, 6, data.totals.credit, boldRightAlignStyle);
+	addCell(rowIndex, 7, data.totals.balanceDebit || 0, boldRightAlignStyle);
+	addCell(rowIndex, 8, data.totals.balanceCredit || 0, boldRightAlignStyle);
+	rowIndex++;
+
+	// Set worksheet range and column widths
+	const range = { s: { c: 0, r: 0 }, e: { c: headers.length - 1, r: rowIndex } };
+	ws['!ref'] = XLSX.utils.encode_range(range);
 	ws['!cols'] = [
-		{ wch: 15 }, // Account
-		{ wch: 40 }, // Name
-		{ wch: 15 }, // Type
-		{ wch: 18 }, // Previous Debit
-		{ wch: 18 }, // Previous Credit
-		{ wch: 18 }, // Current Debit
-		{ wch: 18 }, // Current Credit
-		{ wch: 18 }, // Balance Debit
-		{ wch: 18 } // Balance Credit
+		{ wch: 15 },
+		{ wch: 40 },
+		{ wch: 15 },
+		{ wch: 18 },
+		{ wch: 18 },
+		{ wch: 18 },
+		{ wch: 18 },
+		{ wch: 18 },
+		{ wch: 18 }
 	];
 
-	const wb = XLSX.utils.book_new();
+	// Create workbook and add worksheet
 	XLSX.utils.book_append_sheet(wb, ws, 'Account Balance');
+
+	// Generate filename
+	const [year, month] = dateRange.start.split('-');
+	const filename = `${year}_${month}-account-balance.xlsx`;
+
+	// Save the file
 	XLSX.writeFile(wb, filename);
 }
