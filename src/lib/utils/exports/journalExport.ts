@@ -158,6 +158,26 @@ rows.push([
 	XLSX.writeFile(workbook, `report_journal${data.period.start}_to_${data.period.end}.xlsx`);
 }
 
+function formatForPdf(amount: number): string {
+    if (amount === null || amount === undefined) return '-';
+    const num = Number(amount);
+    if (num === 0) return '';
+
+	const fixedNum = num.toFixed(2);
+    const parts = fixedNum.split('.');
+    const integerPart = parseInt(parts[0], 10);
+    const decimalPart = parts[1];
+
+    const formattedInteger = new Intl.NumberFormat('id-ID').format(Math.abs(integerPart));
+
+    const result = `${formattedInteger},${decimalPart}`;
+
+	if (num < 0) {
+		return `(${result})`;
+	}
+	return result;
+}
+
 export async function exportJournalToPdf(data: JournalData) {
 	const formatDateToNumeric = (dateString: string) => {
 		const date = new Date(dateString);
@@ -246,8 +266,8 @@ export async function exportJournalToPdf(data: JournalData) {
 				{ text: detail.accountName, style: 'tableCell', margin: [6, 0, 0, 0], alignment: 'left' },
 				{ text: lineDescription, style: 'tableCell', margin: [6, 0, 0, 0], alignment: 'left' },
 				{ text: '', style: 'tableCell', margin: [6, 0, 0, 0], alignment: 'left' },
-				{ text: detail.debit ? detail.debit.toFixed(2) : '', style: 'tableCell', alignment: 'right' },
-				{ text: detail.credit ? detail.credit.toFixed(2) : '', style: 'tableCell', alignment: 'right' }
+				{ text: formatForPdf(detail.debit), style: 'tableCell', alignment: 'right' },
+				{ text: formatForPdf(detail.credit), style: 'tableCell', alignment: 'right' }
 			]);
 		});
 
@@ -259,8 +279,8 @@ export async function exportJournalToPdf(data: JournalData) {
 			{ text: '', style: 'totals' },
 			{ text: '', style: 'totals' },
 			{ text: 'Total', style: 'totals', alignment: 'right' },
-			{ text: entryDebitTotal.toFixed(2), style: 'totals', alignment: 'right' },
-			{ text: entryCreditTotal.toFixed(2), style: 'totals', alignment: 'right' }
+			{ text: formatForPdf(entryDebitTotal), style: 'totals', alignment: 'right' },
+			{ text: formatForPdf(entryCreditTotal), style: 'totals', alignment: 'right' }
 		]);
 	});
 
@@ -300,8 +320,8 @@ export async function exportJournalToPdf(data: JournalData) {
 						)}`,
 						style: 'tableCell'
 					},
-					{ text: data.totals.debit.toFixed(2), style: 'tableCell', alignment: 'right' },
-					{ text: data.totals.credit.toFixed(2), style: 'tableCell', alignment: 'right' }
+					{ text: formatForPdf(data.totals.debit), style: 'tableCell', alignment: 'right' },
+					{ text: formatForPdf(data.totals.credit), style: 'tableCell', alignment: 'right' }
 				]
 			]
 		},
