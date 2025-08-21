@@ -42,13 +42,13 @@ export async function exportJournalToExcel(data: JournalData) {
 	const rows: any[] = [];
 
 	// Add header rows as shown in the image
-ows.push(['Journal']); // Row 1
-ows.push(['From', data.period.start]); // Row 2
-ows.push(['To', data.period.end]); // Row 3
-ows.push([]); // Row 4 - empty
+rows.push(['Journal']); // Row 1
+rows.push(['From', data.period.start]); // Row 2
+rows.push(['To', data.period.end]); // Row 3
+rows.push([]); // Row 4 - empty
 
 	// Row 5 - Column headers
-ows.push([
+rows.push([
 		'Date \n Account',
 		'Journal Number \n Account Name',
 		'Reff. Number \n Detail Note',
@@ -60,7 +60,7 @@ export async function exportJournalToExcel(data: JournalData) {
 	// Add entries in the format shown in the image
 	data.entries.forEach((entry) => {
 		// Add journal header row with date, journal number, reference, note/description
-	ows.push([
+	rows.push([
 			entry.date, // Date
 			entry.number, // Journal Number
 			entry.reference || '', // Reference
@@ -73,10 +73,10 @@ export async function exportJournalToExcel(data: JournalData) {
 		entry.details.forEach((detail) => {
 			// Format line description to match import expectation
 			const lineDescription = detail.description
-				? `${detail.accountName} - ${detail.description}`
+				? `${detail.description}`
 				: detail.accountName;
 
-		ows.push([
+		rows.push([
 				detail.accountCode, // Account code in first column
 				detail.accountName, // Account name
 				lineDescription, // Detail note
@@ -89,7 +89,7 @@ export async function exportJournalToExcel(data: JournalData) {
 		// Add total row
 		const entryDebitTotal = entry.details.reduce((sum, d) => sum + (d.debit || 0), 0);
 		const entryCreditTotal = entry.details.reduce((sum, d) => sum + (d.credit || 0), 0);
-	ows.push([
+        rows.push([
 			'', // Empty date column
 			'Total', // Total label
 			'', // Empty detail note
@@ -159,25 +159,39 @@ export async function exportJournalToExcel(data: JournalData) {
 }
 
 export async function exportJournalToPdf(data: JournalData) {
+	const formatDateToNumeric = (dateString: string) => {
+		const date = new Date(dateString);
+		const day = date.getDate().toString().padStart(2, '0');
+		const month = (date.getMonth() + 1).toString().padStart(2, '0');
+		const year = date.getFullYear();
+		return `${day}/${month}/${year}`;
+	};
+
 	const documentDefinition = {
+		pageOrientation: 'landscape',
 		content: [
-			{ text: 'Journal', style: 'header' },
 			{
-				text: `From: ${formatDate(data.period.start)} To: ${formatDate(data.period.end)}`,
-				style: 'subheader'
-			},
-			{ text: '\n' }
+				stack: [
+					{ text: 'Journal', style: 'header' },
+					{
+						text: `From: ${formatDateToNumeric(data.period.start)} \n To: ${formatDateToNumeric(
+							data.period.end
+						)}`,
+						style: 'subheader'
+					}
+				],
+				marginBottom: 15
+			}
 		],
 		styles: {
 			header: {
 				fontSize: 18,
-				bold: true,
-				margin: [0, 0, 0, 10]
+				bold: true
 			},
 			subheader: {
 				fontSize: 14,
 				bold: true,
-				margin: [0, 10, 0, 5]
+				margin: [0, 5, 0, 5]
 			},
 			tableHeader: {
 				bold: true,
@@ -203,78 +217,60 @@ export async function exportJournalToPdf(data: JournalData) {
 		}
 	};
 
-	data.entries.forEach((entry) => {
-		documentDefinition.content.push({
-			table: {
-				headerRows: 1,
-				widths: ['*', '*', '*', '*', '*', '*'],
-				body: [
-					[
-						{ text: 'Date', style: 'tableHeader' },
-						{ text: 'Journal Number', style: 'tableHeader' },
-						{ text: 'Reference', style: 'tableHeader' },
-						{ text: 'Description', style: 'tableHeader', colSpan: 3 },
-						{},
-						{}
-					],
-					[
-						formatDate(entry.date),
-						entry.number,
-						entry.reference || '',
-						{ text: entry.description, colSpan: 3 },
-						{},
-						{}
-					]
-				]
-			},
-			layout: 'lightHorizontalLines'
-		});
+	const tableBody = [
+		[
+			{ text: 'Date\nAccount', style: 'tableHeader', alignment: 'left' },
+			{ text: 'Journal Number\nAccount Name', style: 'tableHeader', alignment: 'left' },
+			{ text: 'Reff. Number\nDetail Note', style: 'tableHeader', alignment: 'left' },
+			{ text: 'Note', style: 'tableHeader', alignment: 'left' },
+			{ text: 'Debit', style: 'tableHeader', alignment: 'right' },
+			{ text: 'Credit', style: 'tableHeader', alignment: 'right' }
+		]
+	];
 
-		const detailsBody = [
-			[
-				{ text: 'Account', style: 'tableHeader' },
-				{ text: 'Description', style: 'tableHeader' },
-				{ text: 'Debit', style: 'tableHeader', alignment: 'right' },
-				{ text: 'Credit', style: 'tableHeader', alignment: 'right' }
-			]
-		];
+	data.entries.forEach((entry) => {
+		tableBody.push([
+			{ text: formatDateToNumeric(entry.date), style: 'tableCell', alignment: 'left' },
+			{ text: entry.number, style: 'tableCell', alignment: 'left' },
+			{ text: entry.reference || '', style: 'tableCell', alignment: 'left' },
+			{ text: entry.description, style: 'tableCell', alignment: 'left' },
+			{ text: '', style: 'tableCell' },
+			{ text: '', style: 'tableCell' }
+		]);
 
 		entry.details.forEach((detail) => {
-			detailsBody.push([
-				{ text: `${detail.accountCode}\n${detail.accountName}`, style: 'tableCell' },
-				{ text: detail.description, style: 'tableCell' },
-				{
-					text: detail.debit ? detail.debit.toFixed(2) : '',
-					style: 'tableCell',
-				alignment: 'right'
-				},
-				{
-					text: detail.credit ? detail.credit.toFixed(2) : '',
-					style: 'tableCell',
-				alignment: 'right'
-				}
+			const lineDescription = detail.description && detail.description !== detail.accountName ? detail.description : '';
+
+			tableBody.push([
+				{ text: detail.accountCode, style: 'tableCell', margin: [6, 0, 0, 0], alignment: 'left' },
+				{ text: detail.accountName, style: 'tableCell', margin: [6, 0, 0, 0], alignment: 'left' },
+				{ text: lineDescription, style: 'tableCell', margin: [6, 0, 0, 0], alignment: 'left' },
+				{ text: '', style: 'tableCell', margin: [6, 0, 0, 0], alignment: 'left' },
+				{ text: detail.debit ? detail.debit.toFixed(2) : '', style: 'tableCell', alignment: 'right' },
+				{ text: detail.credit ? detail.credit.toFixed(2) : '', style: 'tableCell', alignment: 'right' }
 			]);
 		});
 
 		const entryDebitTotal = entry.details.reduce((sum, d) => sum + (d.debit || 0), 0);
 		const entryCreditTotal = entry.details.reduce((sum, d) => sum + (d.credit || 0), 0);
 
-		detailsBody.push([
-			{ text: 'Total', style: 'totals', colSpan: 2, alignment: 'left' },
-			{},
+		tableBody.push([
+			{ text: '', style: 'totals' },
+			{ text: '', style: 'totals' },
+			{ text: '', style: 'totals' },
+			{ text: 'Total', style: 'totals', alignment: 'right' },
 			{ text: entryDebitTotal.toFixed(2), style: 'totals', alignment: 'right' },
 			{ text: entryCreditTotal.toFixed(2), style: 'totals', alignment: 'right' }
 		]);
+	});
 
-		documentDefinition.content.push({
-			table: {
-				headerRows: 1,
-				widths: ['auto', '*', 'auto', 'auto'],
-				body: detailsBody
-			},
-			layout: 'lightHorizontalLines',
-			margin: [0, 0, 0, 10]
-		});
+	documentDefinition.content.push({
+		table: {
+			headerRows: 1,
+			widths: ['auto', '*', '*', 'auto', 'auto', 'auto'],
+			body: tableBody
+		},
+		layout: 'lightHorizontalLines'
 	});
 
 	documentDefinition.content.push({
@@ -299,7 +295,9 @@ export async function exportJournalToPdf(data: JournalData) {
 				],
 				[
 					{
-						text: `${formatDate(data.period.start)} - ${formatDate(data.period.end)}`,
+						text: `${formatDateToNumeric(data.period.start)} - ${formatDateToNumeric(
+							data.period.end
+						)}`,
 						style: 'tableCell'
 					},
 					{ text: data.totals.debit.toFixed(2), style: 'tableCell', alignment: 'right' },

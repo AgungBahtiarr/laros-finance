@@ -584,28 +584,6 @@
 							</td>
 							<td>
 								<div class="flex justify-center gap-1">
-									<button
-										class="btn btn-ghost btn-sm"
-										title="Edit Journal Entry"
-										onclick={() => openEditForm(entry)}
-									>
-										<Edit class="h-4 w-4" />
-									</button>
-									<form method="POST" action="?/delete" use:enhance={handleAction}>
-										<input type="hidden" name="id" value={entry.id} />
-										<button
-											type="submit"
-											class="btn btn-ghost btn-sm text-error"
-											title="Delete Journal Entry"
-											onclick={(e) => {
-												if (!confirm('Are you sure you want to delete this journal entry?')) {
-													e.preventDefault();
-												}
-											}}
-										>
-											<Trash2 class="h-4 w-4" />
-										</button>
-									</form>
 								</div>
 							</td>
 						</tr>
