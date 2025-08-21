@@ -39,70 +39,121 @@ interface JournalData {
 
 export async function exportJournalToExcel(data: JournalData) {
 	const workbook = XLSX.utils.book_new();
-	const rows: any[] = [];
+	const ws: { [key: string]: any } = {};
+	let rowIndex = 0;
 
-	// Add header rows as shown in the image
-rows.push(['Journal']); // Row 1
-rows.push(['From', data.period.start]); // Row 2
-rows.push(['To', data.period.end]); // Row 3
-rows.push([]); // Row 4 - empty
+	// Define styles
+	const headerStyle = {
+		font: { name: 'Arial', sz: 10, bold: true },
+		alignment: { vertical: 'center', horizontal: 'center', wrapText: true }
+	};
+	const titleStyle = { font: { bold: true } };
+	const numberStyle = {
+		font: { name: 'Arial', sz: 10 },
+		alignment: { horizontal: 'right' },
+		numFmt: '#,##0.00'
+	};
+	const totalNumberStyle = {
+		font: { name: 'Arial', sz: 10, bold: true },
+		alignment: { horizontal: 'right' },
+		numFmt: '#,##0.00'
+	};
+	const dateStyle = {
+		font: { name: 'Arial', sz: 10 },
+		alignment: { vertical: 'center', horizontal: 'left' },
+		numFmt: 'yyyy-mm-dd'
+	};
+	const defaultStyle = {
+		font: { name: 'Arial', sz: 10 },
+		alignment: { vertical: 'center', horizontal: 'left' }
+	};
+	const totalLabelStyle = { ...defaultStyle, font: { ...defaultStyle.font, bold: true } };
 
-	// Row 5 - Column headers
-rows.push([
+	// Helper to add cell
+	const addCell = (row: number, col: number, value: any, style?: any) => {
+		const cellRef = XLSX.utils.encode_cell({ r: row, c: col });
+		if (value === null || value === undefined || value === '' || value === 0) {
+			return; // Add nothing for empty cell
+		}
+
+		const cell: { [key: string]: any } = { v: value };
+
+		if (typeof value === 'number') {
+			cell.t = 'n';
+		} else if (value instanceof Date) {
+			cell.t = 'd';
+		} else {
+			cell.t = 's';
+		}
+
+		if (style) {
+			cell.s = style;
+			if (style.numFmt && (cell.t === 'n' || cell.t === 'd')) {
+				cell.z = style.numFmt;
+			}
+		}
+		ws[cellRef] = cell;
+	};
+
+	// Add header rows
+	addCell(rowIndex, 0, 'Journal', titleStyle);
+	rowIndex++;
+	addCell(rowIndex, 0, 'From');
+	addCell(rowIndex, 1, data.period.start);
+	rowIndex++;
+	addCell(rowIndex, 0, 'To');
+	addCell(rowIndex, 1, data.period.end);
+	rowIndex++;
+	rowIndex++; // Empty row
+
+	// Column headers
+	const headers = [
 		'Date \n Account',
 		'Journal Number \n Account Name',
 		'Reff. Number \n Detail Note',
 		'Note',
 		'Debit',
 		'Credit'
-	]);
+	];
+	const headerRowIndex = rowIndex;
+	headers.forEach((header, i) => addCell(rowIndex, i, header, headerStyle));
+	rowIndex++;
 
-	// Add entries in the format shown in the image
+	// Add entries
 	data.entries.forEach((entry) => {
-		// Add journal header row with date, journal number, reference, note/description
-	rows.push([
-			entry.date, // Date
-			entry.number, // Journal Number
-			entry.reference || '', // Reference
-			entry.description, // Note/Description
-			'', // Empty debit
-			'' // Empty credit
-		]);
+		// Journal header row
+		addCell(rowIndex, 0, new Date(entry.date), dateStyle);
+		addCell(rowIndex, 1, entry.number, defaultStyle);
+		addCell(rowIndex, 2, entry.reference || '', defaultStyle);
+		addCell(rowIndex, 3, entry.description, defaultStyle);
+		rowIndex++;
 
-		// Add detail rows for each account line
+		// Detail rows
 		entry.details.forEach((detail) => {
-			// Format line description to match import expectation
-			const lineDescription = detail.description
-				? `${detail.description}`
-				: detail.accountName;
-
-		rows.push([
-				detail.accountCode, // Account code in first column
-				detail.accountName, // Account name
-				lineDescription, // Detail note
-				'', // Empty note column
-				detail.debit || '', // Debit amount
-				detail.credit || '' // Credit amount
-			]);
+			const lineDescription = detail.description ? `${detail.description}` : detail.accountName;
+			addCell(rowIndex, 0, detail.accountCode, defaultStyle);
+			addCell(rowIndex, 1, detail.accountName, defaultStyle);
+			addCell(rowIndex, 2, lineDescription, defaultStyle);
+			addCell(rowIndex, 4, detail.debit, numberStyle);
+			addCell(rowIndex, 5, detail.credit, numberStyle);
+			rowIndex++;
 		});
 
-		// Add total row
+		// Total row
 		const entryDebitTotal = entry.details.reduce((sum, d) => sum + (d.debit || 0), 0);
 		const entryCreditTotal = entry.details.reduce((sum, d) => sum + (d.credit || 0), 0);
-        rows.push([
-			'', // Empty date column
-			'Total', // Total label
-			'', // Empty detail note
-			'', // Empty note column
-			entryDebitTotal, // Total debit
-			entryCreditTotal // Total credit
-		]);
+		addCell(rowIndex, 1, 'Total', totalLabelStyle);
+		addCell(rowIndex, 4, entryDebitTotal, totalNumberStyle);
+		addCell(rowIndex, 5, entryCreditTotal, totalNumberStyle);
+		rowIndex++;
 	});
 
-	const worksheet = XLSX.utils.aoa_to_sheet(rows);
+	// Set worksheet range
+	const range = { s: { c: 0, r: 0 }, e: { c: headers.length - 1, r: rowIndex - 1 } };
+	ws['!ref'] = XLSX.utils.encode_range(range);
 
-	// Set column widths to match expected format
-	const colWidths = [
+	// Set column widths
+	ws['!cols'] = [
 		{ wch: 15 }, // Date/Account
 		{ wch: 25 }, // Journal Number/Account Name
 		{ wch: 25 }, // Reff. Number/Detail Note
@@ -110,52 +161,13 @@ rows.push([
 		{ wch: 15 }, // Debit
 		{ wch: 15 } // Credit
 	];
-	worksheet['!cols'] = colWidths;
 
-	// Apply number formatting for amount columns and wrap text for headers
-	const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1');
-	for (let row = range.s.r; row <= range.e.r; row++) {
-		for (let col = range.s.c; col <= range.e.c; col++) {
-			const cellRef = XLSX.utils.encode_cell({ r: row, c: col });
-			if (!worksheet[cellRef]) continue;
+	// Set row height for header row
+	if (!ws['!rows']) ws['!rows'] = [];
+	ws['!rows'][headerRowIndex] = { hpt: 30 };
 
-			// Apply wrap text to header row (row 5, index 4)
-			if (row === 4) {
-				worksheet[cellRef].s = {
-					font: { name: 'Arial', sz: 10, bold: true },
-					alignment: { vertical: 'center', horizontal: 'center', wrapText: true }
-				};
-			}
-			// Apply number format to debit and credit columns (E and F)
-			else if (col === 4 || col === 5) {
-				// Debit and Credit columns
-				worksheet[cellRef].s = {
-					font: { name: 'Arial', sz: 10 },
-					alignment: { vertical: 'center', horizontal: 'right' },
-					numFmt: '#,##0'
-				};
-			} else if (col === 0 && row > 4) {
-				// Date column (after header rows)
-				worksheet[cellRef].s = {
-					font: { name: 'Arial', sz: 10 },
-					alignment: { vertical: 'center', horizontal: 'left' },
-					numFmt: 'yyyy-mm-dd'
-				};
-			} else {
-				worksheet[cellRef].s = {
-					font: { name: 'Arial', sz: 10 },
-					alignment: { vertical: 'center', horizontal: 'left' }
-				};
-			}
-		}
-	}
-
-	// Set row height for header row to accommodate wrapped text
-	if (!worksheet['!rows']) worksheet['!rows'] = [];
-	worksheet['!rows'][4] = { hpt: 30 };
-
-	XLSX.utils.book_append_sheet(workbook, worksheet, 'Journal');
-	XLSX.writeFile(workbook, `report_journal${data.period.start}_to_${data.period.end}.xlsx`);
+	XLSX.utils.book_append_sheet(workbook, ws, 'Journal');
+	XLSX.writeFile(workbook, `report_journal_${data.period.start}_to_${data.period.end}.xlsx`);
 }
 
 function formatForPdf(amount: number): string {
