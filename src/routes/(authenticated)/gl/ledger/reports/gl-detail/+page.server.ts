@@ -11,6 +11,10 @@ export const load: PageServerLoad = async (event) => {
 		const accountId = searchParams.get('accountId');
 		const journalType = searchParams.get('journalType') || 'all';
 
+		const startDateObj = new Date(startDate);
+		const year = startDateObj.getFullYear();
+		const startOfYear = new Date(year, 0, 1).toISOString().split('T')[0];
+
 		const coa = await db
 			.select({
 				id: chartOfAccount.id,
@@ -20,7 +24,11 @@ export const load: PageServerLoad = async (event) => {
 			.from(chartOfAccount)
 			.orderBy(chartOfAccount.code);
 
-		const whereClauses = [lte(journalEntry.date, endDate), eq(journalEntry.status, 'POSTED')];
+		const whereClauses = [
+			gte(journalEntry.date, startOfYear),
+			lte(journalEntry.date, endDate),
+			eq(journalEntry.status, 'POSTED')
+		];
 
 		if (accountId) {
 			whereClauses.push(eq(journalEntryLine.accountId, accountId));
@@ -38,7 +46,7 @@ export const load: PageServerLoad = async (event) => {
 				.from(journalEntry)
 				.where(
 					and(
-						gte(journalEntry.date, startDate),
+						gte(journalEntry.date, startOfYear),
 						lte(journalEntry.date, endDate),
 						eq(journalEntry.status, 'POSTED')
 					)
