@@ -1,8 +1,8 @@
 import { db } from '$lib/server/db';
-import { fiscalPeriod } from '$lib/server/db/schema';
+import { fiscalPeriod, journalEntry, journalEntryLine } from '$lib/server/db/schema';
 import type { Actions, PageServerLoad } from './$types';
 import { error, fail } from '@sveltejs/kit';
-import { eq, and, desc, asc } from 'drizzle-orm';
+import { eq, and, desc, asc, gte, lte, inArray } from 'drizzle-orm';
 
 export const load: PageServerLoad = async () => {
 	try {
@@ -190,6 +190,60 @@ export const actions: Actions = {
 		} catch (err) {
 			console.error('Error reopening fiscal period:', err);
 			return fail(500, { error: 'Failed to reopen fiscal period' });
+		}
+	},
+
+	deleteJournals: async ({ request }) => {
+		const formData = await request.formData();
+		const id = parseInt(formData.get('id') as string);
+
+		try {
+			// 1. Find the period
+			const period = await db.query.fiscalPeriod.findFirst({
+				where: eq(fiscalPeriod.id, id)
+			});
+
+			if (!period) {
+				return fail(404, { error: 'Fiscal period not found' });
+			}
+
+			// 2. Check if period is closed
+			if (period.isClosed) {
+				return fail(400, { error: 'Cannot delete journals from a closed period' });
+			}
+
+			// 3. Calculate date range
+			const year = period.year;
+			const month = period.month;
+
+			// Calculate last day of the month to avoid timezone issues with toISOString()
+			const lastDay = new Date(year, month, 0).getDate();
+
+			const startDateString = `${year}-${String(month).padStart(2, '0')}-01`;
+			const endDateString = `${year}-${String(month).padStart(2, '0')}-${String(
+				lastDay
+			).padStart(2, '0')}`;
+
+			// 4. Find journal entries in the period
+			const journalsToDelete = await db
+				.select({ id: journalEntry.id })
+				.from(journalEntry)
+				.where(and(gte(journalEntry.date, startDateString), lte(journalEntry.date, endDateString)));
+
+			if (journalsToDelete.length > 0) {
+				const journalIds = journalsToDelete.map((j) => j.id);
+
+				// 5. Delete journal entry lines
+				await db.delete(journalEntryLine).where(inArray(journalEntryLine.journalEntryId, journalIds));
+
+				// 6. Delete journal entries
+				await db.delete(journalEntry).where(inArray(journalEntry.id, journalIds));
+			}
+
+			return { success: true, message: `Successfully deleted all journals for period ${period.name}.` };
+		} catch (err) {
+			console.error('Error deleting journals for fiscal period:', err);
+			return fail(500, { error: 'Failed to delete journals for the fiscal period' });
 		}
 	}
 };

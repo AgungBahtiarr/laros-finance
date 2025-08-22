@@ -2,7 +2,7 @@
 	import { enhance } from '$app/forms';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
-	import { ArrowLeft, Calendar, Plus, Edit, Lock, Unlock, AlertTriangle } from '@lucide/svelte';
+	import { ArrowLeft, Calendar, Plus, Edit, Lock, Unlock, AlertTriangle, Trash2 } from '@lucide/svelte';
 
 	let { data } = $props();
 	let showModal = $state(false);
@@ -239,6 +239,25 @@
 									>
 										<Edit class="h-4 w-4" />
 									</button>
+									<form method="POST" action="?/deleteJournals" use:enhance={handleStatusChange}>
+										<input type="hidden" name="id" value={period.id} />
+										<button
+											type="submit"
+											class="btn btn-ghost btn-sm text-error"
+											disabled={period.isClosed}
+											onclick={(e) => {
+												if (
+													!confirm(
+														'Are you sure you want to delete all journals in this period? This action cannot be undone.'
+													)
+												) {
+													e.preventDefault();
+												}
+											}}
+										>
+											<Trash2 class="h-4 w-4" />
+										</button>
+									</form>
 									{#if period.isClosed}
 										<form method="POST" action="?/reopen" use:enhance={handleStatusChange}>
 											<input type="hidden" name="id" value={period.id} />
