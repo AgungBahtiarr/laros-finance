@@ -11,6 +11,10 @@ export const load: PageServerLoad = async (event) => {
 		const selectedAccounts = searchParams.get('accounts')?.split(',').map(Number) || [];
 		const journalType = searchParams.get('journalType') || 'all';
 
+		const startDateObj = new Date(startDate);
+		const year = startDateObj.getFullYear();
+		const startOfYear = new Date(year, 0, 1).toISOString().split('T')[0];
+
 		// Get active accounts for the filter
 		const accounts = await db
 			.select({
@@ -43,7 +47,7 @@ export const load: PageServerLoad = async (event) => {
 				.from(journalEntry)
 				.where(
 					and(
-						gte(journalEntry.date, startDate),
+						gte(journalEntry.date, startOfYear),
 						lte(journalEntry.date, endDate),
 						eq(journalEntry.status, 'POSTED')
 					)
@@ -79,6 +83,7 @@ export const load: PageServerLoad = async (event) => {
 			.leftJoin(journalEntry, eq(journalEntryLine.journalEntryId, journalEntry.id))
 			.where(
 				and(
+					gte(journalEntry.date, startOfYear),
 					lte(journalEntry.date, endDate),
 					eq(journalEntry.status, 'POSTED'),
 					accountFilter || undefined,
@@ -147,6 +152,7 @@ export const load: PageServerLoad = async (event) => {
 					.where(
 						and(
 							eq(journalEntryLine.accountId, accountId),
+							gte(journalEntry.date, startOfYear),
 							lte(journalEntry.date, endDate),
 							eq(journalEntry.status, 'POSTED'),
 							journalTypeFilter || undefined

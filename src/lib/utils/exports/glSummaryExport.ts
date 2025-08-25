@@ -117,9 +117,7 @@ export async function exportGLSummaryToPdf(
 							{ text: formatForPdf(account.changeCredit), alignment: 'right' },
 							{
 								text: formatForPdf(account.netChange),
-								alignment: 'right',
-								fillColor:
-									account.netChange > 0 ? '#e6ffe6' : account.netChange < 0 ? '#ffe6e6' : undefined
+								alignment: 'right'
 							},
 							{ text: formatForPdf(account.endingBalance), alignment: 'right' }
 						]),
@@ -145,13 +143,7 @@ export async function exportGLSummaryToPdf(
 							{
 								text: formatForPdf(data.totals.netChange),
 								alignment: 'right',
-								bold: true,
-								fillColor:
-									data.totals.netChange > 0
-										? '#e6ffe6'
-										: data.totals.netChange < 0
-											? '#ffe6e6'
-											: undefined
+								bold: true
 							},
 							{
 								text: formatForPdf(data.totals.endingBalance),

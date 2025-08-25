@@ -322,13 +322,7 @@
 							<td class="text-right">{formatCurrencyWithParentheses(row.beginningBalance)}</td>
 							<td class="text-right">{formatCurrencyWithParentheses(row.changeDebit)}</td>
 							<td class="text-right">{formatCurrencyWithParentheses(row.changeCredit)}</td>
-							<td class="text-right">
-								<span
-									class={row.netChange > 0 ? 'text-success' : row.netChange < 0 ? 'text-error' : ''}
-								>
-									{formatCurrencyWithParentheses(row.netChange)}
-								</span>
-							</td>
+							<td class="text-right"> {formatCurrencyWithParentheses(row.netChange)} </td>
 							<td class="text-right">{formatCurrencyWithParentheses(row.endingBalance)}</td>
 						</tr>
 					{/each}
@@ -340,15 +334,7 @@
 						<td class="text-right">{formatCurrencyWithParentheses(data.totals.changeDebit)}</td>
 						<td class="text-right">{formatCurrencyWithParentheses(data.totals.changeCredit)}</td>
 						<td class="text-right">
-							<span
-								class={data.totals.netChange > 0
-									? 'text-success'
-									: data.totals.netChange < 0
-										? 'text-error'
-										: ''}
-							>
-								{formatCurrencyWithParentheses(data.totals.netChange)}
-							</span>
+							{formatCurrencyWithParentheses(data.totals.netChange)}
 						</td>
 						<td class="text-right">{formatCurrencyWithParentheses(data.totals.endingBalance)}</td>
 					</tr>
