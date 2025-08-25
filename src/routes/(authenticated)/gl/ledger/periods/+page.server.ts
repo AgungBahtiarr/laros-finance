@@ -1,5 +1,5 @@
 import { db } from '$lib/server/db';
-import { fiscalPeriod, journalEntry, journalEntryLine } from '$lib/server/db/schema';
+import { asset, fiscalPeriod, journalEntry, journalEntryLine } from '$lib/server/db/schema';
 import type { Actions, PageServerLoad } from './$types';
 import { error, fail } from '@sveltejs/kit';
 import { eq, and, desc, asc, gte, lte, inArray } from 'drizzle-orm';
@@ -240,7 +240,13 @@ export const actions: Actions = {
 				await db.delete(journalEntry).where(inArray(journalEntry.id, journalIds));
 			}
 
-			return { success: true, message: `Successfully deleted all journals for period ${period.name}.` };
+			// 7. Delete assets for the same period
+			await db.delete(asset).where(and(eq(asset.tahunPerolehan, year), eq(asset.bulanPerolehan, month)));
+
+			return {
+				success: true,
+				message: `Successfully deleted all journals and assets for period ${period.name}.`
+			};
 		} catch (err) {
 			console.error('Error deleting journals for fiscal period:', err);
 			return fail(500, { error: 'Failed to delete journals for the fiscal period' });
