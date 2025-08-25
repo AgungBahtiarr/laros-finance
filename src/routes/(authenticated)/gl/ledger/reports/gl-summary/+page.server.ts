@@ -178,6 +178,8 @@ export const load: PageServerLoad = async (event) => {
 			})
 		);
 
+		balances.sort((a, b) => a.accountCode.localeCompare(b.accountCode));
+
 		// Calculate totals
 		const totals = balances.reduce(
 			(acc, row) => ({

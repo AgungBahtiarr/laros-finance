@@ -330,13 +330,11 @@
 				<tfoot>
 					<tr class="text-lg font-bold">
 						<td colspan="2">Total</td>
-						<td class="text-right">{formatCurrencyWithParentheses(data.totals.beginningBalance)}</td>
+						<td class="text-right"></td>
 						<td class="text-right">{formatCurrencyWithParentheses(data.totals.changeDebit)}</td>
 						<td class="text-right">{formatCurrencyWithParentheses(data.totals.changeCredit)}</td>
-						<td class="text-right">
-							{formatCurrencyWithParentheses(data.totals.netChange)}
-						</td>
-						<td class="text-right">{formatCurrencyWithParentheses(data.totals.endingBalance)}</td>
+						<td class="text-right"></td>
+						<td class="text-right"></td>
 					</tr>
 				</tfoot>
 			</table>

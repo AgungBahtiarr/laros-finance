@@ -1,7 +1,6 @@
 import type { TDocumentDefinitions } from 'pdfmake/interfaces';
 import type * as pdfMakeType from 'pdfmake/build/pdfmake';
-import type { WorkBook } from 'xlsx';
-import { formatCurrency } from '../utils.client';
+import type { WorkBook, WorkSheet } from 'xlsx';
 import { browser } from '$app/environment';
 
 // Dynamically import pdfmake and fonts only in browser
@@ -47,13 +46,27 @@ interface GLSummaryData {
 }
 
 function formatForPdf(amount: number): string {
-	if (amount === null || amount === undefined) return '-';
-	const num = Number(amount);
-	if (num === 0) return '0';
+    if (amount === null || amount === undefined) return '-';
+    const num = Number(amount);
+
+	const fixedNum = num.toFixed(2);
+    const parts = fixedNum.split('.');
+    const integerPart = parseInt(parts[0], 10);
+    const decimalPart = parts[1];
+
+    const formattedInteger = new Intl.NumberFormat('id-ID').format(Math.abs(integerPart));
+
+    const result = `${formattedInteger},${decimalPart}`;
+
 	if (num < 0) {
-		return `(${Math.abs(num).toLocaleString('id-ID')})`;
+		return `(${result})`;
 	}
-	return num.toLocaleString('id-ID');
+	return result;
+}
+
+function formatDateForFilename(dateString: string): string {
+    const [year, month, day] = dateString.split('-');
+    return `${day}-${month}-${year}`;
 }
 
 export async function exportGLSummaryToPdf(
@@ -126,7 +139,7 @@ export async function exportGLSummaryToPdf(
 							{ text: 'Total', colSpan: 2, bold: true },
 							{},
 							{
-								text: formatForPdf(data.totals.beginningBalance),
+								text: '',
 								alignment: 'right',
 								bold: true
 							},
@@ -141,12 +154,12 @@ export async function exportGLSummaryToPdf(
 								bold: true
 							},
 							{
-								text: formatForPdf(data.totals.netChange),
+								text: '',
 								alignment: 'right',
 								bold: true
 							},
 							{
-								text: formatForPdf(data.totals.endingBalance),
+								text: '',
 								alignment: 'right',
 								bold: true
 							}
@@ -172,7 +185,11 @@ export async function exportGLSummaryToPdf(
 		}
 	};
 
-	pdfMake.createPdf(docDefinition).download('gl-summary.pdf');
+    const formattedStartDate = formatDateForFilename(dateRange.start);
+    const formattedEndDate = formatDateForFilename(dateRange.end);
+    const filename = `gl-summary_${formattedStartDate}_to_${formattedEndDate}.pdf`;
+
+	pdfMake.createPdf(docDefinition).download(filename);
 }
 
 export async function exportGLSummaryToExcel(
@@ -198,17 +215,39 @@ export async function exportGLSummaryToExcel(
 		});
 	}
 
-	// Prepare the worksheet data
-	const wsData = [];
+	const ws: WorkSheet = {};
+    let rowIndex = 0;
+
+    const accountingFormat = '#,##0.00;(#,##0.00);0.00';
+
+    // Helper to add cell
+	const addCell = (row: number, col: number, value: any, style?: any) => {
+		const cellRef = XLSX.utils.encode_cell({ r: row, c: col });
+		const cell: { [key: string]: any } = { v: value };
+		if (typeof value === 'number') {
+			cell.t = 'n';
+			cell.z = accountingFormat;
+		} else {
+			cell.t = 's';
+		}
+		if (style) {
+			cell.s = style;
+		}
+		ws[cellRef] = cell;
+	};
+
+    const boldStyle = { font: { bold: true } };
 
 	// Add title and date range
-	wsData.push(['General Ledger Summary']);
-	wsData.push([`From: ${dateRange.start}`]);
-	wsData.push([`To: ${dateRange.end}`]);
-	wsData.push([]); // Empty row for spacing
+    addCell(rowIndex, 0, 'General Ledger Summary', boldStyle);
+    rowIndex++;
+	addCell(rowIndex, 0, `From: ${dateRange.start}`);
+    rowIndex++;
+	addCell(rowIndex, 0, `To: ${dateRange.end}`);
+	rowIndex += 2; // Empty row for spacing
 
 	// Add headers
-	wsData.push([
+    const headers = [
 		'Account Code',
 		'Account Name',
 		'Beginning Balance',
@@ -216,44 +255,46 @@ export async function exportGLSummaryToExcel(
 		'Change Credit',
 		'Net Change',
 		'Ending Balance'
-	]);
+	];
+    headers.forEach((header, i) => addCell(rowIndex, i, header, boldStyle));
+    rowIndex++;
+
 
 	// Add account rows
 	data.summaryData.forEach((account) => {
-		wsData.push([
-			account.accountCode,
-			account.accountName,
-			account.beginningBalance,
-			account.changeDebit,
-			account.changeCredit,
-			account.netChange,
-			account.endingBalance
-		]);
+        addCell(rowIndex, 0, account.accountCode);
+        addCell(rowIndex, 1, account.accountName);
+        addCell(rowIndex, 2, account.beginningBalance);
+        addCell(rowIndex, 3, account.changeDebit);
+        addCell(rowIndex, 4, account.changeCredit);
+        addCell(rowIndex, 5, account.netChange);
+        addCell(rowIndex, 6, account.endingBalance);
+		rowIndex++;
 	});
 
 	// Add total row
-	wsData.push([
-		'Total',
-		'',
-		data.totals.beginningBalance,
-		data.totals.changeDebit,
-		data.totals.changeCredit,
-		data.totals.netChange,
-		data.totals.endingBalance
-	]);
+    addCell(rowIndex, 0, 'Total', boldStyle);
+    addCell(rowIndex, 1, '', boldStyle); // Empty cell
+    addCell(rowIndex, 2, '', boldStyle);
+    addCell(rowIndex, 3, data.totals.changeDebit, boldStyle);
+    addCell(rowIndex, 4, data.totals.changeCredit, boldStyle);
+    addCell(rowIndex, 5, '', boldStyle);
+    addCell(rowIndex, 6, '', boldStyle);
+    rowIndex++;
 
-	// Create worksheet
-	const ws = XLSX.utils.aoa_to_sheet(wsData);
+	// Set worksheet range
+    const range = { s: { c: 0, r: 0 }, e: { c: headers.length - 1, r: rowIndex } };
+    ws['!ref'] = XLSX.utils.encode_range(range);
 
 	// Set column widths
 	ws['!cols'] = [
 		{ wch: 15 }, // Account Code
 		{ wch: 40 }, // Account Name
-		{ wch: 15 }, // Beginning Balance
-		{ wch: 15 }, // Change Debit
-		{ wch: 15 }, // Change Credit
-		{ wch: 15 }, // Net Change
-		{ wch: 15 } // Ending Balance
+		{ wch: 20 }, // Beginning Balance
+		{ wch: 20 }, // Change Debit
+		{ wch: 20 }, // Change Credit
+		{ wch: 20 }, // Net Change
+		{ wch: 20 }  // Ending Balance
 	];
 
 	// Create workbook and add worksheet
@@ -261,5 +302,8 @@ export async function exportGLSummaryToExcel(
 	XLSX.utils.book_append_sheet(wb, ws, 'GL Summary');
 
 	// Save the file
-	XLSX.writeFile(wb, 'gl-summary.xlsx');
+    const formattedStartDate = formatDateForFilename(dateRange.start);
+    const formattedEndDate = formatDateForFilename(dateRange.end);
+    const filename = `gl-summary_${formattedStartDate}_to_${formattedEndDate}.xlsx`;
+	XLSX.writeFile(wb, filename);
 }
