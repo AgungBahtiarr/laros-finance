@@ -63,69 +63,9 @@
 		goto('/assets/report');
 	}
 
-	// Export to CSV
-	function exportToCSV() {
-		// Create CSV header following the specific format
-		const header = [
-			'Jenis Harta',
-			'Kelompok Harta',
-			'Jenis Usaha',
-			'Nama Harta',
-			'Bln Perolehan',
-			'Thn Perolehan',
-			'Jenis Penyusutan Komersial',
-			'Jenis Penyusutan Fiskal',
-			'Harga Perolehan',
-			'Nilai Sisa Buku',
-			'Penyusutan fiskal tahun ini',
-			'Keterangan nama harta'
-		];
-
-		// Convert assets to CSV rows with the exact format requested
-		const csvRows = [header];
-
-		data.assets.forEach((asset) => {
-			for (let i = 0; i < asset.qty; i++) {
-				const row = [
-					asset.jenisHartaId.toString(), // Using ID instead of keterangan as per format
-					asset.kelompokHartaId.toString(), // Using ID instead of keterangan
-					asset.jenisUsaha,
-					asset.namaHarta,
-					asset.bulanPerolehan.toString(),
-					asset.tahunPerolehan.toString(),
-					asset.metodePenyusutanKomersialId.toString(), // Using ID
-					asset.metodePenyusutanFiskalId.toString(), // Using ID
-					asset.hargaPerolehan.toString(),
-					asset.nilaiSisaBuku.toString(),
-					asset.penyusutanFiskalTahunIni.toString(),
-					asset.keterangan || ''
-				];
-				csvRows.push(row);
-			}
-		});
-
-		// Using tab as separator for compatibility with Excel
-		const csvContent = csvRows
-			.map((row) => row.map((cell) => `"${cell.replace(/"/g, '""')}"`).join('\t'))
-			.join('\n');
-
-		// Create blob and download
-		const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-		const url = URL.createObjectURL(blob);
-		const link = document.createElement('a');
-
-		// Create filename with current date
-		const now = new Date();
-		const filename = `laporan_aset_${now.getFullYear()}-${(now.getMonth() + 1)
-			.toString()
-			.padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}.csv`;
-
-		link.setAttribute('href', url);
-		link.setAttribute('download', filename);
-		link.style.visibility = 'hidden';
-		document.body.appendChild(link);
-		link.click();
-		document.body.removeChild(link);
+	async function handleExport() {
+		const { exportToExcel } = await import('$lib/utils/exports/assetReportExport');
+		await exportToExcel(data.assets);
 	}
 
 	// Print report
@@ -155,9 +95,9 @@
 				<FileSpreadsheet class="h-4 w-4" />
 				Cetak
 			</button>
-			<button class="btn btn-primary btn-sm gap-1" onclick={exportToCSV}>
+			<button class="btn btn-primary btn-sm gap-1" onclick={handleExport}>
 				<FileDown class="h-4 w-4" />
-				Export CSV
+				Export XLSX
 			</button>
 		</div>
 	</div>
